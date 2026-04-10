@@ -1,622 +1,874 @@
 # Design Scout Index
-> 版本: v1.0.0 | 品牌数: 62 | 更新: 2026-04-10
+> 版本: v2.0.0 | 品牌数: 62 (Tier A: 54, Tier B: 8) | 更新: 2026-04-10
+
+> **Tier A**: 含完整 preview 素材 (DESIGN.md + preview.html + preview-dark.html + README.md)
+> **Tier B**: 仅有 DESIGN.md，preview 待后续 `preview-html-fetcher` 变更补齐
 
 ## airbnb
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Enterprise & Consumer
-- **一句话**: Warm, photography-forward marketplace built on pure white canvas with iconic Rausch Red accent and custom Cereal variable font with rounded terminals.
-- **色调**: light | coral-red | purple
+- **一句话**: Warm photography-forward marketplace aesthetic with pure white canvas, singular Rausch Red accent, rounded custom type, and three-layer shadows creating a tactile magazine-like browsing experience.
+- **色调**: light | rausch-red | white
 - **风格**: warm, photography-first, tactile, generous-radius, marketplace
 - **温度**: warm
 - **暗色**: light-only
 - **字体策略**: custom (Airbnb Cereal VF)
-- **适合**: 旅行预订、生活方式市场、社区驱动的消费平台
+- **complexity**: balanced
+- **industry-fit**: [marketplace, consumer, ecommerce]
+- **适合**: 民宿旅行电商与照片优先型消费平台
 
 ## airtable
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Design & Productivity
-- **一句话**: Clean enterprise-friendly platform with Swiss-precision Haas typography, deep navy text, and blue-tinted interactive accents on white canvas.
-- **色调**: light | navy-blue | white
-- **风格**: clean, enterprise, swiss-precision, semantic-tokens, structured
-- **温度**: cool
+- **一句话**: Clean enterprise-friendly platform communicating sophisticated simplicity through a white canvas, deep navy text, Airtable Blue accent, and Swiss-precision Haas typography with positive letter-spacing.
+- **色调**: light | airtable-blue | deep-navy
+- **风格**: swiss-precision, enterprise-friendly, blue-tinted-shadow, semantic-tokens, clean
+- **温度**: cool-neutral
 - **暗色**: light-only
-- **字体策略**: custom (Haas + Haas Groot Disp)
-- **适合**: 企业协作工具、数据管理平台、生产力SaaS产品
+- **字体策略**: custom (Haas / Haas Groot Disp)
+- **complexity**: balanced
+- **industry-fit**: [saas, productivity, enterprise, collaboration]
+- **适合**: 企业级数据协作与生产力 SaaS
 
 ## apple
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Enterprise & Consumer
-- **一句话**: Masterclass in controlled drama with binary light/dark sections, SF Pro optical sizing typography, and singular blue accent reserved exclusively for interactive elements.
-- **色调**: dark | blue | light-gray
-- **风格**: cinematic, reductive, product-as-hero, precise, premium
-- **温度**: cool
-- **暗色**: dark-first
+- **一句话**: Masterclass in controlled drama where vast black and near-white canvases serve as cinematic backdrops for sculptural product photography, anchored by SF Pro typography with singular Apple Blue accent.
+- **色调**: binary | pure-black | apple-blue
+- **风格**: cinematic, reductive, product-hero, binary-rhythm, pill-cta
+- **温度**: neutral
+- **暗色**: has-dark
 - **字体策略**: custom (SF Pro Display / SF Pro Text)
-- **适合**: 高端消费电子、硬件产品展示、品牌旗舰官网
+- **complexity**: minimal
+- **industry-fit**: [consumer, luxury, media, retail]
+- **适合**: 高端消费电子与产品展示型品牌站
 
 ## binance
+- **tier**: B
+- **hasPreview**: false
 - **类目**: Fintech & Crypto
-- **一句话**: Polished trading floor aesthetic with two-tone light/dark sections, golden yellow accent on monochrome foundation, and proprietary BinancePlex typography.
-- **色调**: dark | gold-yellow | white
-- **风格**: fintech, two-tone, urgent, data-driven, crypto-native
+- **一句话**: Polished trading-floor aesthetic alternating stark white and near-black panels with Binance Yellow as a singular gold accent, wrapping crypto trading in established-finance visual language.
+- **色调**: binary | binance-yellow | near-black
+- **风格**: two-tone, trading-floor, gold-accent, pill-cta, fintech-trust
 - **温度**: warm-neutral
 - **暗色**: has-dark
 - **字体策略**: custom (BinancePlex)
-- **适合**: 加密货币交易所、金融交易平台、数字资产管理产品
+- **complexity**: balanced
+- **industry-fit**: [crypto, fintech]
+- **适合**: 加密货币交易所与金融交易平台
 
 ## bmw
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Enterprise & Consumer
-- **一句话**: Automotive engineering made visual with zero border-radius angular geometry, light-weight uppercase display type, and BMW Blue used only for interactive elements.
-- **色调**: dark | blue | white
-- **风格**: industrial, angular, cinematic, precision, automotive
-- **温度**: cool
-- **暗色**: has-dark
-- **字体策略**: custom (BMWTypeNextLatin)
-- **适合**: 豪华汽车品牌、工业制造商、高端硬件产品官网
-
-## cal
-- **类目**: Design & Productivity
-- **一句话**: Monochromatic restraint with purely grayscale palette, custom Cal Sans geometric display font, and sophisticated multi-layered shadow system on white canvas.
-- **色调**: light | black | gray
-- **风格**: monochrome, geometric, minimal, shadow-driven, confident
-- **温度**: neutral
-- **暗色**: light-only
-- **字体策略**: custom (Cal Sans + Inter)
-- **适合**: 日程调度工具、开源SaaS产品、极简主义效率工具
-
-## claude
-- **类目**: AI & ML
-- **一句话**: Literary salon reimagined as product page with warm parchment canvas, custom Anthropic Serif, terracotta accent, and exclusively warm-toned neutrals throughout.
-- **色调**: light | terracotta | cream
-- **风格**: warm, editorial, literary, organic, parchment
-- **温度**: warm
-- **暗色**: has-dark
-- **字体策略**: custom (Anthropic Serif / Sans / Mono)
-- **适合**: AI对话产品、知识服务平台、人文气质的科技品牌
-
-## clay
-- **类目**: Dev Tools
-- **一句话**: Warm playful celebration of color with cream canvas, named swatch palette (Matcha, Slushie, Ube), Roobert font with OpenType features, and delightful hover micro-animations.
-- **色调**: light | multi-color | cream
-- **风格**: playful, artisanal, colorful, craft, animated
-- **温度**: warm
-- **暗色**: light-only
-- **字体策略**: custom (Roobert + Space Mono)
-- **适合**: 数据富集工具、创意型B2B SaaS、趣味化开发者平台
-
-## clickhouse
-- **类目**: Infra & Cloud
-- **一句话**: High-performance cockpit in acid yellow-green on obsidian black with Inter at weight 900 for massive display type and maximum-contrast neon accent.
-- **色调**: dark | neon-yellow-green | forest-green
-- **风格**: neon, high-contrast, aggressive, terminal-grade, performance
-- **温度**: cool
-- **暗色**: dark-first
-- **字体策略**: system (Inter)
-- **适合**: 高性能数据库产品、实时分析引擎、极客向基础设施工具
-
-## cohere
-- **类目**: AI & ML
-- **一句话**: Polished enterprise command deck with dual custom typefaces (CohereText serif + Unica77 sans), extreme chromatic restraint, and 22px signature card roundness.
-- **色调**: light | black-white | purple-blue
-- **风格**: enterprise, restrained, professional, serif-authority, clean
+- **一句话**: Automotive engineering made visual, communicating precision and German industrial confidence through dark hero photography, clean white content, zero-radius geometry, and whispered light-weight uppercase display type.
+- **色调**: binary | bmw-blue | near-black
+- **风格**: angular, industrial, showroom-rhythm, uppercase-display, zero-radius
 - **温度**: cool-neutral
 - **暗色**: has-dark
-- **字体策略**: custom (CohereText + Unica77 Cohere Web)
-- **适合**: 企业级AI平台、面向CTO的基础设施产品、B2B AI服务
+- **字体策略**: custom (BMWTypeNextLatin Light / Regular)
+- **complexity**: balanced
+- **industry-fit**: [automotive, luxury, consumer]
+- **适合**: 汽车工业与高端制造品牌展示
 
-## coinbase
-- **类目**: Fintech & Crypto
-- **一句话**: Clean trustworthy crypto platform with deep saturated Coinbase Blue as singular accent, four-font proprietary family, and pill-shaped CTAs on alternating light/dark sections.
-- **色调**: dark | blue | white
-- **风格**: trustworthy, financial, clean, pill-buttons, professional
-- **温度**: cool
+## cal
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Design & Productivity
+- **一句话**: Monochromatic restraint where boldness comes from black text on white space, anchored by custom Cal Sans display type with tight letter-spacing and a sophisticated 11-layer shadow elevation system.
+- **色调**: light | charcoal | white
+- **风格**: monochrome, grayscale, tight-tracking, shadow-first, minimal
+- **温度**: neutral
+- **暗色**: light-only
+- **字体策略**: custom (Cal Sans / Inter)
+- **complexity**: minimal
+- **industry-fit**: [saas, productivity, devtools]
+- **适合**: 极简排程与开发者生产力工具
+
+## claude
+- **tier**: A
+- **hasPreview**: true
+- **类目**: AI & ML
+- **一句话**: Literary salon reimagined as a product page — warm parchment canvas, custom Anthropic Serif headlines, terracotta brand accent, and exclusively warm yellow-brown neutrals radiating human intellectual warmth.
+- **色调**: light | terracotta | parchment
+- **风格**: editorial, warm-neutrals, serif-display, parchment, organic-illustration
+- **温度**: warm
 - **暗色**: has-dark
-- **字体策略**: custom (CoinbaseDisplay / Sans / Text / Icons)
-- **适合**: 合规加密货币平台、数字钱包、机构级金融科技产品
+- **字体策略**: custom (Anthropic Serif / Anthropic Sans / Anthropic Mono)
+- **complexity**: balanced
+- **industry-fit**: [ai-ml, content-cms, productivity]
+- **适合**: 有人文温度的 AI 助手与内容产品
 
-## composio
-- **类目**: Dev Tools
-- **一句话**: Nocturnal command center on pitch-black canvas with electric cyan and deep cobalt accents, developer-terminal aesthetic, and ultra-tight heading line-heights.
-- **色调**: dark | cyan | cobalt-blue
-- **风格**: nocturnal, developer, brutalist, bioluminescent, dense
-- **温度**: cool
-- **暗色**: dark-first
-- **字体策略**: custom (abcDiatype + JetBrains Mono)
-- **适合**: 开发者集成工具、API编排平台、面向工程师的自动化产品
-
-## cursor
-- **类目**: Dev Tools
-- **一句话**: Warm minimalism meets code-editor elegance with off-white cream canvas, three-font system (CursorGothic, jjannon serif, berkeleyMono), and oklab-space borders.
-- **色调**: light | orange | cream
-- **风格**: warm, editorial, typographically-rich, craft, code-editor
+## clay
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Design & Productivity
+- **一句话**: Warm playful celebration of color treating B2B data enrichment as craft, with cream canvas, named swatch palette, quirky Roobert stylistic sets, and signature tilt-and-jump hover animations.
+- **色调**: light | warm-cream | matcha-green
+- **风格**: playful, named-swatches, craft, tilt-hover, mixed-borders
 - **温度**: warm
 - **暗色**: light-only
-- **字体策略**: custom (CursorGothic + jjannon + berkeleyMono)
-- **适合**: AI代码编辑器、开发者创意工具、技术与人文交叉的产品
+- **字体策略**: custom (Roobert / Space Mono)
+- **complexity**: rich
+- **industry-fit**: [saas, productivity, analytics, collaboration]
+- **适合**: 有个性的 B2B 数据与协作工具
+
+## clickhouse
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Infra & Cloud
+- **一句话**: High-performance cockpit in acid yellow-green neon on obsidian black, with extra-heavy Inter Black typography at 96px creating terminal-grade aesthetic that screams raw speed.
+- **色调**: dark | neon-yellow-green | forest-green
+- **风格**: high-contrast, neon-accent, terminal-grade, heavy-display-type, performance-focused
+- **温度**: cool
+- **暗色**: dark-first
+- **字体策略**: custom (Inter / Basier / Inconsolata)
+- **complexity**: balanced
+- **industry-fit**: [infra, devtools, analytics, ai-ml]
+- **适合**: 数据库、高性能基础设施、开发者工具
+
+## cohere
+- **tier**: A
+- **hasPreview**: true
+- **类目**: AI & ML
+- **一句话**: Polished enterprise command deck with bright white canvas, 22px rounded cards, and dual custom serif-plus-sans typography creating confident authority meeting engineering clarity.
+- **色调**: light | black-white | interaction-blue
+- **风格**: enterprise-grade, chromatic-restraint, serif-display, generous-radius, professional
+- **温度**: cool-neutral
+- **暗色**: light-only
+- **字体策略**: custom (CohereText / Unica77 Cohere Web / CohereMono)
+- **complexity**: balanced
+- **industry-fit**: [ai-ml, enterprise, saas, devtools]
+- **适合**: 企业AI平台、B2B基础设施、专业SaaS
+
+## coinbase
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Fintech & Crypto
+- **一句话**: Clean trustworthy crypto platform communicating financial reliability through a blue-and-white binary palette with Coinbase Blue as singular brand accent and distinctive 56px pill buttons.
+- **色调**: binary | coinbase-blue | near-black
+- **风格**: financial-grade, pill-buttons, proprietary-type, binary-palette, trustworthy
+- **温度**: cool
+- **暗色**: has-dark
+- **字体策略**: custom (CoinbaseDisplay / CoinbaseSans / CoinbaseText / CoinbaseIcons)
+- **complexity**: minimal
+- **industry-fit**: [fintech, crypto, consumer, enterprise]
+- **适合**: 加密货币、金融服务、支付平台
+
+## composio
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Dev Tools
+- **一句话**: Nocturnal command center with pitch-black canvas punctuated by bioluminescent cyan and cobalt glows, combining geometric sans-serif and monospace for a developer-terminal aesthetic.
+- **色调**: dark | composio-cobalt | electric-cyan
+- **风格**: developer-terminal, bioluminescent-glow, brutalist-shadows, ultra-tight-type, monochrome-hierarchy
+- **温度**: cool
+- **暗色**: dark-first
+- **字体策略**: custom (abcDiatype / JetBrains Mono)
+- **complexity**: balanced
+- **industry-fit**: [devtools, ai-ml, infra, docs]
+- **适合**: 开发者工具、API平台、AI基础设施
+
+## cursor
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Dev Tools
+- **一句话**: Warm minimalism meets code-editor elegance with cream off-white canvas, warm-brown near-black text, compressed CursorGothic display, serif body, and oklab-space organic borders.
+- **色调**: light | cursor-orange | warm-brown
+- **风格**: warm-minimalism, editorial-print, three-font-system, oklab-borders, premium-craft
+- **温度**: warm
+- **暗色**: light-only
+- **字体策略**: custom (CursorGothic / jjannon / berkeleyMono)
+- **complexity**: balanced
+- **industry-fit**: [devtools, productivity, ai-ml, docs]
+- **适合**: 代码编辑器、AI开发工具、精致内容平台
 
 ## elevenlabs
+- **tier**: A
+- **hasPreview**: true
 - **类目**: AI & ML
-- **一句话**: Restrained elegance on near-white canvas with Waldenburg weight 300 whisper-thin display headings, warm stone tints, and multi-layered sub-0.1 opacity shadows.
-- **色调**: light | black | warm-stone
-- **风格**: elegant, airy, whisper-thin, warm-shadow, premium
+- **一句话**: Study in restrained elegance with near-white canvas where Waldenburg at weight 300 creates ethereal whisper-thin headings, backed by multi-layered warm-tinted shadow stacks.
+- **色调**: light | white | warm-stone
+- **风格**: restrained-elegance, ultra-light-display, warm-whites, layered-shadows, pill-buttons
 - **温度**: warm-neutral
 - **暗色**: light-only
-- **字体策略**: custom (Waldenburg + Inter)
-- **适合**: 语音AI产品、音频工具、高端创意技术平台
+- **字体策略**: custom (Waldenburg / WaldenburgFH / Inter / Geist Mono)
+- **complexity**: minimal
+- **industry-fit**: [ai-ml, consumer, media, productivity]
+- **适合**: 语音AI、媒体创作工具、精品SaaS
 
 ## expo
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Dev Tools
-- **一句话**: Luminous developer platform on cool-tinted off-white with strictly monochromatic palette, pill-shaped geometry everywhere, and massive headlines with extreme negative tracking.
-- **色调**: light | black | cool-blue-gray
-- **风格**: luminous, monochromatic, pill-shaped, gallery-like, developer-friendly
-- **温度**: cool
-- **暗色**: light-only
-- **字体策略**: system (Inter)
-- **适合**: 移动开发框架、跨平台开发工具、React Native生态产品
+- **一句话**: Luminous confidence-radiating developer platform on cool-tinted off-white canvas with strictly monochromatic palette, massive pill geometry, and gallery-like vertical spacing.
+- **色调**: light | black | cool-gray
+- **风格**: monochromatic, pill-geometry, gallery-spacing, massive-headlines, premium-friendly
+- **温度**: cool-neutral
+- **暗色**: has-dark
+- **字体策略**: custom (Inter / JetBrains Mono)
+- **complexity**: minimal
+- **industry-fit**: [devtools, docs, saas, productivity]
+- **适合**: 移动开发平台、开发者工具、文档站点
 
 ## ferrari
+- **tier**: B
+- **hasPreview**: false
 - **类目**: Enterprise & Consumer
-- **一句话**: Digital editorial with chiaroscuro layout alternating deep black and white panels, surgically sparse Ferrari Red accent, and proprietary FerrariSans with near-zero border-radius.
-- **色调**: dark | red | white
-- **风格**: editorial, cinematic, chiaroscuro, precision, luxurious
+- **一句话**: Digital editorial curated as an art institution with chiaroscuro alternations between inky cinematic blacks and crisp white panels, punctuated by Ferrari Red with surgical sparseness.
+- **色调**: binary | ferrari-red | black-white
+- **风格**: editorial-magazine, chiaroscuro, photo-journalism, precision-engineering, luxury-heritage
 - **温度**: neutral
-- **暗色**: dark-first
-- **字体策略**: custom (FerrariSans + Body-Font)
-- **适合**: 超豪华品牌官网、高端汽车展示、赛事与收藏品平台
+- **暗色**: has-dark
+- **字体策略**: custom (FerrariSans / Body-Font)
+- **complexity**: balanced
+- **industry-fit**: [automotive, luxury, media, consumer]
+- **适合**: 豪华汽车、高端品牌、编辑类杂志站
 
 ## figma
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Design & Productivity
-- **一句话**: Design tool that designed itself with custom variable font at unusual weight stops (320-700), strictly black-and-white interface chrome, and vibrant multi-color hero gradients.
-- **色调**: light | black-white | multi-color-gradient
-- **风格**: typographic, binary, variable-font, product-forward, pill-geometry
+- **一句话**: Masterclass in typographic sophistication where custom variable figmaSans modulates between unusual weight stops, with strictly black-and-white chrome framing vibrant multi-color product gradients.
+- **色调**: light | black | white
+- **风格**: variable-font, black-white-chrome, pill-circle-geometry, dashed-focus, vibrant-gradients
 - **温度**: neutral
 - **暗色**: light-only
-- **字体策略**: custom (figmaSans variable + figmaMono)
-- **适合**: 设计工具、创意协作平台、面向设计师的专业软件
+- **字体策略**: custom (figmaSans / figmaMono)
+- **complexity**: rich
+- **industry-fit**: [design-tool, collaboration, productivity, saas]
+- **适合**: 设计工具、创意协作平台、产品化SaaS
 
 ## framer
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Design & Productivity
-- **一句话**: Cinematic dark canvas in absolute black void with GT Walsheim extreme negative letter-spacing, singular electric Framer Blue accent, and frosted glass button variants.
-- **色调**: dark | blue | white
-- **风格**: cinematic, dark-void, compressed, seductive, product-forward
+- **一句话**: Cinematic pure-black canvas that treats product screenshots as hero art, with extreme negative letter-spacing display type and electric blue accents for a precise, seductive, nightclub-for-designers aesthetic.
+- **色调**: dark | pure-black | framer-blue
+- **风格**: dark-first, pure-black, compressed-typography, pill-buttons, product-forward
 - **温度**: cool
 - **暗色**: dark-first
-- **字体策略**: custom (GT Walsheim + Inter)
-- **适合**: 网页设计工具、无代码建站平台、创意开发者产品
+- **字体策略**: custom (GT Walsheim / Inter Variable / Mona Sans / Azeret Mono)
+- **complexity**: balanced
+- **industry-fit**: [design-tool, saas, devtools, productivity]
+- **适合**: 设计工具、创意平台、产品展示站
 
 ## hashicorp
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Infra & Cloud
-- **一句话**: Enterprise infrastructure with dual light/dark modes, multi-product color system via CSS tokens, and custom HashiCorp Sans with infrastructure-grade typography.
-- **色调**: dark | black-white | multi-product-colors
-- **风格**: enterprise, dual-mode, token-driven, multi-product, infrastructure
+- **一句话**: Enterprise infrastructure design with dual-mode duality of clean white informational sections and dramatic dark hero areas, anchored by a custom weighty brand font and a multi-product color token system.
+- **色调**: binary | black | terraform-purple
+- **风格**: dual-mode, token-driven, enterprise, multi-product-palette, tight-radius
 - **温度**: cool-neutral
 - **暗色**: has-dark
 - **字体策略**: custom (HashiCorp Sans)
-- **适合**: 云基础设施管理、DevOps工具链、多产品线企业级平台
+- **complexity**: balanced
+- **industry-fit**: [infra, devtools, enterprise, saas]
+- **适合**: 云基础设施、企业级开发工具
 
 ## ibm
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Enterprise & Consumer
-- **一句话**: Enterprise authority built on Carbon Design System with IBM Plex type family at light weight 300 for display, singular IBM Blue 60 accent, and rigid 8px grid with zero border-radius buttons.
-- **色调**: light | blue | near-black
-- **风格**: corporate, systematic, token-driven, grid-rigid, rectangular
-- **温度**: cool
+- **一句话**: Carbon Design System embodiment of enterprise authority with stark white canvas, near-black text, and a single unwavering IBM Blue accent, rendered as methodically structured engineering precision.
+- **色调**: binary | white | ibm-blue
+- **风格**: tokenized, rectangular, 8px-grid, corporate, engineered
+- **温度**: cool-neutral
 - **暗色**: has-dark
-- **字体策略**: custom (IBM Plex Sans / Mono / Serif)
-- **适合**: 企业级软件平台、云计算服务、大型B2B技术解决方案
+- **字体策略**: custom (IBM Plex Sans / IBM Plex Mono / IBM Plex Serif)
+- **complexity**: minimal
+- **industry-fit**: [enterprise, saas, docs, devtools]
+- **适合**: 企业级产品、技术文档、B2B平台
 
 ## intercom
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Enterprise & Consumer
-- **一句话**: Warm AI-first helpdesk with off-white canvas, Saans font at extreme negative tracking with 1.00 line-height, singular Fin Orange accent, and sharp 4px border-radius geometry.
-- **色调**: light | orange | cream
-- **风格**: warm, editorial, compressed, sharp-geometry, AI-first
+- **一句话**: Warm AI-first helpdesk platform on off-white canvas with oat-toned borders, featuring ultra-compressed Saans display type and Fin Orange as singular vibrant accent in an editorial magazine-like rhythm.
+- **色调**: light | warm-cream | fin-orange
+- **风格**: warm-editorial, compressed-typography, sharp-radius, oat-borders, scale-hover
 - **温度**: warm
 - **暗色**: light-only
-- **字体策略**: custom (Saans + Serrif + SaansMono)
-- **适合**: 客服AI平台、客户支持工具、对话式SaaS产品
+- **字体策略**: custom (Saans / Serrif / SaansMono / LLMedium)
+- **complexity**: balanced
+- **industry-fit**: [saas, ai-ml, productivity, enterprise]
+- **适合**: 客服AI平台、SaaS产品、对话工具
 
 ## kraken
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Fintech & Crypto
-- **一句话**: Clean, trustworthy crypto exchange using Kraken Purple as commanding brand color on white backgrounds with a dual custom font system.
-- **色调**: light | purple | green
-- **风格**: professional, clean, trustworthy, rounded, cool-neutral
+- **一句话**: Clean trustworthy crypto exchange with commanding Kraken Purple on white backgrounds, dual proprietary font system, and rounded 12px buttons projecting professional crypto identity through restrained precision.
+- **色调**: light | kraken-purple | white
+- **风格**: professional, purple-accent, rounded-buttons, whisper-shadows, trustworthy
 - **温度**: cool
 - **暗色**: light-only
-- **字体策略**: custom (Kraken-Brand + Kraken-Product)
-- **适合**: 加密货币交易所、金融科技平台、数字资产管理工具
+- **字体策略**: custom (Kraken-Brand / Kraken-Product)
+- **complexity**: minimal
+- **industry-fit**: [crypto, fintech, saas]
+- **适合**: 加密交易所、金融科技产品
 
 ## lamborghini
+- **tier**: B
+- **hasPreview**: false
 - **类目**: Enterprise & Consumer
-- **一句话**: Cathedral of darkness with true black surfaces, Lamborghini Gold accents, and massive uppercase LamboType display typography inspired by aerodynamic car lines.
-- **色调**: dark | gold | white
-- **风格**: nocturnal-luxury, theatrical, intimidating, angular, cinematic
+- **一句话**: Cathedral of darkness with true black canvas where jet-black surfaces stretch infinitely, deploying Lamborghini Gold with surgical precision and extreme uppercase LamboType display at 120px scales for theatrical nocturnal luxury.
+- **色调**: dark | pure-black | lamborghini-gold
+- **风格**: dark-luxury, uppercase-display, angular, cinematic-video, theatrical
 - **温度**: warm-neutral
 - **暗色**: dark-first
 - **字体策略**: custom (LamboType)
-- **适合**: 超豪华品牌官网、高端汽车展示、奢侈品数字体验
+- **complexity**: rich
+- **industry-fit**: [automotive, luxury, media, consumer]
+- **适合**: 超豪华汽车、高端品牌官网
 
-## linear-app
+## linear.app
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Dev Tools
-- **一句话**: Dark-mode-native product design on near-black canvas where content emerges from darkness with extreme precision, using Inter Variable at signature weight 510.
-- **色调**: dark | indigo-violet | white
-- **风格**: precision-engineered, dark-native, achromatic, luminous, minimal
+- **一句话**: Dark-mode-native masterclass where content emerges from near-black canvas like starlight, managing information density through subtle white-opacity gradations with a single indigo-violet accent for precision engineering.
+- **色调**: dark | near-black | indigo-violet
+- **风格**: dark-native, achromatic, ultra-thin-borders, compressed-display, engineered
 - **温度**: cool
 - **暗色**: dark-first
-- **字体策略**: system (Inter Variable + Berkeley Mono)
-- **适合**: 开发者工具、项目管理平台、工程效率类SaaS产品
+- **字体策略**: custom (Inter Variable / Berkeley Mono)
+- **complexity**: minimal
+- **industry-fit**: [saas, devtools, productivity, collaboration]
+- **适合**: 项目管理、开发者工具、协作平台
 
 ## lovable
-- **类目**: Dev Tools
-- **一句话**: Warm parchment-toned background with humanist Camera Plain typeface and opacity-driven depth model creating approachable, almost analog minimalism.
+- **tier**: A
+- **hasPreview**: true
+- **类目**: AI & ML
+- **一句话**: Warm parchment-toned cream background with humanist Camera Plain typeface and opacity-driven depth model, creating an approachable, analog, notebook-like aesthetic distinct from cold-white developer tool conventions.
 - **色调**: light | cream | charcoal
-- **风格**: warm, approachable, editorial, humanist, analog
+- **风格**: warm-parchment, humanist-type, opacity-driven, pill-buttons, editorial
 - **温度**: warm
 - **暗色**: light-only
 - **字体策略**: custom (Camera Plain Variable)
-- **适合**: 低代码开发平台、创意工具、面向非技术用户的构建器
+- **complexity**: minimal
+- **industry-fit**: [ai-ml, devtools, saas, productivity]
+- **适合**: AI建站工具、创作类产品
 
 ## meta
+- **tier**: B
+- **hasPreview**: false
 - **类目**: Enterprise & Consumer
-- **一句话**: Product-forward retail experience with photography-first design, binary white/dark surfaces, pill-shaped Meta Blue CTAs, and Optimistic typeface warmth.
-- **色调**: light | blue | white
-- **风格**: retail, gallery-like, photography-first, aspirational, clean
-- **温度**: neutral
+- **一句话**: Product-forward retail experience walking between consumer electronics showroom and lifestyle editorial, deploying cinematic product photography against expansive white canvas with pill-shaped Meta Blue CTAs in gallery-like rhythm.
+- **色调**: binary | white | meta-blue
+- **风格**: photography-first, retail, pill-ctas, binary-surfaces, gallery-spacing
+- **温度**: cool-neutral
 - **暗色**: has-dark
 - **字体策略**: custom (Optimistic VF)
-- **适合**: 消费电子商城、硬件产品展示、品牌零售体验站
+- **complexity**: balanced
+- **industry-fit**: [ecommerce, retail, consumer, media]
+- **适合**: 硬件电商、消费电子零售
 
 ## minimax
+- **tier**: A
+- **hasPreview**: true
 - **类目**: AI & ML
-- **一句话**: White-space-driven AI platform with colorful product cards, multi-font system, and pill-button geometry bridging consumer appeal with technical credibility.
-- **色调**: light | blue | pink
-- **风格**: approachable, colorful, playful, rounded, product-showcase
-- **温度**: cool-neutral
+- **一句话**: White-space-driven AI product showcase bridging Apple-like marketing clarity with playful rounded geometry, where colorful gradient product cards pop like app icons against a pure white canvas.
+- **色调**: light | brand-blue | brand-pink
+- **风格**: white-dominant, colorful-cards, pill-buttons, multi-font, playful-rounded
+- **温度**: cool
 - **暗色**: light-only
-- **字体策略**: system (DM Sans + Outfit + Poppins + Roboto)
-- **适合**: AI模型展示平台、多产品线AI公司官网、创意AI工具
+- **字体策略**: custom (DM Sans / Outfit / Poppins / Roboto)
+- **complexity**: balanced
+- **industry-fit**: [ai-ml, saas, consumer, productivity]
+- **适合**: 面向消费者的AI产品展示站
 
 ## mintlify
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Dev Tools
-- **一句话**: Documentation-as-product design with luminous white background, brand green accent, atmospheric gradient hero, and Inter typography with tight negative tracking.
-- **色调**: light | green | near-black
-- **风格**: calm, legible, airy, documentation-focused, ethereal
-- **温度**: cool
+- **一句话**: Documentation-as-product design treating clarity as the highest aesthetic value, luminous white with near-black text and a signature fresh green accent signaling developer-experience care in every pixel.
+- **色调**: light | brand-green | near-black
+- **风格**: documentation-first, airy, gradient-hero, ultra-rounded, border-led
+- **温度**: cool-neutral
 - **暗色**: light-only
-- **字体策略**: system (Inter + Geist Mono)
-- **适合**: 开发者文档平台、API文档工具、技术知识库产品
+- **字体策略**: custom (Inter / Geist Mono)
+- **complexity**: minimal
+- **industry-fit**: [docs, devtools, saas, ai-ml]
+- **适合**: 开发者文档平台与 API 工具
 
 ## miro
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Design & Productivity
-- **一句话**: Clean collaborative-tool platform with generous whitespace, pastel accent palette, and Roobert PRO Medium font with multiple OpenType character variants.
-- **色调**: light | blue | pastel-multi
-- **风格**: collaborative, pastel, geometric, animated, whiteboard-like
-- **温度**: neutral
-- **暗色**: light-only
-- **字体策略**: custom (Roobert PRO + Noto Sans)
-- **适合**: 协作白板工具、团队可视化平台、设计思维工具
-
-## mistral-ai
-- **类目**: AI & ML
-- **一句话**: Sun-drenched warm design with golden amber, burnt orange, and massive display typography — unapologetically European, trading typical AI blue for southern France warmth.
-- **色调**: light | orange | amber-gold
-- **风格**: warm, bold, European, maximalist-warmth, declarative
-- **温度**: warm
-- **暗色**: light-only
-- **字体策略**: system (Arial / custom fallback)
-- **适合**: 欧洲风格AI公司官网、前沿模型展示、有个性的技术品牌
-
-## mongodb
-- **类目**: Infra & Cloud
-- **一句话**: Deep-forest-meets-terminal experience with teal-black backgrounds, neon green brand accent, editorial serif hero headlines, and dual dark/light mode design.
-- **色调**: dark | neon-green | teal-black
-- **风格**: forest-dark, editorial, bioluminescent, dual-mode, engineering
-- **温度**: cool
-- **暗色**: has-dark
-- **字体策略**: custom (MongoDB Value Serif + Euclid Circular A + Source Code Pro)
-- **适合**: 数据库产品官网、基础设施服务、开发者平台
-
-## nike
-- **类目**: Enterprise & Consumer
-- **一句话**: Kinetic retail cathedral with radical monochromatic simplicity letting athletic photography dominate, massive uppercase Futura headlines, and disciplined 8px grid.
-- **色调**: light | black | white
-- **风格**: kinetic, monochromatic, editorial, athletic, bold
-- **温度**: neutral
-- **暗色**: light-only
-- **字体策略**: custom (Nike Futura ND + Helvetica Now)
-- **适合**: 运动品牌电商、体育用品零售、生活方式品牌官网
-
-## notion
-- **类目**: Design & Productivity
-- **一句话**: Blank-canvas philosophy with warm neutrals, NotionInter custom font, ultra-thin whisper-weight borders, and opacity-based depth creating tactile analog warmth.
-- **色调**: light | blue | warm-gray
-- **风格**: warm-minimal, analog, tactile, paper-like, restrained
+- **一句话**: Collaborative-tool platform communicating visual thinking through generous whitespace, a pastel accent palette of coral rose teal orange yellow moss, and confident geometric typography on a white canvas.
+- **色调**: light | blue-450 | pastel-coral
+- **风格**: pastel-accents, whitespace-generous, geometric, collaboration, framer-built
 - **温度**: warm-neutral
 - **暗色**: light-only
-- **字体策略**: custom (NotionInter)
-- **适合**: 笔记与知识管理工具、团队协作平台、个人生产力应用
+- **字体策略**: custom (Roobert PRO Medium / Noto Sans)
+- **complexity**: balanced
+- **industry-fit**: [collaboration, design-tool, productivity, saas]
+- **适合**: 协作白板与视觉思维工具
+
+## mistral.ai
+- **tier**: A
+- **hasPreview**: true
+- **类目**: AI & ML
+- **一句话**: Sun-drenched European AI landscape rendered in golden amber and burnt orange, trading blue-screen tech aesthetics for late-afternoon southern France light with billboard-scale declarative typography.
+- **色调**: light | mistral-orange | sunshine-amber
+- **风格**: warm-maximalist, golden-gradients, massive-display, sharp-corners, european-bold
+- **温度**: warm
+- **暗色**: light-only
+- **字体策略**: custom (Arial custom with extended system stack)
+- **complexity**: rich
+- **industry-fit**: [ai-ml, luxury, media, consumer]
+- **适合**: 欧式温暖风格的前沿AI品牌
+
+## mongodb
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Infra & Cloud
+- **一句话**: Deep-forest-meets-terminal experience rooted in darkest teal-black punctuated by bioluminescent neon green, combining editorial serif authority with geometric sans precision and monospace engineering voice.
+- **色调**: binary | forest-black | mongodb-green
+- **风格**: forest-dark, editorial-serif, dual-mode, teal-tinted-shadows, pill-buttons
+- **温度**: cool
+- **暗色**: has-dark
+- **字体策略**: custom (MongoDB Value Serif / Euclid Circular A / Source Code Pro)
+- **complexity**: balanced
+- **industry-fit**: [infra, devtools, enterprise, analytics]
+- **适合**: 数据库与云基础设施产品
+
+## nike
+- **tier**: B
+- **hasPreview**: false
+- **类目**: Enterprise & Consumer
+- **一句话**: Kinetic retail cathedral channeling explosive sport energy through radical monochromatic simplicity, letting athletic photography and product color dominate without UI competition, precise as a luxury magazine layout.
+- **色调**: light | nike-black | nike-white
+- **风格**: monochromatic, photography-first, uppercase-display, pill-buttons, athletic-discipline
+- **温度**: neutral
+- **暗色**: has-dark
+- **字体策略**: custom (Nike Futura ND / Helvetica Now)
+- **complexity**: balanced
+- **industry-fit**: [retail, ecommerce, consumer, media]
+- **适合**: 运动零售与电商品牌站
+
+## notion
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Design & Productivity
+- **一句话**: Blank-canvas philosophy built on warm neutrals rather than cold grays, creating approachable minimalism that feels like quality paper, with whisper-weight borders and near-black text for tactile analog warmth.
+- **色调**: light | notion-blue | warm-neutral
+- **风格**: warm-neutrals, whisper-borders, compressed-display, approachable, paper-like
+- **温度**: warm-neutral
+- **暗色**: light-only
+- **字体策略**: custom (NotionInter modified Inter)
+- **complexity**: minimal
+- **industry-fit**: [productivity, content-cms, collaboration, saas]
+- **适合**: 生产力与文档协作产品
 
 ## nvidia
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Infra & Cloud
-- **一句话**: High-contrast technology-forward experience on stark black foundation with signature lime-shifted green accent used only as signal, never as surface.
-- **色调**: dark | lime-green | black
-- **风格**: industrial, engineering, high-contrast, sharp, European-pragmatic
+- **一句话**: High-contrast technology-forward experience communicating raw computational power through design restraint, stark black and white punctuated by the unmistakable electric lime-shifted NVIDIA green as pure signal.
+- **色调**: binary | nvidia-green | true-black
+- **风格**: high-contrast, industrial, sharp-corners, green-accent-signal, engineering-precision
 - **温度**: cool
-- **暗色**: dark-first
-- **字体策略**: custom (NVIDIA-EMEA)
-- **适合**: GPU/芯片厂商官网、高性能计算平台、硬件技术品牌
+- **暗色**: has-dark
+- **字体策略**: custom (NVIDIA-EMEA with Arial fallback)
+- **complexity**: balanced
+- **industry-fit**: [infra, ai-ml, enterprise, devtools]
+- **适合**: 硬件与 GPU 计算平台
 
 ## ollama
+- **tier**: A
+- **hasPreview**: true
 - **类目**: AI & ML
-- **一句话**: Radical minimalism in pure grayscale with zero chromatic color, SF Pro Rounded softness, and exclusively pill-shaped geometry making a CLI tool feel approachable.
-- **色调**: light | black | white
-- **风格**: radical-minimal, grayscale, soft, rounded, Dieter-Rams
+- **一句话**: Radical minimalism in a pure-white void where content floats without decoration shadow or color, entirely grayscale with SF Pro Rounded softness and exclusively pill-shaped geometry for approachable developer warmth.
+- **色调**: light | pure-black | pure-white
+- **风格**: grayscale-only, pill-geometry, zero-shadows, rounded-softness, extreme-restraint
 - **温度**: neutral
 - **暗色**: light-only
-- **字体策略**: system (SF Pro Rounded)
-- **适合**: 开源AI工具、CLI产品官网、极简开发者工具
+- **字体策略**: system (SF Pro Rounded / ui-sans-serif / ui-monospace)
+- **complexity**: minimal
+- **industry-fit**: [ai-ml, devtools, docs]
+- **适合**: 开发者本地 AI 与 CLI 工具
 
-## opencode-ai
+## opencode.ai
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Dev Tools
-- **一句话**: Terminal-native monospace-first aesthetic with warm reddish-brown dark background, Berkeley Mono as sole typeface, and Apple HIG-inspired semantic colors.
-- **色调**: dark | warm-brown | off-white
-- **风格**: terminal-native, monospace, warm-dark, utilitarian, code-first
+- **一句话**: Terminal-native monospace-first aesthetic with warm reddish-brown near-black and off-white contrast, evoking a sophisticated terminal emulator rather than a cold IDE.
+- **色调**: dark | warm-black | off-white
+- **风格**: monospace-first, terminal-native, warm-dark, utilitarian, sharp-corners
 - **温度**: warm
 - **暗色**: dark-first
 - **字体策略**: custom (Berkeley Mono)
-- **适合**: AI编程助手、终端工具、开发者CLI产品官网
+- **complexity**: minimal
+- **industry-fit**: [devtools, ai-ml, docs]
+- **适合**: 终端工具、AI编码代理、开发者CLI产品
 
 ## pinterest
-- **类目**: Design & Productivity
-- **一句话**: Warm inspiration-driven canvas with olive/sand-toned neutrals, bold Pinterest Red accent, Pin Sans custom font, and three-tier design token architecture.
-- **色调**: light | red | warm-sand
-- **风格**: warm, craft-like, inspiration-driven, photography-first, personal
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Enterprise & Consumer
+- **一句话**: Warm inspiration-driven canvas treating visual discovery like a lifestyle magazine, with olive-sand neutrals and bold Pinterest Red accents creating a cozy craft-like atmosphere.
+- **色调**: light | pinterest-red | sand-gray
+- **风格**: warm, photography-first, tactile, generous-radius, craft-like
 - **温度**: warm
 - **暗色**: light-only
 - **字体策略**: custom (Pin Sans)
-- **适合**: 视觉灵感平台、生活方式社区、图片驱动的社交产品
+- **complexity**: balanced
+- **industry-fit**: [consumer, content-cms, ecommerce, media]
+- **适合**: 灵感发现、生活方式社区、图片分享平台
 
 ## posthog
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Dev Tools
-- **一句话**: Anti-corporate warm sage/olive palette with hand-drawn hedgehog illustrations, hidden brand orange on hover, and IBM Plex Sans Variable at bold weights.
-- **色调**: light | sage-green | orange
-- **风格**: irreverent, earthy, anti-corporate, editorial, playful
+- **一句话**: Warm sage-tinted cream canvas with earthy olive greens and hand-drawn illustrations, deliberately anti-corporate developer analytics that feels like a cozy garden shed.
+- **色调**: light | olive-sage | posthog-orange
+- **风格**: warm, editorial, anti-corporate, sage-tinted, playful
 - **温度**: warm
 - **暗色**: light-only
-- **字体策略**: system (IBM Plex Sans Variable)
-- **适合**: 开发者分析工具、开源数据平台、有个性的B2B SaaS
+- **字体策略**: custom (IBM Plex Sans Variable / Source Code Pro)
+- **complexity**: balanced
+- **industry-fit**: [devtools, analytics, saas, productivity]
+- **适合**: 开发者分析工具、产品数据平台、独立SaaS
 
 ## raycast
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Dev Tools
-- **一句话**: Precision instrument aesthetic with near-black blue-tinted background, macOS-native layered shadow system, and Raycast Red as punctuation color.
-- **色调**: dark | red | blue-black
-- **风格**: precision, macOS-native, obsidian, instrument-like, airy-dark
+- **一句话**: Dark precision-instrument aesthetic with near-black blue-tinted background and macOS-native layered shadows, evoking the feeling of being inside a high-performance desktop utility.
+- **色调**: dark | near-black-blue | raycast-red
+- **风格**: precision, macOS-native, layered-shadows, airy-letter-spacing, developer-tool
 - **温度**: cool
 - **暗色**: dark-first
-- **字体策略**: system (Inter + GeistMono)
-- **适合**: 桌面效率工具、macOS原生应用、开发者启动器
+- **字体策略**: custom (Inter / SF Pro Text / GeistMono)
+- **complexity**: balanced
+- **industry-fit**: [devtools, productivity, saas]
+- **适合**: 效率工具、命令启动器、桌面生产力应用
 
 ## renault
+- **tier**: B
+- **hasPreview**: false
 - **类目**: Enterprise & Consumer
-- **一句话**: Vibrant French automotive showroom with aurora gradient heroes, NouvelR proprietary typeface with 28-degree radical r cut, and binary black/white CTA system.
-- **色调**: light | yellow | magenta-violet
-- **风格**: vibrant, French-elegant, chromatic, editorial-grid, forward-leaning
+- **一句话**: Vibrant digital showroom balancing French automotive elegance with bold forward-leaning energy, featuring aurora gradient heroes and a disciplined black-white CTA framework.
+- **色调**: binary | renault-yellow | absolute-black
+- **风格**: editorial, aurora-gradient, zero-radius, photography-first, binary-cta
 - **温度**: warm-neutral
 - **暗色**: has-dark
 - **字体策略**: custom (NouvelR)
-- **适合**: 汽车品牌数字展厅、电动化出行平台、欧系品牌官网
+- **complexity**: rich
+- **industry-fit**: [automotive, luxury, consumer, media]
+- **适合**: 汽车品牌、电动车展厅、高端消费品
 
 ## replicate
+- **tier**: A
+- **hasPreview**: true
 - **类目**: AI & ML
-- **一句话**: Developer playground with explosive orange-red-magenta gradient hero, massive 128px display typography in rb-freigeist-neue, and exclusively pill-shaped geometry.
-- **色调**: light | orange-red | black
-- **风格**: bold, playful, high-energy, community-driven, festival-poster
+- **一句话**: Developer playground crackling with creative energy, featuring explosive orange-red-magenta gradient heroes and massive 128px display typography with exclusively pill-shaped geometry.
+- **色调**: light | replicate-red | near-black
+- **风格**: explosive-gradient, massive-typography, pill-shaped, developer-playful, community-energy
 - **温度**: warm
-- **暗色**: light-only
-- **字体策略**: custom (rb-freigeist-neue + basier-square + JetBrains Mono)
-- **适合**: AI模型市场、开发者社区平台、创意AI工具集
+- **暗色**: has-dark
+- **字体策略**: custom (rb-freigeist-neue / basier-square / jetbrains-mono)
+- **complexity**: rich
+- **industry-fit**: [ai-ml, devtools, saas]
+- **适合**: AI模型平台、开发者社区、创意AI工具
 
 ## resend
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Dev Tools
-- **一句话**: Dark cinematic canvas treating email infrastructure like luxury product, with three-font editorial hierarchy, icy blue-tinted borders, and multi-color accent system.
-- **色调**: dark | black | icy-blue
-- **风格**: cinematic, gallery-dark, premium, editorial, crystalline
+- **一句话**: Dark cinematic canvas treating email infrastructure like a luxury product, with pure black theater-like stage and icy blue-tinted borders creating a premium crystalline quality.
+- **色调**: dark | void-black | frost-blue
+- **风格**: theatrical, editorial, frost-borders, tri-font-hierarchy, premium
 - **温度**: cool
 - **暗色**: dark-first
-- **字体策略**: custom (Domaine Display + ABC Favorit + Inter + Commit Mono)
-- **适合**: 开发者邮件服务、API基础设施产品、高端开发者工具
+- **字体策略**: custom (Domaine Display / ABC Favorit / Inter / Commit Mono)
+- **complexity**: rich
+- **industry-fit**: [devtools, saas, infra]
+- **适合**: 邮件API、开发者基础设施、高端SaaS
 
 ## revolut
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Fintech & Crypto
-- **一句话**: Fintech confidence at stadium scale — massive Aeonik Pro headlines, pill buttons, and a disciplined near-black/white binary palette with comprehensive semantic color tokens.
-- **色调**: light | near-black | white
-- **风格**: billboard-scale, pill-buttons, fintech-premium, restrained, accessible
-- **温度**: neutral
+- **一句话**: Fintech confidence distilled into pixels with billboard-scale 136px typography, disciplined near-black and white palette, and universal pill buttons communicating capable hands.
+- **色调**: light | revolut-dark | revolut-blue
+- **风格**: billboard-typography, pill-everything, binary-neutral, generous-padding, shadowless
+- **温度**: cool-neutral
 - **暗色**: has-dark
-- **字体策略**: custom (Aeonik Pro + Inter)
-- **适合**: 金融科技产品、数字银行、支付平台等需要传递信任感的产品
+- **字体策略**: custom (Aeonik Pro / Inter)
+- **complexity**: balanced
+- **industry-fit**: [fintech, consumer, saas]
+- **适合**: 数字银行、金融科技、支付应用
 
 ## runwayml
+- **tier**: A
+- **hasPreview**: true
 - **类目**: AI & ML
-- **一句话**: Cinematic dark editorial where full-bleed photography and video ARE the UI — single typeface abcNormal, near-invisible interface, and cool-gray neutrals.
-- **色调**: dark | black | cool-gray
-- **风格**: cinematic, editorial, photography-first, invisible-UI, film-production
+- **一句话**: Cinematic reel brought to life as a website with full-bleed photography and video as primary UI, where the interface intentionally retreats into near-invisibility to let visual content dominate.
+- **色调**: dark | runway-black | cool-slate
+- **风格**: cinematic, editorial, invisible-interface, photography-first, tight-typography
 - **温度**: cool
 - **暗色**: dark-first
 - **字体策略**: custom (abcNormal)
-- **适合**: AI创意工具、视频生成平台、影视后期制作类产品
+- **complexity**: rich
+- **industry-fit**: [ai-ml, media, design-tool, content-cms]
+- **适合**: 创意AI、视频生成工具、影视制作平台
 
 ## sanity
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Dev Tools
-- **一句话**: Nocturnal command center on near-black canvas with precision-engineered waldenburgNormal typography, achromatic gray scale, and vivid neon-green/electric-blue accent punctuation.
-- **色调**: dark | near-black | neon-green
-- **风格**: developer-terminal, precision-engineered, achromatic, nocturnal, structured
-- **温度**: cool
+- **一句话**: A nocturnal command center for structured content, sitting on a near-black canvas with achromatic gray discipline punctuated by neon green, electric blue, and coral-red signal lights.
+- **色调**: dark | near-black | electric-blue
+- **风格**: dark-native, engineered, achromatic, editorial-display, signal-accents
+- **温度**: cool-neutral
 - **暗色**: dark-first
-- **字体策略**: custom (waldenburgNormal + IBM Plex Mono)
-- **适合**: 开发者内容平台、CMS、API优先的技术基础设施产品
+- **字体策略**: custom (waldenburgNormal / IBM Plex Mono)
+- **complexity**: balanced
+- **industry-fit**: [content-cms, devtools, docs, saas]
+- **适合**: 开发者内容平台与结构化CMS工具
 
 ## sentry
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Dev Tools
-- **一句话**: Dark-mode-first developer tool with warm purple-black backgrounds, lime-green CTAs, irreverent "Dammit Sans" display font, and tactile inset-shadow buttons.
+- **一句话**: A dark-IDE developer tool aesthetic rooted in deep purple-black backgrounds, warm purple accents, tactile inset buttons, and lime-green highlights that feel simultaneously technical and vibrant.
 - **色调**: dark | deep-purple | lime-green
-- **风格**: dark-IDE, warm-purple, irreverent, tactile, developer-tool
+- **风格**: dark-ide, warm-purple, tactile-buttons, illustrative, developer-tool
 - **温度**: warm
 - **暗色**: dark-first
-- **字体策略**: custom (Dammit Sans + Rubik + Monaco)
-- **适合**: 开发者工具、错误监控、APM性能分析等技术运维产品
+- **字体策略**: custom (Dammit Sans / Rubik / Monaco)
+- **complexity**: balanced
+- **industry-fit**: [devtools, saas, analytics, infra]
+- **适合**: 开发者监控与调试类工具
 
 ## shopify
+- **tier**: B
+- **hasPreview**: false
 - **类目**: Enterprise & Consumer
-- **一句话**: Dark-first digital theatre staging commerce like a cinematic premiere — ultra-light NeueHaasGrotesk at monumental scale with neon-green accent against deep forest-teal darkness.
-- **色调**: dark | forest-teal-black | neon-green
-- **风格**: cinematic, luxury-dark, ultra-light-type, theatrical, commerce-premium
+- **一句话**: A dark-first digital theatre staging commerce like a cinematic keynote, using near-black forest-teal surfaces, ethereal ultra-light display type at monumental scale, and a singular bioluminescent neon green accent.
+- **色调**: dark | forest-teal | neon-green
+- **风格**: cinematic, ultra-light-display, keynote-theatrical, pill-buttons, photographic-depth
 - **温度**: cool-neutral
 - **暗色**: dark-first
-- **字体策略**: custom (NeueHaasGrotesk + Inter Variable)
-- **适合**: 电商平台、商业SaaS、面向商家的高端数字化工具
+- **字体策略**: custom (NeueHaasGrotesk / Inter Variable)
+- **complexity**: balanced
+- **industry-fit**: [ecommerce, saas, marketplace, enterprise]
+- **适合**: 电商与商业平台的高端营销站
 
 ## spacex
-- **类目**: Infra & Cloud
-- **一句话**: Full-screen cinematic aerospace exhibition — pure black with D-DIN industrial uppercase typography, zero UI decoration, and photography as the sole design element.
-- **色调**: dark | pure-black | spectral-white
-- **风格**: cinematic, aerospace-industrial, radical-minimalism, photography-only, stencil
-- **温度**: cool
-- **暗色**: dark-first
-- **字体策略**: custom (D-DIN)
-- **适合**: 航天航空、硬核科技展示、品牌形象官网等视觉驱动型产品
-
-## spotify
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Enterprise & Consumer
-- **一句话**: Dark immersive music player wrapping users in near-black where album art provides color — Spotify Green as singular functional accent, pill-and-circle geometry throughout.
-- **色调**: dark | near-black | spotify-green
-- **风格**: immersive-dark, content-first, pill-geometry, touch-optimized, music-player
-- **温度**: neutral
-- **暗色**: dark-first
-- **字体策略**: custom (SpotifyMixUI / CircularSp)
-- **适合**: 音乐流媒体、播客平台、内容消费型娱乐产品
-
-## stripe
-- **类目**: Fintech & Crypto
-- **一句话**: Gold standard fintech design — sohne-var with OpenType ss01, weight-300 headlines, blue-tinted multi-layer shadows, and signature purple on white canvas with deep navy headings.
-- **色调**: light | purple | deep-navy
-- **风格**: premium-fintech, light-weight-headlines, blue-tinted-shadows, precise, luxurious
-- **温度**: warm-neutral
-- **暗色**: has-dark
-- **字体策略**: custom (sohne-var + SourceCodePro)
-- **适合**: 支付基础设施、金融API平台、面向开发者的金融科技产品
-
-## supabase
-- **类目**: Dev Tools
-- **一句话**: Dark-mode-native developer platform channeling premium code editor aesthetics — emerald green PostgreSQL identity, Circular font, and HSL-based translucent layering system.
-- **色调**: dark | near-black | emerald-green
-- **风格**: code-editor, developer-native, translucent-layering, open-source, dark-mode
+- **一句话**: A full-screen cinematic aerospace exhibition where pure black and full-viewport rocket photography dominate, with industrial DIN-heritage uppercase type stenciled onto spacecraft-like imagery.
+- **色调**: dark | pure-black | spectral-white
+- **风格**: cinematic-photography, uppercase-stencil, radical-minimalism, zero-containers, aerospace
 - **温度**: cool-neutral
 - **暗色**: dark-first
-- **字体策略**: custom (Circular + Source Code Pro)
-- **适合**: 开发者后端平台、数据库服务、开源基础设施产品
+- **字体策略**: custom (D-DIN / D-DIN-Bold)
+- **complexity**: minimal
+- **industry-fit**: [media, consumer, luxury, automotive]
+- **适合**: 影像驱动的品牌展示与产品发布站
+
+## spotify
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Enterprise & Consumer
+- **一句话**: A dark immersive music player wrapping listeners in near-black charcoal surfaces where the UI recedes so album art glows, anchored by iconic Spotify Green and tactile pill-and-circle geometry.
+- **色调**: dark | near-black | spotify-green
+- **风格**: content-first-darkness, pill-buttons, circular-controls, uppercase-labels, heavy-shadows
+- **温度**: cool-neutral
+- **暗色**: dark-first
+- **字体策略**: custom (SpotifyMixUI / SpotifyMixUITitle)
+- **complexity**: balanced
+- **industry-fit**: [media, consumer, content-cms]
+- **适合**: 音乐媒体与内容消费产品
+
+## stripe
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Fintech & Crypto
+- **一句话**: The gold standard of fintech design — simultaneously technical and luxurious, with a clean white canvas, deep navy headings, a signature saturated purple, and blue-tinted atmospheric multi-layer shadows.
+- **色调**: light | stripe-purple | deep-navy
+- **风格**: premium-fintech, whisper-weight-type, blue-tinted-shadows, restrained-radius, ss01-stylistic
+- **温度**: cool-neutral
+- **暗色**: light-only
+- **字体策略**: custom (sohne-var / SourceCodePro)
+- **complexity**: minimal
+- **industry-fit**: [fintech, saas, devtools, enterprise]
+- **适合**: 金融科技与支付类SaaS产品
+
+## supabase
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Infra & Cloud
+- **一句话**: A dark-mode-native developer platform channeling a premium code editor aesthetic, with deep near-black backgrounds, emerald PostgreSQL-green accents, and a sophisticated HSL translucent layering system.
+- **色调**: dark | near-black | emerald-green
+- **风格**: dark-native, translucent-layering, pill-primary, minimal-shadows, developer-console
+- **温度**: cool-neutral
+- **暗色**: dark-first
+- **字体策略**: custom (Circular / Source Code Pro)
+- **complexity**: balanced
+- **industry-fit**: [infra, devtools, saas, docs]
+- **适合**: 后端即服务与开发者基础设施
 
 ## superhuman
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Design & Productivity
-- **一句话**: Luxury envelope aesthetic — predominantly white with a dramatic purple gradient hero, Super Sans VF with non-standard weight stops, and warm cream buttons as understated CTAs.
-- **色调**: light | white | lavender-purple
-- **风格**: luxury-minimal, compressed-headlines, understated, refined, productivity-premium
+- **一句话**: A luxury envelope of immaculate white punctuated by a single dramatic twilight purple gradient hero, with warm cream buttons, lavender accents, and unconventional variable font weights that whisper confidence.
+- **色调**: light | mysteria-purple | lavender
+- **风格**: luxury-minimal, single-gradient-hero, warm-cream-cta, compressed-headlines, variable-weights
 - **温度**: warm-neutral
 - **暗色**: has-dark
 - **字体策略**: custom (Super Sans VF)
-- **适合**: 高端效率工具、邮件客户端、面向专业人士的生产力产品
+- **complexity**: minimal
+- **industry-fit**: [productivity, saas, consumer, luxury]
+- **适合**: 高端生产力与效率工具
 
 ## tesla
+- **tier**: B
+- **hasPreview**: false
 - **类目**: Enterprise & Consumer
-- **一句话**: Radical subtraction as design philosophy — full-viewport cinematic photography, near-zero UI decoration, single Electric Blue accent, and Universal Sans unifying web/app/car interfaces.
-- **色调**: light | white | electric-blue
-- **风格**: radical-minimalism, photography-first, showroom, ascetic, automotive
+- **一句话**: A digital showroom of radical subtraction where cinematic car photography dominates full-viewport sections, with a single electric blue CTA and almost ascetic restraint — no shadows, no gradients, no borders.
+- **色调**: light | electric-blue | carbon-dark
+- **风格**: radical-minimalism, photography-first, single-accent, zero-decoration, frosted-nav
 - **温度**: cool-neutral
 - **暗色**: light-only
-- **字体策略**: custom (Universal Sans Display + Text)
-- **适合**: 汽车品牌官网、高端消费电子、以产品摄影为核心的展示型网站
+- **字体策略**: custom (Universal Sans Display / Universal Sans Text)
+- **complexity**: minimal
+- **industry-fit**: [automotive, luxury, consumer, ecommerce]
+- **适合**: 汽车与高端实体产品展示站
 
-## together-ai
+## together.ai
+- **tier**: A
+- **hasPreview**: true
 - **类目**: AI & ML
-- **一句话**: Pastel-gradient dreamscape for enterprise AI infrastructure — dual light/dark worlds, "The Future" display font with aggressive negative tracking, and magenta/orange accents in illustrations only.
-- **色调**: light | white | pastel-pink-blue
-- **风格**: pastel-gradient, dual-world, enterprise-friendly, optimistic, geometric-modern
+- **一句话**: A pastel-gradient dreamscape for enterprise AI infrastructure, straddling bright white canvases with soft pink-blue-lavender clouds and deep midnight-blue research sections anchored by precise negative-tracked typography.
+- **色调**: binary | pastel-lavender | midnight-blue
+- **风格**: pastel-gradient, dual-world, tight-tracking, mono-labels, sharp-geometry
 - **温度**: warm-neutral
 - **暗色**: has-dark
-- **字体策略**: custom (The Future + PP Neue Montreal Mono)
-- **适合**: AI基础设施平台、GPU云服务、企业级机器学习产品
+- **字体策略**: custom (The Future / PP Neue Montreal Mono)
+- **complexity**: balanced
+- **industry-fit**: [ai-ml, infra, enterprise, devtools]
+- **适合**: 企业AI基础设施与研究平台
 
 ## uber
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Enterprise & Consumer
-- **一句话**: Confident black-and-white minimalism with pill-shaped everything, proprietary UberMove geometric sans-serif, warm human illustrations, and whisper-soft card shadows.
-- **色调**: light | black | white
-- **风格**: bold-minimalism, pill-shaped, transit-efficient, human-illustration, monochrome
+- **一句话**: Confident monochrome minimalism — a jet-black and pure-white universe with pill-shaped interactive elements, warm human illustrations, and proprietary geometric typography built like a transit map.
+- **色调**: binary | black | white
+- **风格**: monochrome, pill-shapes, full-bleed-photography, billboard-typography, flat
 - **温度**: neutral
 - **暗色**: has-dark
-- **字体策略**: custom (UberMove + UberMoveText)
-- **适合**: 出行服务、物流配送、本地生活服务类消费平台
+- **字体策略**: custom (UberMove / UberMoveText)
+- **complexity**: minimal
+- **industry-fit**: [consumer, marketplace, enterprise]
+- **适合**: 消费服务与出行平台品牌
 
 ## vercel
-- **类目**: Dev Tools
-- **一句话**: Developer infrastructure made invisible — Geist Sans with extreme negative tracking, shadow-as-border philosophy, near-pure monochrome canvas with workflow-specific accent colors.
-- **色调**: light | white | near-black
-- **风格**: infrastructure-minimalism, compressed-type, shadow-as-border, engineering-pure, monochrome
-- **温度**: neutral
+- **tier**: A
+- **hasPreview**: true
+- **类目**: Infra & Cloud
+- **一句话**: Minimalism as engineering principle — a gallery-white canvas with near-black text, extreme negative letter-spacing, and a signature shadow-as-border technique replacing traditional borders throughout.
+- **色调**: light | vercel-black | workflow-red
+- **风格**: minimal, shadow-as-border, compressed-type, mono-ligatures, engineered
+- **温度**: cool-neutral
 - **暗色**: has-dark
-- **字体策略**: custom (Geist Sans + Geist Mono)
-- **适合**: 开发者部署平台、前端基础设施、云原生开发工具
+- **字体策略**: custom (Geist / Geist Mono)
+- **complexity**: minimal
+- **industry-fit**: [devtools, infra, saas, docs]
+- **适合**: 开发者基础设施与部署平台
 
 ## voltagent
-- **类目**: Dev Tools
-- **一句话**: Deep-space command terminal for AI agents — carbon-black canvas with emerald signal green as sole chromatic energy, warm-neutral grays, and developer-terminal code-first aesthetic.
-- **色调**: dark | carbon-black | emerald-green
-- **风格**: command-terminal, code-first, electric-glow, warm-dark, developer-focused
+- **tier**: A
+- **hasPreview**: true
+- **类目**: AI & ML
+- **一句话**: A deep-space command terminal for the AI age — carbon-black surfaces interrupted only by electric emerald green pulses, warm-gray containment, and developer-terminal aesthetics where code snippets are the hero.
+- **色调**: dark | emerald-green | carbon-black
+- **风格**: terminal-aesthetic, single-accent, warm-dark, glow-effects, code-first
 - **温度**: warm-neutral
 - **暗色**: dark-first
-- **字体策略**: system (system-ui + Inter + SFMono)
-- **适合**: AI Agent框架、开发者SDK、自动化编排平台等技术产品
+- **字体策略**: system (system-ui / Inter / SFMono-Regular)
+- **complexity**: balanced
+- **industry-fit**: [ai-ml, devtools, infra]
+- **适合**: AI智能体与开发者工具平台
 
 ## warp
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Dev Tools
-- **一句话**: Campfire-in-deep-forest warmth — warm near-black with parchment cream text, Matter geometric sans-serif, nature photography interleaved with terminal screenshots, nearly monochromatic.
-- **色调**: dark | warm-black | parchment-cream
-- **风格**: warm-dark, lifestyle-developer, nature-photography, monochromatic, approachable
+- **一句话**: A campfire in a deep forest — warm earthy near-black wrapped around cream-parchment text, Matter font humanity, and nature photography interleaved with terminal screenshots like a lifestyle brand.
+- **色调**: dark | warm-parchment | earth-gray
+- **风格**: warm-dark, lifestyle-photography, monochromatic, refined, editorial-labels
 - **温度**: warm
 - **暗色**: dark-first
-- **字体策略**: custom (Matter)
-- **适合**: 终端工具、命令行增强产品、面向所有开发者的生产力工具
+- **字体策略**: custom (Matter / Matter Mono / Geist Mono)
+- **complexity**: balanced
+- **industry-fit**: [devtools, productivity, infra]
+- **适合**: 高端开发者终端与生产力工具
 
 ## webflow
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Design & Productivity
-- **一句话**: Tool-forward design platform — white canvas with signature Webflow Blue, rich six-color secondary palette, WF Visual Sans Variable, and multi-layer cascading shadow stacks.
-- **色调**: light | white | blue
-- **风格**: tool-forward, colorful-secondary, sharp-radius, multi-layer-shadows, design-platform
-- **温度**: cool-neutral
+- **一句话**: A tool-forward platform communicating design without code through clean white surfaces, signature Webflow Blue, and a rich secondary palette of purple, pink, green, orange, yellow, and red.
+- **色调**: light | webflow-blue | purple
+- **风格**: rich-palette, sharp-radius, multi-layer-shadows, uppercase-labels, tool-forward
+- **温度**: cool
 - **暗色**: light-only
-- **字体策略**: custom (WF Visual Sans Variable)
-- **适合**: 无代码建站平台、设计工具、面向设计师的创作型产品
+- **字体策略**: custom (WF Visual Sans Variable / Inconsolata)
+- **complexity**: balanced
+- **industry-fit**: [design-tool, saas, productivity, content-cms]
+- **适合**: 无代码设计与内容管理平台
 
 ## wise
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Fintech & Crypto
-- **一句话**: Bold fintech with billboard-scale Wise Sans at weight 900, distinctive lime-green accent with dark-green text, scale-on-hover interactions, and warm off-white canvas.
-- **色调**: light | off-white | lime-green
-- **风格**: billboard-bold, nature-inspired, scale-hover, confident, accessible-fintech
+- **一句话**: A bold confident fintech platform communicating money without borders through massive billboard-scale weight-900 typography, signature lime-green accents, and nature-inspired CTAs on warm off-white canvases.
+- **色调**: light | lime-green | near-black
+- **风格**: massive-typography, lime-accent, pill-buttons, scale-hover, fintech-bold
 - **温度**: warm
 - **暗色**: has-dark
-- **字体策略**: custom (Wise Sans + Inter)
-- **适合**: 跨境汇款、国际支付、面向普通用户的金融服务产品
+- **字体策略**: custom (Wise Sans / Inter)
+- **complexity**: balanced
+- **industry-fit**: [fintech, consumer, saas]
+- **适合**: 跨境支付与现代金融服务
 
-## x-ai
+## x.ai
+- **tier**: A
+- **hasPreview**: true
 - **类目**: AI & ML
-- **一句话**: Brutalist dark-first monospace minimalism — GeistMono at extreme 320px display size, zero decorative elements, pure black-and-white with no color accents, terminal-as-luxury aesthetic.
-- **色调**: dark | dark-blue-black | white
-- **风格**: brutalist, monospace-luxury, zero-decoration, terminal-inspired, engineering-pure
+- **一句话**: Dark-first monospace-driven brutalist minimalism — an almost-black canvas with pure white text, GeistMono at extreme 320px display sizes, and zero decorative elements communicating through absence.
+- **色调**: dark | white | dark-blue-black
+- **风格**: brutalist-minimal, monospace-display, zero-decoration, sharp-corners, terminal
 - **温度**: cool-neutral
 - **暗色**: dark-first
-- **字体策略**: custom (GeistMono + universalSans)
-- **适合**: AI研究实验室、大模型基础设施、面向技术精英的AI产品
+- **字体策略**: custom (GeistMono / universalSans)
+- **complexity**: minimal
+- **industry-fit**: [ai-ml, infra, devtools]
+- **适合**: 前沿AI研究与基础设施品牌
 
 ## zapier
+- **tier**: A
+- **hasPreview**: true
 - **类目**: Design & Productivity
-- **一句话**: Warm approachable automation — cream-tinted canvas with reddish near-black text, three-register type system (Degular Display + Inter + GT Alpina), and signature vivid orange accent.
-- **色调**: light | cream | orange
-- **风格**: warm-paper, approachable, border-forward, three-font-system, automation-friendly
+- **一句话**: Warm approachable professionalism on a cream-tinted canvas feeling like unbleached paper, with Degular Display compressed headlines, Inter workhorse typography, and signature orange making automation feel effortless.
+- **色调**: light | zapier-orange | cream-white
+- **风格**: warm-cream, compressed-display, border-forward, editorial-mix, approachable
 - **温度**: warm
 - **暗色**: light-only
-- **字体策略**: custom (Degular Display + Inter + GT Alpina)
-- **适合**: 自动化工作流平台、集成工具、面向非技术用户的效率产品
+- **字体策略**: custom (Degular Display / Inter / GT Alpina)
+- **complexity**: balanced
+- **industry-fit**: [saas, productivity, collaboration, devtools]
+- **适合**: 自动化工作流与SaaS集成平台
+
