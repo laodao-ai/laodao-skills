@@ -33,239 +33,326 @@ Claude Code 的 skill 来自三个层级。本 skill **只覆盖其中两类**�
 
 ## 4 套 Preset 简介
 
-| Preset | 适用场景 | ON 数量（估）| 核心策略 |
-|--------|----------|-------------|----------|
-| `content-creation` | 写文章、博客、做封面/配图、SDD | ~21 | 关闭代码工程类，留 git/SDD/内容 |
-| `go-dev` | Go 后端、CLI 项目 | ~24 | 开 code-review / feature-dev / debug |
-| `embedded-dev` | 嵌入式 C/MCU 固件 | ~28 | 上加 embedded-lint / test-sop / TDD |
-| `web-dev` | 前端、全栈、博客 QA | ~35 | 加 chrome-devtools / 前端 UI / QA |
+| Preset | 适用场景 | 探测特征文件 | ON 数量 |
+|--------|----------|-------------|---------|
+| `content-creation` | 写文章、博客、做封面/配图、SDD | `hugo.toml/yaml` | ~21 |
+| `go-dev` | Go 后端、CLI 项目 | `go.mod` | ~24 |
+| `embedded-dev` | 嵌入式 C/MCU 固件 | `CMakeLists.txt` 或 `.c/.h` | ~28 |
+| `web-dev` | 前端、全栈、博客 QA | `package.json` + react/vue/next/svelte | ~35 |
 
-四套共享的"基础 ON"：superpowers 核心入口、git commit 类、remember、OpenSpec/SDD 全套（`opsx:*`、`opsx-maintain` 等）。
+四套共享的"基础 ON"：superpowers 核心入口、git commit 类、remember、OpenSpec/SDD 全套。
 
-## 工作流
+## 工作流（v2：含安全三件套 + 自动探测）
 
-### Step 1: 扫描环境
+> **设计原则**：先扫描 → 用户确认 → 备份 → 原子写。**绝不**跳过备份/确认直接覆盖。
 
-报告当前装了什么。**注意排除项目级 skill**（按设计前提）：
+### Step 1: 扫描环境 + 探测项目类型
+
+一次性收集：plugin 数量、用户级 skill、项目类型推断、settings.json 现状。
 
 ```bash
 python3 << 'PYEOF'
 import json, os
 
-# Plugin 真相源
+# 1. Plugin 真相源
 with open(os.path.expanduser('~/.claude/plugins/installed_plugins.json')) as f:
     plugin_data = json.load(f)
 total_plugins = len(plugin_data.get('plugins', {}))
 
-# 用户级 skill
-local_skills_dir = os.path.expanduser('~/.claude/skills/')
-local_skills = sorted([d for d in os.listdir(local_skills_dir)
-                       if os.path.isdir(os.path.join(local_skills_dir, d))])
+# 2. 用户级 skill（含 symlink）
+local_dir = os.path.expanduser('~/.claude/skills/')
+local_skills = sorted([d for d in os.listdir(local_dir)
+                       if os.path.isdir(os.path.join(local_dir, d))])
 
-# 项目级 skill（仅统计、不进 skillOverrides）
-project_skills_dir = '.claude/skills/'
+# 3. 项目级 skill（仅统计、不进 skillOverrides）
 project_skills = []
-if os.path.isdir(project_skills_dir):
-    project_skills = sorted([d for d in os.listdir(project_skills_dir)
-                             if os.path.isdir(os.path.join(project_skills_dir, d))])
+if os.path.isdir('.claude/skills/'):
+    project_skills = sorted([d for d in os.listdir('.claude/skills/')
+                             if os.path.isdir(os.path.join('.claude/skills/', d))])
+
+# 4. 项目类型探测
+files = os.listdir('.')
+detected, reason = None, ''
+if 'go.mod' in files:
+    detected, reason = 'go-dev', '检测到 go.mod'
+elif 'CMakeLists.txt' in files or any(f.endswith(('.c', '.h')) for f in files):
+    detected, reason = 'embedded-dev', '检测到 CMakeLists.txt 或 .c/.h 文件'
+elif 'hugo.toml' in files or 'hugo.yaml' in files:
+    detected, reason = 'content-creation', '检测到 hugo.toml/yaml'
+elif 'package.json' in files:
+    try:
+        pkg = json.load(open('package.json'))
+        deps = {**pkg.get('dependencies', {}), **pkg.get('devDependencies', {})}
+        if any(k in deps for k in ['react', 'vue', 'next', 'nuxt', 'svelte', '@vue', '@react']):
+            detected, reason = 'web-dev', '检测到 package.json 含前端框架'
+    except: pass
+
+# 5. settings.json 现状
+settings_exists = os.path.isfile('.claude/settings.json')
+cur_count = 0
+if settings_exists:
+    try:
+        cur = json.load(open('.claude/settings.json'))
+        cur_count = len(cur.get('skillOverrides', {}))
+    except: pass
 
 print(f'已装 plugin: {total_plugins}')
 print(f'用户级 skill: {len(local_skills)}')
-print(f'项目级 skill: {len(project_skills)}（走默认 ON，不进 settings.json）')
+print(f'项目级 skill: {len(project_skills)}（走默认 ON）')
+print(f'探测项目类型: {detected or "未匹配"}（{reason or "请手动选"}）')
+print(f'settings.json: {"存在，含 " + str(cur_count) + " 条 skillOverrides" if settings_exists else "不存在"}')
 PYEOF
 ```
 
-### Step 2: 检查项目 settings.json
+### Step 2: 检查 settings.json
 
-```bash
-if [ -f .claude/settings.json ]; then
-  echo "✅ settings.json 已存在"
-else
-  echo "⚠️  settings.json 不存在，需先创建"
-fi
-```
+如果 Step 1 显示 settings.json 不存在：
 
-如不存在，提示用户先建 → 帮其创建空 `{}`：
 ```bash
 mkdir -p .claude && echo '{}' > .claude/settings.json
 ```
 
-### Step 3: 询问用户选 preset
+### Step 3: 询问用户选 preset（默认推荐探测结果）
 
-用 AskUserQuestion 工具，`header="工作模式"`，提供 4 选项：
+用 AskUserQuestion，`header="工作模式"`：
+
+- **如果 Step 1 探测到了 preset**：把探测出的 preset 放**第一位**并标"（推荐 - 检测到 X）"，其他 3 个按原顺序排第 2-4 位
+- **如果未探测**：4 个 preset 按 content/go/embedded/web 顺序
 
 ```python
+# AskUserQuestion 选项示例（探测到 go-dev 时）
 {
   "question": "选哪套 preset？",
   "header": "工作模式",
   "multiSelect": False,
   "options": [
-    {"label": "content-creation", "description": "内容/博客/设计场景，关闭代码工程类（约 21 ON）"},
-    {"label": "go-dev",           "description": "Go 后端/CLI，启用 code-review/debug（约 24 ON）"},
-    {"label": "embedded-dev",     "description": "嵌入式 C/MCU，启用 embedded-lint/test-sop（约 28 ON）"},
-    {"label": "web-dev",          "description": "前端/全栈，启用 chrome-devtools/UI（约 35 ON）"}
+    {"label": "go-dev",            "description": "（推荐 - 检测到 go.mod）Go 后端/CLI（约 24 ON）"},
+    {"label": "content-creation",  "description": "内容/博客/设计（约 21 ON）"},
+    {"label": "embedded-dev",      "description": "嵌入式 C/MCU（约 28 ON）"},
+    {"label": "web-dev",           "description": "前端/全栈（约 35 ON）"}
   ]
 }
 ```
 
-### Step 4: 应用 preset
+### Step 4: 校验 + 算 Diff + 幂等检查
 
-```python
+```bash
+python3 << 'PYEOF'
 import json, os
 from collections import Counter
 
-preset_name = "<USER_CHOICE>"  # 替换为用户选择
-preset_path = os.path.expanduser(f'~/.claude/skills/config-skills/presets/{preset_name}.json')
-project_settings = '.claude/settings.json'
-
-# 读现有 settings.json（保留 enabledPlugins/permissions/hooks 等）
-with open(project_settings) as f:
-    cur = json.load(f)
-
-# 读 preset
+PRESET = '<USER_CHOICE>'  # 替换为用户选的
+preset_path = os.path.expanduser(f'~/.claude/skills/config-skills/presets/{PRESET}.json')
 with open(preset_path) as f:
     preset = json.load(f)
 
-# 只覆盖 skillOverrides，其他字段不动
-cur['skillOverrides'] = preset
+# 1. Skill ID 校验：preset 里某些 skill 在本地不存在 → phantom（写进去也无用）
+local_dir = os.path.expanduser('~/.claude/skills/')
+existing_local = set(os.listdir(local_dir)) if os.path.isdir(local_dir) else set()
 
-# 写回
-with open(project_settings, 'w') as f:
-    json.dump(cur, f, indent=2, ensure_ascii=False)
-    f.write('\n')
+phantom = []
+clean = {}
+for k, v in preset.items():
+    # plugin:skill 格式由 plugin 提供，不校验
+    # bare name 必须在 ~/.claude/skills/ 存在
+    if ':' in k or k in existing_local:
+        clean[k] = v
+    else:
+        phantom.append(k)
 
-# 统计
-c = Counter(preset.values())
-print(f'✅ 已应用 {preset_name}')
-print(f'   ON: {c["on"]} | user-invocable-only: {c["user-invocable-only"]} | off: {c["off"]}')
+# 2. 算 Diff（preset 里有但 cur 里没有的，cur 视作默认 'on'）
+cur = {}
+if os.path.isfile('.claude/settings.json'):
+    cur = json.load(open('.claude/settings.json')).get('skillOverrides', {})
+
+will_change = {k: (cur.get(k, 'on'), v) for k, v in clean.items()
+               if cur.get(k, 'on') != v}
+
+# 3. 幂等检查
+if not will_change:
+    print('STATUS: already_up_to_date')
+    print(f'当前 skillOverrides 已与 {PRESET} preset 一致，无需变更。')
+    if phantom:
+        print(f'⚠️  仍有 {len(phantom)} 项 phantom skill（preset 列了但本地没装）')
+else:
+    print('STATUS: needs_update')
+    print(f'\n📊 Diff 摘要（{PRESET}）')
+    print(f'   将变更 skill 数: {len(will_change)}')
+    by_target = Counter(target for _, target in will_change.values())
+    for t in ['on', 'user-invocable-only', 'off']:
+        if t in by_target:
+            print(f'   → {t}: {by_target[t]} 项')
+
+    if phantom:
+        print(f'\n⚠️  本地未找到 skill（已跳过 {len(phantom)} 项）:')
+        for p in phantom[:10]:
+            print(f'   - {p}')
+        if len(phantom) > 10: print(f'   ... 及其余 {len(phantom)-10} 项')
+
+    # 详细变更（最多 20 项）
+    print(f'\n📋 详细变更（前 20 项）:')
+    for k, (old, new) in list(will_change.items())[:20]:
+        print(f'   {k:50} {old:25} → {new}')
+    if len(will_change) > 20:
+        print(f'   ... 及其余 {len(will_change)-20} 项')
+PYEOF
 ```
 
-**只动 `skillOverrides`**：`enabledPlugins`、`permissions`、`hooks`、`env` 等其他字段全部保留。
+**如果 STATUS: already_up_to_date** → 直接结束（跳过 Step 5-6），告知用户"已是最新状态"。
 
-### Step 5: 展示分类清单
+### Step 5: 展示 Diff + 用户确认
+
+用 AskUserQuestion，2 选 1：
+
+```python
+{
+  "question": f"应用 {PRESET} preset？将变更 N 项 skill",
+  "header": "应用变更",
+  "multiSelect": False,
+  "options": [
+    {"label": "确认应用", "description": "备份当前 settings.json 后写入新配置"},
+    {"label": "取消",     "description": "什么都不做"}
+  ]
+}
+```
+
+如果用户选"取消"，输出"已取消"并结束。
+
+### Step 6: 备份 + 原子写回
+
+```bash
+python3 << 'PYEOF'
+import json, os, shutil, datetime, glob
+
+PRESET = '<USER_CHOICE>'
+settings_path = '.claude/settings.json'
+
+# 1. 时间戳备份，保留最近 3 份
+ts = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+bak = settings_path + f'.bak.{ts}'
+shutil.copy2(settings_path, bak)
+for old in sorted(glob.glob(settings_path + '.bak.*'))[:-3]:
+    os.remove(old)
+
+# 2. 读 settings.json + preset
+with open(settings_path) as f:
+    cur = json.load(f)
+with open(os.path.expanduser(f'~/.claude/skills/config-skills/presets/{PRESET}.json')) as f:
+    preset = json.load(f)
+
+# 3. 只覆盖 skillOverrides，其他字段不动
+cur['skillOverrides'] = preset
+
+# 4. 原子写回（tmp + replace 防写一半崩溃）
+tmp = settings_path + '.tmp'
+with open(tmp, 'w') as f:
+    json.dump(cur, f, indent=2, ensure_ascii=False)
+    f.write('\n')
+os.replace(tmp, settings_path)
+
+# 5. 统计
+from collections import Counter
+c = Counter(preset.values())
+print(f'✅ 已应用 {PRESET}')
+print(f'   备份: {bak}')
+print(f'   ON: {c["on"]} | user-invocable-only: {c["user-invocable-only"]} | off: {c["off"]}')
+PYEOF
+```
+
+**只动 `skillOverrides`**：`enabledPlugins` / `permissions` / `hooks` / `env` 等其他字段全部保留。
+
+### Step 7: 展示分类清单
 
 按用户所选 preset 输出（见下方"各 Preset 概览"章节）。
 
-### Step 6: 引导修改
+### Step 8: 引导修改 + 重载提示
 
 告诉用户：
 
-**修改某个 skill 的状态**
-编辑 `.claude/settings.json`，找到对应 skill，改值：
+**修改某个 skill 的状态**：编辑 `.claude/settings.json`，找到对应 skill，改值
 - `"on"`：默认加载，AI 主动建议
-- `"off"`：完全屏蔽，AI 不知道存在
-- `"user-invocable-only"`：仅你 `/skill-name` 触发
+- `"off"`：完全屏蔽
+- `"user-invocable-only"`：仅 `/skill-name` 触发
 
-**修改 preset 自身**
-编辑 `~/.claude/skills/config-skills/presets/<name>.json`，重跑 `/config-skills` 应用。
+**修改 preset 自身**：编辑 `~/.claude/skills/config-skills/presets/<name>.json`，重跑 `/config-skills` 应用。
 
-**添加新 preset**
-在 `presets/` 加 `<new-name>.json`，在本 SKILL.md Step 3 的 AskUserQuestion 加选项。
+**回滚**：最近 3 份备份在 `.claude/settings.json.bak.YYYYMMDD-HHMMSS`：
+```bash
+cp .claude/settings.json.bak.YYYYMMDD-HHMMSS .claude/settings.json
+```
 
 **生效**：必须执行 `/reload-plugins` 才生效。
 
 ---
 
-## 各 Preset 概览（Step 5 输出模板）
+## 各 Preset 概览（Step 7 输出模板）
 
 ### content-creation 概览（约 21 ON）
 
 **主动加载**
-- `superpowers`: using-superpowers / brainstorming / verification-before-completion（流程入口 + 创意 + 验证）
-- OpenSpec: `opsx:*` × 11（SDD 完整流程）+ `opsx-maintain` / `opsx-roadmap-planner` / `project-activate`
+- `superpowers`: using-superpowers / brainstorming / verification-before-completion
+- OpenSpec: `opsx:*` × 11 + `opsx-maintain` / `opsx-roadmap-planner` / `project-activate`
 - git: `commit-commands:commit` / `commit-message` / `tag`
 - 其他: `remember:remember` / `laodao-skills`
 
-**手动 /xxx 触发**
-- 设计: frontend-design / ui-ux-pro-max / design-review
-- SEO: `searchfit-seo:*` × 17（需要时 `/seo-audit` 等）
-- 浏览器: `chrome-devtools-mcp:*` × 6 / playwright
-- 调研: bilibili / youtube / x / zhihu-research
-- 转换: pdf2md / docx2md / xlsx2md / make-pdf
-- gstack 偶用: codex / qa / qa-only / browse / ship
+**手动 /xxx 触发**：设计 / SEO / 浏览器 / 调研 / 转换 / gstack 偶用
 
-**已屏蔽**
-- 代码工程: code-review / feature-dev / debug / TDD / pr-review-toolkit
-- 嵌入式: embedded-* / goframe-v2
-- 设计重型: design-html / design-shotgun / design-consultation
-- 极少用: cso / learn / find-skills / careful / freeze 等
+**已屏蔽**：代码工程类 / 嵌入式 / 设计重型
 
 ### go-dev 概览（约 24 ON）
 
-**主动加载** = content-creation 的 21 + 增 3
-- `code-review:code-review`、`feature-dev:feature-dev`（PR 审查 + 功能开发）
-- `superpowers:systematic-debugging`（系统化调试）
+= content-creation + 增 3：
+- `code-review:code-review` / `feature-dev:feature-dev` / `superpowers:systematic-debugging`
 
-**手动 /xxx 触发**
-- TDD: `superpowers:test-driven-development`
-- 代码 review 协作: requesting/receiving-code-review
-- 并行/隔离: subagent-driven / dispatching-parallel / using-git-worktrees / finishing-a-development-branch
-- pr-review-toolkit:review-pr
-- gstack: codex / qa / browse / ship / health / investigate
-- GoFrame: goframe-v2（仅当用 GoFrame）
+**手动 /xxx 触发**：TDD / 代码 review 协作 / pr-review-toolkit / gstack code 类
 
-**已屏蔽**
-- 前端/UI: frontend-design / ui-ux-pro-max / `chrome-devtools-mcp:*` × 6
-- SEO 全套（17 个）
-- 内容研究/转换
-- 设计重型 / design-review
-- 嵌入式
+**已屏蔽**：前端/UI / SEO 全套 / 内容研究/转换 / 嵌入式
 
 ### embedded-dev 概览（约 28 ON）
 
-**主动加载** = go-dev 的 24 + 增 4
-- `embedded-test-sop`（手动测试 SOP 文档生成）
-- `embedded-test-sop-workspace`
-- `embedded-lint`（C 静态分析：cppcheck / clang-tidy）
+= go-dev + 增 4：
+- `embedded-test-sop` / `embedded-test-sop-workspace` / `embedded-lint`
 - `superpowers:test-driven-development`（嵌入式 TDD 提级到 ON）
-
-**手动 /xxx 触发**
-- pr-review-toolkit:review-pr
-- 代码 review 协作: requesting/receiving-code-review
-- gstack: codex / health / investigate
-
-**已屏蔽**
-- 同 go-dev，并加 `goframe-v2` off（嵌入式 C 不用 Go 框架）
-- 前端/UI/SEO/内容研究/转换/设计
 
 ### web-dev 概览（约 35 ON）
 
-**主动加载** = go-dev 的 24 + 增 11
-- 前端核心: `frontend-design`、`ui-ux-pro-max`
-- 浏览器: `chrome-devtools-mcp:*` × 6（troubleshooting / LCP / CLI / memory-leak / chrome-devtools / a11y）
-- QA 流: `qa`、`qa-only`、`browse`
-
-**手动 /xxx 触发**
-- SEO: `searchfit-seo:*` × 17（按需 `/seo-audit` 等）
-- 设计: design-review / plan-design-review / design-html / design-shotgun
-- TDD: `superpowers:test-driven-development`
-- 代码 review 协作
-
-**已屏蔽**
-- 嵌入式: embedded-* / goframe-v2
-- 内容研究/转换
+= go-dev + 增 11：
+- 前端: `frontend-design` / `ui-ux-pro-max`
+- 浏览器: `chrome-devtools-mcp:*` × 6
+- QA: `qa` / `qa-only` / `browse`
 
 ---
 
 ## 边界情况
 
 ### 用户不要 4 个 preset 中任何一个
-让他选 "Other"（AskUserQuestion 的兜底选项）→ 引导直接改 `.claude/settings.json`，参考各 preset 文件做差异调整。
+让他选 "Other"（AskUserQuestion 兜底）→ 引导直接改 `.claude/settings.json`。
 
 ### 项目里没 .claude/settings.json
-先创建空文件：`mkdir -p .claude && echo '{}' > .claude/settings.json`，然后进 Step 4。
+Step 2 已处理：自动创建空 `{}`。
 
-### preset 文件不存在
-报错并列出 `presets/` 实际有哪些 JSON：
-```bash
-ls ~/.claude/skills/config-skills/presets/
-```
+### 探测出错（如 package.json 损坏）
+Step 1 try/except 已兜底，回到"未匹配"分支让用户全自由选。
 
 ### 用户已有重要自定义 skillOverrides
-应用 preset 会**完全覆盖**现有 `skillOverrides`。先建议备份：
-```bash
-cp .claude/settings.json .claude/settings.json.bak
-```
+Step 6 自动备份到 `.bak.YYYYMMDD-HHMMSS`，保留最近 3 份。
 
 ### 跨项目复用 preset
-本 skill 装在用户级 `~/.claude/skills/config-skills/`，所有项目都能 `/config-skills`，preset 跟着用户级走，不需要每个项目重装。
+本 skill 装在用户级（实体 `~/.claude/skills/laodao-skills/config-skills/`，symlink 接入 `~/.claude/skills/config-skills/`），所有项目都能 `/config-skills`。
+
+### 添加新 preset
+在 `~/.claude/skills/laodao-skills/config-skills/presets/` 加 `<new-name>.json`，在本 SKILL.md Step 3 的 AskUserQuestion 加选项 + Step 1 探测规则。
+
+---
+
+## 致敬：从 project-activate 借鉴的设计
+
+本 skill v2 大量借鉴 `project-activate` 的设计：
+
+- **自动探测**（Step 1）：源自 project-activate 的特征文件检测
+- **Diff 计算 + 用户确认**（Step 4-5）：源自 project-activate 的"展示变更，确认/取消/调整"
+- **备份机制**（Step 6）：`.bak.timestamp` + 保留最近 3 份
+- **原子写回**（Step 6）：`tmp + os.replace`
+- **Plugin/Skill ID 校验**（Step 4）：跳过 phantom
+
+差异：本 skill 只管 `skillOverrides`（按用户决策），project-activate 管 `enabledPlugins` + MCP + skills 提示。
