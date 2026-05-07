@@ -77,11 +77,9 @@
   "tag": "on",
   "ssh-tunnel": "user-invocable-only",
   "embedded-test-sop": "on",
-  "embedded-test-sop-workspace": "on",
   "embedded-lint": "on",
   "goframe-v2": "off",
   "update": "user-invocable-only",
-  "laodao-skills": "on",
   "opsx:explore": "on",
   "opsx:new": "on",
   "opsx:propose": "on",
@@ -146,5 +144,6 @@
   "setup-gbrain": "off",
   "sync-gbrain": "off",
   "gstack-init": "off",
-  "gstack-upgrade": "off"
+  "gstack-upgrade": "off",
+  "config-skills": "user-invocable-only"
 }

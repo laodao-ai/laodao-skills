@@ -104,7 +104,167 @@ print(f'settings.json: {"存在，含 " + str(cur_count) + " 条 skillOverrides"
 PYEOF
 ```
 
-### Step 2: 检查 settings.json
+### Step 2: preset 健康检查 + 自动同步（v3 新增）
+
+扫描所有 4 个 preset 的 keys 总集，对比本地真实可控 skill（含 SKILL.md 的目录）。
+- **missing**：本地装了 skill 但 preset 都没列 → 4 个 preset 都加，默认值由**智能规则推断**（见下方规则表）
+- **phantom**：preset 列了但本地不存在 → 4 个 preset 都删
+
+**智能默认值推断规则**（按顺序，先匹配赢）：
+
+| 关键词 | content | go-dev | embedded | web | 类型 |
+|--------|---------|--------|----------|-----|------|
+| `commit / git / tag / release` | on | on | on | on | git 类核心 |
+| `roadmap / spec / openspec / sdd / plan / brainstorm` | on | on | on | on | 流程核心 |
+| `lint / code-review / test-driven / feature-dev / debug / refactor` | off | on | on | on | 代码工程 |
+| `humanizer / tech-writing / mp-article / writing-zh` | on | off | off | u-i-o | 内容创作 |
+| `embedded / firmware / mcu` | off | off | on | off | 嵌入式 |
+| `frontend / ui-ux / react / vue / svelte / css / design-html` | u-i-o | off | off | on | 前端 UI |
+| `qa / playwright / chrome-devtools / browse` | u-i-o | u-i-o | off | on | 浏览器 QA |
+| `seo / schema / keyword-cluster` | u-i-o | off | off | u-i-o | SEO |
+| `research / bilibili / youtube / zhihu / x-research` | u-i-o | off | off | off | 调研 |
+| `pdf2md / docx2md / xlsx2md / make-pdf` | u-i-o | off | off | off | 文档转换 |
+| `setup- / init- / configure- / scaffold` | off | off | off | off | 一次性配置 |
+| `update / sync` | u-i-o | u-i-o | u-i-o | u-i-o | 维护工具 |
+| **未匹配** | u-i-o | u-i-o | u-i-o | u-i-o | 默认（安全保留入口）|
+
+> u-i-o = `user-invocable-only`
+
+```bash
+python3 << 'PYEOF'
+import json, os
+
+PRESET_NAMES = ['content-creation', 'go-dev', 'embedded-dev', 'web-dev']
+preset_dir = os.path.expanduser('~/.claude/skills/laodao-skills/config-skills/presets/')
+
+# 智能规则（按顺序匹配，先赢）
+RULES = [
+    (['commit', 'git', 'tag', 'release'], dict.fromkeys(PRESET_NAMES, 'on')),
+    (['roadmap', 'openspec', 'sdd', 'project-activate', 'opsx'], dict.fromkeys(PRESET_NAMES, 'on')),
+    (['lint', 'code-review', 'test-driven', 'feature-dev', 'debug', 'refactor'],
+     {'content-creation': 'off', 'go-dev': 'on', 'embedded-dev': 'on', 'web-dev': 'on'}),
+    (['humanizer', 'tech-writing', 'mp-article'],
+     {'content-creation': 'on', 'go-dev': 'off', 'embedded-dev': 'off', 'web-dev': 'user-invocable-only'}),
+    (['embedded', 'firmware', 'mcu'],
+     {'content-creation': 'off', 'go-dev': 'off', 'embedded-dev': 'on', 'web-dev': 'off'}),
+    (['frontend', 'ui-ux', 'react', 'vue', 'svelte', 'css', 'design-html'],
+     {'content-creation': 'user-invocable-only', 'go-dev': 'off', 'embedded-dev': 'off', 'web-dev': 'on'}),
+    (['qa', 'playwright', 'chrome-devtools', 'browse', 'browser'],
+     {'content-creation': 'user-invocable-only', 'go-dev': 'user-invocable-only', 'embedded-dev': 'off', 'web-dev': 'on'}),
+    (['seo', 'schema', 'keyword-cluster'],
+     {'content-creation': 'user-invocable-only', 'go-dev': 'off', 'embedded-dev': 'off', 'web-dev': 'user-invocable-only'}),
+    (['research', 'bilibili', 'youtube', 'zhihu', 'x-research'],
+     {'content-creation': 'user-invocable-only', 'go-dev': 'off', 'embedded-dev': 'off', 'web-dev': 'off'}),
+    (['pdf2md', 'docx2md', 'xlsx2md', 'make-pdf'],
+     {'content-creation': 'user-invocable-only', 'go-dev': 'off', 'embedded-dev': 'off', 'web-dev': 'off'}),
+    (['setup-', 'init-', 'configure-', 'scaffold'], dict.fromkeys(PRESET_NAMES, 'off')),
+    (['update', 'sync-'], dict.fromkeys(PRESET_NAMES, 'user-invocable-only')),
+]
+
+def infer_defaults(skill_name):
+    """返回 {preset_name: value}；未匹配返回全 user-invocable-only"""
+    name = skill_name.lower()
+    for keywords, mapping in RULES:
+        if any(kw in name for kw in keywords):
+            return mapping, ','.join(kw for kw in keywords if kw in name)
+    return dict.fromkeys(PRESET_NAMES, 'user-invocable-only'), '未匹配'
+
+# 加载 4 个 preset
+presets = {}
+for name in PRESET_NAMES:
+    with open(os.path.join(preset_dir, f'{name}.json')) as f:
+        presets[name] = json.load(f)
+
+all_preset_keys = set()
+for p in presets.values():
+    all_preset_keys |= set(p.keys())
+
+# 本地真实可控 skill：必须有 SKILL.md
+local_dir = os.path.expanduser('~/.claude/skills/')
+local_skills = set()
+for d in os.listdir(local_dir):
+    full = os.path.join(local_dir, d)
+    if os.path.isdir(full) and os.path.isfile(os.path.join(full, 'SKILL.md')):
+        local_skills.add(d)
+
+bare_preset_keys = {k for k in all_preset_keys if ':' not in k}
+missing = local_skills - bare_preset_keys
+phantom = bare_preset_keys - local_skills
+
+if not missing and not phantom:
+    print('STATUS: preset_in_sync')
+    print('所有 4 个 preset 与本地 skill 一致，无需同步。')
+else:
+    print('STATUS: needs_sync')
+    if missing:
+        print(f'\n📥 待加入 preset（{len(missing)} 项，含智能默认值预览）:')
+        for s in sorted(missing):
+            mapping, matched = infer_defaults(s)
+            vals = '/'.join(f'{p[0]}:{mapping[p][:3]}' for p in PRESET_NAMES)
+            print(f'   + {s:35} 规则: {matched:30} → {vals}')
+    if phantom:
+        print(f'\n🗑️  待清除 preset（{len(phantom)} 项，本地未找到 SKILL.md）:')
+        for s in sorted(phantom): print(f'   - {s}')
+PYEOF
+```
+
+**如果 STATUS: needs_sync** → 用 AskUserQuestion 询问是否自动同步：
+
+```python
+{
+  "question": f"同步 preset？将加 N 项、删 M 项",
+  "header": "preset 同步",
+  "multiSelect": False,
+  "options": [
+    {"label": "自动同步（推荐）", "description": "改 4 个 preset 文件：missing 加 user-invocable-only，phantom 删除"},
+    {"label": "跳过", "description": "保持 preset 不变，继续后续流程"}
+  ]
+}
+```
+
+**如果用户选自动同步**，执行（复用上面的 RULES 和 infer_defaults，实际跑时把规则放在同一脚本顶部）：
+
+```bash
+python3 << 'PYEOF'
+import json, os
+
+PRESET_NAMES = ['content-creation', 'go-dev', 'embedded-dev', 'web-dev']
+preset_dir = os.path.expanduser('~/.claude/skills/laodao-skills/config-skills/presets/')
+
+# RULES + infer_defaults（同上一段，省略以避免重复）
+RULES = [...]  # 同检测脚本
+def infer_defaults(name):
+    ...  # 同检测脚本
+
+MISSING = <list>   # 替换为实际 missing
+PHANTOM = <list>   # 替换为实际 phantom
+
+for name in PRESET_NAMES:
+    path = os.path.join(preset_dir, f'{name}.json')
+    with open(path) as f:
+        p = json.load(f)
+    # missing 用智能推断填值
+    for k in MISSING:
+        mapping, _ = infer_defaults(k)
+        p[k] = mapping[name]
+    # phantom 删除
+    for k in PHANTOM:
+        p.pop(k, None)
+    with open(path, 'w') as f:
+        json.dump(p, f, indent=2, ensure_ascii=False)
+        f.write('\n')
+
+print(f'✅ 4 个 preset 已同步: 加 {len(MISSING)} 项, 删 {len(PHANTOM)} 项')
+print('提示：改动在 laodao-skills repo，记得 cd ~/.claude/skills/laodao-skills && git add presets/ && commit')
+PYEOF
+```
+
+**智能推断的局限**：
+- 规则按 skill 名关键词匹配，命中靠"含某子串"。如果 skill 命名风格特殊（比如缩写、自创词），可能落到"未匹配"分支 → 全 `user-invocable-only`，安全但不精准。
+- 同步后建议过一遍 `~/.claude/skills/laodao-skills/config-skills/presets/*.json` 检查推断结果，必要时手改某些 skill 的值（比如把 `gstack-init` 在 dev 类 preset 也设 `off`）。
+- 不处理 `plugin:skill` 形式（plugin 增删少、关心程度低）。
+
+### Step 3: 检查 settings.json
 
 如果 Step 1 显示 settings.json 不存在：
 
@@ -112,7 +272,7 @@ PYEOF
 mkdir -p .claude && echo '{}' > .claude/settings.json
 ```
 
-### Step 3: 询问用户选 preset（默认推荐探测结果）
+### Step 4: 询问用户选 preset（默认推荐探测结果）
 
 用 AskUserQuestion，`header="工作模式"`：
 
@@ -160,13 +320,19 @@ for k, v in preset.items():
     else:
         phantom.append(k)
 
-# 2. 算 Diff（preset 里有但 cur 里没有的，cur 视作默认 'on'）
+# 2. 算 Diff（双向：preset 加了什么 + settings 多余的会被删什么）
+#    preset 不含某 key = 该 skill 回到默认 'on'，cur 不含某 key 同理
 cur = {}
 if os.path.isfile('.claude/settings.json'):
     cur = json.load(open('.claude/settings.json')).get('skillOverrides', {})
 
-will_change = {k: (cur.get(k, 'on'), v) for k, v in clean.items()
-               if cur.get(k, 'on') != v}
+all_keys = set(clean) | set(cur)
+will_change = {}
+for k in all_keys:
+    cur_val = cur.get(k, 'on')      # settings 没声明 = 默认 on
+    new_val = clean.get(k, 'on')    # preset 没列 = 该 skill 回到默认 on（等价于从 settings 删掉）
+    if cur_val != new_val:
+        will_change[k] = (cur_val, new_val)
 
 # 3. 幂等检查
 if not will_change:
