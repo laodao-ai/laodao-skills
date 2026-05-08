@@ -1,0 +1,75 @@
+{
+  "_meta": {
+    "version": "1.1",
+    "updated": "2026-05-08",
+    "note": "Skill invocation dependency map. 'calls' covers ALL code paths — both required and optional. If skill A ever calls skill B, B must be 'on'. Step 2.5 enforces this transitively for all skills with value != 'off'.",
+    "rule": "For each skill K in preset with value != 'off': for each dep D in dependencies[K].calls: preset[D] must be 'on'",
+    "how_to_update": "1. Find SKILL.md of the caller skill  2. Grep for 'Skill tool', 'invoke', 'sub-skill', 'required skill'  3. Add ALL callees (required or optional) to 'calls'  4. Re-run /config-skills to apply"
+  },
+  "dependencies": {
+    "superpowers:brainstorming": {
+      "calls": [
+        "superpowers:writing-plans"
+      ],
+      "note": "brainstorming terminal state is invoking writing-plans (confirmed in SKILL.md flow diagram)"
+    },
+    "superpowers:writing-plans": {
+      "calls": [
+        "superpowers:executing-plans",
+        "superpowers:subagent-driven-development"
+      ],
+      "note": "writing-plans invokes either executing-plans (inline) or subagent-driven-development (subagent). Both must be on so any code path works."
+    },
+    "superpowers:systematic-debugging": {
+      "calls": [
+        "superpowers:test-driven-development",
+        "superpowers:verification-before-completion"
+      ],
+      "note": "systematic-debugging requires test-driven-development for Phase 4 failing test, and verification-before-completion before declaring success"
+    },
+    "superpowers:subagent-driven-development": {
+      "calls": [
+        "superpowers:writing-plans",
+        "superpowers:executing-plans",
+        "superpowers:requesting-code-review",
+        "superpowers:finishing-a-development-branch",
+        "superpowers:using-git-worktrees"
+      ],
+      "note": "subagent-driven-development lists these as 'Required workflow skills' in SKILL.md"
+    },
+    "gstack": {
+      "calls": [
+        "investigate",
+        "review",
+        "qa",
+        "qa-only",
+        "browse",
+        "ship",
+        "plan-ceo-review",
+        "plan-eng-review",
+        "open-gstack-browser"
+      ],
+      "note": "gstack is a router — it routes user intent to these sub-skills via Skill tool invocation. open-gstack-browser is a pure internal helper."
+    },
+    "browse": {
+      "calls": [
+        "open-gstack-browser"
+      ],
+      "note": "browse uses open-gstack-browser for browser control"
+    },
+    "qa": {
+      "calls": [
+        "browse",
+        "open-gstack-browser"
+      ],
+      "note": "qa uses browse for page interaction and open-gstack-browser for browser control"
+    },
+    "qa-only": {
+      "calls": [
+        "browse",
+        "open-gstack-browser"
+      ],
+      "note": "qa-only (report-only variant) uses the same browser infrastructure as qa"
+    }
+  }
+}

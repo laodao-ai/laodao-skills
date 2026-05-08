@@ -1,0 +1,1217 @@
+{
+  "_meta": {
+    "generated": "2026-05-08",
+    "note": "Auto-generated. Regenerate with: python3 scripts/00_gen_catalog.py"
+  },
+  "plugins": {
+    "claude-hud@claude-hud": {
+      "name": "claude-hud",
+      "author": "claude-hud",
+      "has_skills": false,
+      "has_commands": true
+    },
+    "frontend-design@claude-plugins-official": {
+      "name": "frontend-design",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "superpowers@claude-plugins-official": {
+      "name": "superpowers",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": true
+    },
+    "context7@claude-plugins-official": {
+      "name": "context7",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "code-review@claude-plugins-official": {
+      "name": "code-review",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": true
+    },
+    "code-simplifier@claude-plugins-official": {
+      "name": "code-simplifier",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "github@claude-plugins-official": {
+      "name": "github",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "skill-creator@claude-plugins-official": {
+      "name": "skill-creator",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "playwright@claude-plugins-official": {
+      "name": "playwright",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "feature-dev@claude-plugins-official": {
+      "name": "feature-dev",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": true
+    },
+    "claude-md-management@claude-plugins-official": {
+      "name": "claude-md-management",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": true
+    },
+    "ralph-loop@claude-plugins-official": {
+      "name": "ralph-loop",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": true
+    },
+    "typescript-lsp@claude-plugins-official": {
+      "name": "typescript-lsp",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "security-guidance@claude-plugins-official": {
+      "name": "security-guidance",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "commit-commands@claude-plugins-official": {
+      "name": "commit-commands",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": true
+    },
+    "figma@claude-plugins-official": {
+      "name": "figma",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "claude-code-setup@claude-plugins-official": {
+      "name": "claude-code-setup",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "pr-review-toolkit@claude-plugins-official": {
+      "name": "pr-review-toolkit",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": true
+    },
+    "pyright-lsp@claude-plugins-official": {
+      "name": "pyright-lsp",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "explanatory-output-style@claude-plugins-official": {
+      "name": "explanatory-output-style",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "plugin-dev@claude-plugins-official": {
+      "name": "plugin-dev",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": true
+    },
+    "greptile@claude-plugins-official": {
+      "name": "greptile",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "chrome-devtools-mcp@claude-plugins-official": {
+      "name": "chrome-devtools-mcp",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "hookify@claude-plugins-official": {
+      "name": "hookify",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": true
+    },
+    "playground@claude-plugins-official": {
+      "name": "playground",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "learning-output-style@claude-plugins-official": {
+      "name": "learning-output-style",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "gopls-lsp@claude-plugins-official": {
+      "name": "gopls-lsp",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "firecrawl@claude-plugins-official": {
+      "name": "firecrawl",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": true
+    },
+    "clangd-lsp@claude-plugins-official": {
+      "name": "clangd-lsp",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "remember@claude-plugins-official": {
+      "name": "remember",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "semgrep@claude-plugins-official": {
+      "name": "semgrep",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": true
+    },
+    "microsoft-docs@claude-plugins-official": {
+      "name": "microsoft-docs",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "mcp-server-dev@claude-plugins-official": {
+      "name": "mcp-server-dev",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "sourcegraph@claude-plugins-official": {
+      "name": "sourcegraph",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "data-engineering@claude-plugins-official": {
+      "name": "data-engineering",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "fakechat@claude-plugins-official": {
+      "name": "fakechat",
+      "author": "claude-plugins-official",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "searchfit-seo@claude-plugins-official": {
+      "name": "searchfit-seo",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": true
+    },
+    "mintlify@claude-plugins-official": {
+      "name": "mintlify",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "session-report@claude-plugins-official": {
+      "name": "session-report",
+      "author": "claude-plugins-official",
+      "has_skills": true,
+      "has_commands": false
+    },
+    "ui-ux-pro-max@ui-ux-pro-max-skill": {
+      "name": "ui-ux-pro-max",
+      "author": "ui-ux-pro-max-skill",
+      "has_skills": false,
+      "has_commands": false
+    },
+    "claude-api@anthropic-agent-skills": {
+      "name": "claude-api",
+      "author": "anthropic-agent-skills",
+      "has_skills": true,
+      "has_commands": false
+    }
+  },
+  "plugin_skills": {
+    "claude-hud:configure": {
+      "type": "plugin-command",
+      "plugin": "claude-hud@claude-hud",
+      "description": "Configure HUD display options (layout, language, presets, display elements) while preserving advanced manual overrides"
+    },
+    "claude-hud:setup": {
+      "type": "plugin-command",
+      "plugin": "claude-hud@claude-hud",
+      "description": "Configure claude-hud as your statusline"
+    },
+    "frontend-design:frontend-design": {
+      "type": "plugin-skill",
+      "plugin": "frontend-design@claude-plugins-official",
+      "description": "Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to "
+    },
+    "superpowers:brainstorming": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying "
+    },
+    "superpowers:dispatching-parallel-agents": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies"
+    },
+    "superpowers:executing-plans": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when you have a written implementation plan to execute in a separate session with review checkpoints"
+    },
+    "superpowers:finishing-a-development-branch": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completio"
+    },
+    "superpowers:receiving-code-review": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or techni"
+    },
+    "superpowers:requesting-code-review": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when completing tasks, implementing major features, or before merging to verify work meets requirements"
+    },
+    "superpowers:subagent-driven-development": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when executing implementation plans with independent tasks in the current session"
+    },
+    "superpowers:systematic-debugging": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes"
+    },
+    "superpowers:test-driven-development": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when implementing any feature or bugfix, before writing implementation code"
+    },
+    "superpowers:using-git-worktrees": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when starting feature work that needs isolation from current workspace or before executing implementation plans - en"
+    },
+    "superpowers:using-superpowers": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY "
+    },
+    "superpowers:verification-before-completion": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verifi"
+    },
+    "superpowers:writing-plans": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when you have a spec or requirements for a multi-step task, before touching code"
+    },
+    "superpowers:writing-skills": {
+      "type": "plugin-skill",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Use when creating new skills, editing existing skills, or verifying skills work before deployment"
+    },
+    "superpowers:brainstorm": {
+      "type": "plugin-command",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Deprecated - use the superpowers:brainstorming skill instead"
+    },
+    "superpowers:execute-plan": {
+      "type": "plugin-command",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Deprecated - use the superpowers:executing-plans skill instead"
+    },
+    "superpowers:write-plan": {
+      "type": "plugin-command",
+      "plugin": "superpowers@claude-plugins-official",
+      "description": "Deprecated - use the superpowers:writing-plans skill instead"
+    },
+    "code-review:code-review": {
+      "type": "plugin-command",
+      "plugin": "code-review@claude-plugins-official",
+      "description": "Code review a pull request"
+    },
+    "skill-creator:skill-creator": {
+      "type": "plugin-skill",
+      "plugin": "skill-creator@claude-plugins-official",
+      "description": "Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a sk"
+    },
+    "feature-dev:feature-dev": {
+      "type": "plugin-command",
+      "plugin": "feature-dev@claude-plugins-official",
+      "description": "Guided feature development with codebase understanding and architecture focus"
+    },
+    "claude-md-management:claude-md-improver": {
+      "type": "plugin-skill",
+      "plugin": "claude-md-management@claude-plugins-official",
+      "description": "Audit and improve CLAUDE.md files in repositories. Use when user asks to check, audit, update, improve, or fix CLAUDE.md"
+    },
+    "claude-md-management:revise-claude-md": {
+      "type": "plugin-command",
+      "plugin": "claude-md-management@claude-plugins-official",
+      "description": "Update CLAUDE.md with learnings from this session"
+    },
+    "ralph-loop:cancel-ralph": {
+      "type": "plugin-command",
+      "plugin": "ralph-loop@claude-plugins-official",
+      "description": "Cancel active Ralph Loop"
+    },
+    "ralph-loop:help": {
+      "type": "plugin-command",
+      "plugin": "ralph-loop@claude-plugins-official",
+      "description": "Explain Ralph Loop plugin and available commands"
+    },
+    "ralph-loop:ralph-loop": {
+      "type": "plugin-command",
+      "plugin": "ralph-loop@claude-plugins-official",
+      "description": "Start Ralph Loop in current session"
+    },
+    "commit-commands:clean_gone": {
+      "type": "plugin-command",
+      "plugin": "commit-commands@claude-plugins-official",
+      "description": "Cleans up all git branches marked as [gone] (branches that have been deleted on the remote but still exist locally), inc"
+    },
+    "commit-commands:commit-push-pr": {
+      "type": "plugin-command",
+      "plugin": "commit-commands@claude-plugins-official",
+      "description": "Commit, push, and open a PR"
+    },
+    "commit-commands:commit": {
+      "type": "plugin-command",
+      "plugin": "commit-commands@claude-plugins-official",
+      "description": "Create a git commit"
+    },
+    "figma:figma-code-connect": {
+      "type": "plugin-skill",
+      "plugin": "figma@claude-plugins-official",
+      "description": "Creates and maintains Figma Code Connect template files that map Figma components to code snippets. Use when the user me"
+    },
+    "figma:figma-create-design-system-rules": {
+      "type": "plugin-skill",
+      "plugin": "figma@claude-plugins-official",
+      "description": "Generates custom design system rules for the user's codebase. Use when user says \"create design system rules\", \"generate"
+    },
+    "figma:figma-create-new-file": {
+      "type": "plugin-skill",
+      "plugin": "figma@claude-plugins-official",
+      "description": "Create a new blank Figma file. Use when the user wants to create a new Figma design or FigJam file, or when you need a n"
+    },
+    "figma:figma-generate-design": {
+      "type": "plugin-skill",
+      "plugin": "figma@claude-plugins-official",
+      "description": "Use this skill alongside figma-use when the task involves translating an application page, view, or multi-section layout"
+    },
+    "figma:figma-generate-diagram": {
+      "type": "plugin-skill",
+      "plugin": "figma@claude-plugins-official",
+      "description": "MANDATORY prerequisite — load this skill BEFORE every `generate_diagram` tool call. Routes to type-specific guidance (ge"
+    },
+    "figma:figma-generate-library": {
+      "type": "plugin-skill",
+      "plugin": "figma@claude-plugins-official",
+      "description": "Build or update a professional-grade design system in Figma from a codebase. Use when the user wants to create variables"
+    },
+    "figma:figma-implement-design": {
+      "type": "plugin-skill",
+      "plugin": "figma@claude-plugins-official",
+      "description": "Translates Figma designs into production-ready application code with 1:1 visual fidelity. Use when implementing UI code "
+    },
+    "figma:figma-use": {
+      "type": "plugin-skill",
+      "plugin": "figma@claude-plugins-official",
+      "description": "**MANDATORY prerequisite** — you MUST invoke this skill BEFORE every `use_figma` tool call. NEVER call `use_figma` direc"
+    },
+    "figma:figma-use-figjam": {
+      "type": "plugin-skill",
+      "plugin": "figma@claude-plugins-official",
+      "description": "This skill helps agents use Figma's use_figma MCP tool in the FigJam context. Can be used alongside figma-use which has "
+    },
+    "claude-code-setup:claude-automation-recommender": {
+      "type": "plugin-skill",
+      "plugin": "claude-code-setup@claude-plugins-official",
+      "description": "Analyze a codebase and recommend Claude Code automations (hooks, subagents, skills, plugins, MCP servers). Use when user"
+    },
+    "pr-review-toolkit:review-pr": {
+      "type": "plugin-command",
+      "plugin": "pr-review-toolkit@claude-plugins-official",
+      "description": "Comprehensive PR review using specialized agents"
+    },
+    "plugin-dev:agent-development": {
+      "type": "plugin-skill",
+      "plugin": "plugin-dev@claude-plugins-official",
+      "description": "This skill should be used when the user asks to \"create an agent\", \"add an agent\", \"write a subagent\", \"agent frontmatte"
+    },
+    "plugin-dev:command-development": {
+      "type": "plugin-skill",
+      "plugin": "plugin-dev@claude-plugins-official",
+      "description": "This skill should be used when the user asks to \"create a slash command\", \"add a command\", \"write a custom command\", \"de"
+    },
+    "plugin-dev:hook-development": {
+      "type": "plugin-skill",
+      "plugin": "plugin-dev@claude-plugins-official",
+      "description": "This skill should be used when the user asks to \"create a hook\", \"add a PreToolUse/PostToolUse/Stop hook\", \"validate too"
+    },
+    "plugin-dev:mcp-integration": {
+      "type": "plugin-skill",
+      "plugin": "plugin-dev@claude-plugins-official",
+      "description": "This skill should be used when the user asks to \"add MCP server\", \"integrate MCP\", \"configure MCP in plugin\", \"use .mcp."
+    },
+    "plugin-dev:plugin-settings": {
+      "type": "plugin-skill",
+      "plugin": "plugin-dev@claude-plugins-official",
+      "description": "This skill should be used when the user asks about \"plugin settings\", \"store plugin configuration\", \"user-configurable p"
+    },
+    "plugin-dev:plugin-structure": {
+      "type": "plugin-skill",
+      "plugin": "plugin-dev@claude-plugins-official",
+      "description": "This skill should be used when the user asks to \"create a plugin\", \"scaffold a plugin\", \"understand plugin structure\", \""
+    },
+    "plugin-dev:skill-development": {
+      "type": "plugin-skill",
+      "plugin": "plugin-dev@claude-plugins-official",
+      "description": "This skill should be used when the user wants to \"create a skill\", \"add a skill to plugin\", \"write a new skill\", \"improv"
+    },
+    "plugin-dev:create-plugin": {
+      "type": "plugin-command",
+      "plugin": "plugin-dev@claude-plugins-official",
+      "description": "Guided end-to-end plugin creation workflow with component design, implementation, and validation"
+    },
+    "chrome-devtools-mcp:a11y-debugging": {
+      "type": "plugin-skill",
+      "plugin": "chrome-devtools-mcp@claude-plugins-official",
+      "description": "Uses Chrome DevTools MCP for accessibility (a11y) debugging and auditing based on web.dev guidelines. Use when testing s"
+    },
+    "chrome-devtools-mcp:chrome-devtools": {
+      "type": "plugin-skill",
+      "plugin": "chrome-devtools-mcp@claude-plugins-official",
+      "description": "Uses Chrome DevTools via MCP for efficient debugging, troubleshooting and browser automation. Use when debugging web pag"
+    },
+    "chrome-devtools-mcp:chrome-devtools-cli": {
+      "type": "plugin-skill",
+      "plugin": "chrome-devtools-mcp@claude-plugins-official",
+      "description": "Use this skill to write shell scripts or run shell commands to automate tasks in the browser or otherwise use Chrome Dev"
+    },
+    "chrome-devtools-mcp:debug-optimize-lcp": {
+      "type": "plugin-skill",
+      "plugin": "chrome-devtools-mcp@claude-plugins-official",
+      "description": "Guides debugging and optimizing Largest Contentful Paint (LCP) using Chrome DevTools MCP tools. Use this skill whenever "
+    },
+    "chrome-devtools-mcp:memory-leak-debugging": {
+      "type": "plugin-skill",
+      "plugin": "chrome-devtools-mcp@claude-plugins-official",
+      "description": "Diagnoses and resolves memory leaks in JavaScript/Node.js applications. Use when a user reports high memory usage, OOM e"
+    },
+    "chrome-devtools-mcp:troubleshooting": {
+      "type": "plugin-skill",
+      "plugin": "chrome-devtools-mcp@claude-plugins-official",
+      "description": "Uses Chrome DevTools MCP and documentation to troubleshoot connection and target issues. Trigger this skill when list_pa"
+    },
+    "hookify:writing-rules": {
+      "type": "plugin-skill",
+      "plugin": "hookify@claude-plugins-official",
+      "description": "This skill should be used when the user asks to \"create a hookify rule\", \"write a hook rule\", \"configure hookify\", \"add "
+    },
+    "hookify:configure": {
+      "type": "plugin-command",
+      "plugin": "hookify@claude-plugins-official",
+      "description": "Enable or disable hookify rules interactively"
+    },
+    "hookify:help": {
+      "type": "plugin-command",
+      "plugin": "hookify@claude-plugins-official",
+      "description": "Get help with the hookify plugin"
+    },
+    "hookify:hookify": {
+      "type": "plugin-command",
+      "plugin": "hookify@claude-plugins-official",
+      "description": "Create hooks to prevent unwanted behaviors from conversation analysis or explicit instructions"
+    },
+    "hookify:list": {
+      "type": "plugin-command",
+      "plugin": "hookify@claude-plugins-official",
+      "description": "List all configured hookify rules"
+    },
+    "playground:playground": {
+      "type": "plugin-skill",
+      "plugin": "playground@claude-plugins-official",
+      "description": "Creates interactive HTML playgrounds — self-contained single-file explorers that let users configure something visually "
+    },
+    "firecrawl:firecrawl-agent": {
+      "type": "plugin-skill",
+      "plugin": "firecrawl@claude-plugins-official",
+      "description": "AI-powered autonomous data extraction that navigates complex sites and returns structured JSON. Use this skill when the "
+    },
+    "firecrawl:firecrawl-cli": {
+      "type": "plugin-skill",
+      "plugin": "firecrawl@claude-plugins-official",
+      "description": "Search, scrape, and interact with the web via the Firecrawl CLI. Use this skill whenever the user wants to search the we"
+    },
+    "firecrawl:firecrawl-crawl": {
+      "type": "plugin-skill",
+      "plugin": "firecrawl@claude-plugins-official",
+      "description": "Bulk extract content from an entire website or site section. Use this skill when the user wants to crawl a site, extract"
+    },
+    "firecrawl:firecrawl-download": {
+      "type": "plugin-skill",
+      "plugin": "firecrawl@claude-plugins-official",
+      "description": "Download an entire website as local files — markdown, screenshots, or multiple formats per page. Use this skill when the"
+    },
+    "firecrawl:firecrawl-instruct": {
+      "type": "plugin-skill",
+      "plugin": "firecrawl@claude-plugins-official",
+      "description": "Control and interact with a live browser session on any scraped page — click buttons, fill forms, navigate flows, and ex"
+    },
+    "firecrawl:firecrawl-map": {
+      "type": "plugin-skill",
+      "plugin": "firecrawl@claude-plugins-official",
+      "description": "Discover and list all URLs on a website, with optional search filtering. Use this skill when the user wants to find a sp"
+    },
+    "firecrawl:firecrawl-scrape": {
+      "type": "plugin-skill",
+      "plugin": "firecrawl@claude-plugins-official",
+      "description": "Extract clean markdown from any URL, including JavaScript-rendered SPAs. Use this skill whenever the user provides a URL"
+    },
+    "firecrawl:firecrawl-search": {
+      "type": "plugin-skill",
+      "plugin": "firecrawl@claude-plugins-official",
+      "description": "Web search with full page content extraction. Use this skill whenever the user asks to search the web, find articles, re"
+    },
+    "firecrawl:skill-gen": {
+      "type": "plugin-command",
+      "plugin": "firecrawl@claude-plugins-official",
+      "description": "Generate a complete Agent Skill from a documentation URL using Firecrawl"
+    },
+    "remember:remember": {
+      "type": "plugin-skill",
+      "plugin": "remember@claude-plugins-official",
+      "description": "Save session state for clean continuation next session."
+    },
+    "semgrep:setup-semgrep-plugin": {
+      "type": "plugin-command",
+      "plugin": "semgrep@claude-plugins-official",
+      "description": "Set up the Semgrep plugin by installing Semgrep, authenticating, and verifying compatibility"
+    },
+    "microsoft-docs:microsoft-code-reference": {
+      "type": "plugin-skill",
+      "plugin": "microsoft-docs@claude-plugins-official",
+      "description": "Find working code samples, verify API signatures, and fix Microsoft SDK errors using official docs. Use whenever the use"
+    },
+    "microsoft-docs:microsoft-docs": {
+      "type": "plugin-skill",
+      "plugin": "microsoft-docs@claude-plugins-official",
+      "description": "Understand Microsoft technologies by querying official documentation. Use whenever the user asks how something works, wa"
+    },
+    "microsoft-docs:microsoft-skill-creator": {
+      "type": "plugin-skill",
+      "plugin": "microsoft-docs@claude-plugins-official",
+      "description": "Create agent skills for Microsoft technologies using official documentation. Use whenever the user wants to build, gener"
+    },
+    "mcp-server-dev:build-mcp-app": {
+      "type": "plugin-skill",
+      "plugin": "mcp-server-dev@claude-plugins-official",
+      "description": "This skill should be used when the user wants to build an \"MCP app\", add \"interactive UI\" or \"widgets\" to an MCP server,"
+    },
+    "mcp-server-dev:build-mcp-server": {
+      "type": "plugin-skill",
+      "plugin": "mcp-server-dev@claude-plugins-official",
+      "description": "This skill should be used when the user asks to \"build an MCP server\", \"create an MCP\", \"make an MCP integration\", \"wrap"
+    },
+    "mcp-server-dev:build-mcpb": {
+      "type": "plugin-skill",
+      "plugin": "mcp-server-dev@claude-plugins-official",
+      "description": "This skill should be used when the user wants to \"package an MCP server\", \"bundle an MCP\", \"make an MCPB\", \"ship a local"
+    },
+    "sourcegraph:searching-sourcegraph": {
+      "type": "plugin-skill",
+      "plugin": "sourcegraph@claude-plugins-official",
+      "description": "Use when the user needs to search or navigate code with Sourcegraph MCP tools. Provides disciplined search workflows for"
+    },
+    "data-engineering:airflow": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Queries, manages, and troubleshoots Apache Airflow using the af CLI. Covers listing DAGs, triggering runs, reading task "
+    },
+    "data-engineering:airflow-hitl": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Use when the user needs human-in-the-loop workflows in Airflow (approval/reject, form input, or human-driven branching)."
+    },
+    "data-engineering:airflow-plugins": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Build Airflow 3.1+ plugins that embed FastAPI apps, custom UI pages, React components, middleware, macros, and operator "
+    },
+    "data-engineering:analyzing-data": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Queries data warehouse and answers business questions about data. Handles questions requiring database/warehouse queries"
+    },
+    "data-engineering:annotating-task-lineage": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Annotate Airflow tasks with data lineage using inlets and outlets. Use when the user wants to add lineage metadata to ta"
+    },
+    "data-engineering:authoring-dags": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Workflow and best practices for writing Apache Airflow DAGs. Use when the user wants to create a new DAG, write pipeline"
+    },
+    "data-engineering:blueprint": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Define reusable Airflow task group templates with Pydantic validation and compose DAGs from YAML. Use when creating blue"
+    },
+    "data-engineering:checking-freshness": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Quick data freshness check. Use when the user asks if data is up to date, when a table was last updated, if data is stal"
+    },
+    "data-engineering:cosmos-dbt-core": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Use when turning a dbt Core project into an Airflow DAG/TaskGroup using Astronomer Cosmos. Does not cover dbt Fusion. Be"
+    },
+    "data-engineering:cosmos-dbt-fusion": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Use when running a dbt Fusion project with Astronomer Cosmos. Covers Cosmos 1.11+ configuration for Fusion on Snowflake/"
+    },
+    "data-engineering:creating-openlineage-extractors": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Create custom OpenLineage extractors for Airflow operators. Use when the user needs lineage from unsupported or third-pa"
+    },
+    "data-engineering:debugging-dags": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Comprehensive DAG failure diagnosis and root cause analysis. Use for complex debugging requests requiring deep investiga"
+    },
+    "data-engineering:deploying-airflow": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Deploy Airflow DAGs and projects. Use when the user wants to deploy code, push DAGs, set up CI/CD, deploy to production,"
+    },
+    "data-engineering:managing-astro-deployments": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Manage Astronomer production deployments with Astro CLI. Use when the user wants to authenticate, switch workspaces, cre"
+    },
+    "data-engineering:managing-astro-local-env": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Manage local Airflow environment with Astro CLI (Docker and standalone modes). Use when the user wants to start, stop, o"
+    },
+    "data-engineering:migrating-airflow-2-to-3": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Guide for migrating Apache Airflow 2.x projects to Airflow 3.x. Use when the user mentions Airflow 3 migration, upgrade,"
+    },
+    "data-engineering:profiling-tables": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Deep-dive data profiling for a specific table. Use when the user asks to profile a table, wants statistics about a datas"
+    },
+    "data-engineering:setting-up-astro-project": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Initialize and configure Astro/Airflow projects. Use when the user wants to create a new project, set up dependencies, c"
+    },
+    "data-engineering:testing-dags": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Complex DAG testing workflows with debugging and fixing cycles. Use for multi-step testing requests like \"test this dag "
+    },
+    "data-engineering:tracing-downstream-lineage": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Trace downstream data lineage and impact analysis. Use when the user asks what depends on this data, what breaks if some"
+    },
+    "data-engineering:tracing-upstream-lineage": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Trace upstream data lineage. Use when the user asks where data comes from, what feeds a table, upstream dependencies, da"
+    },
+    "data-engineering:troubleshooting-astro-deployments": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Troubleshoot Astronomer production deployments with Astro CLI. Use when investigating deployment issues, viewing product"
+    },
+    "data-engineering:warehouse-init": {
+      "type": "plugin-skill",
+      "plugin": "data-engineering@claude-plugins-official",
+      "description": "Initialize warehouse schema discovery. Generates .astro/warehouse.md with all table metadata for instant lookups. Run on"
+    },
+    "searchfit-seo:ai-visibility": {
+      "type": "plugin-skill",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Analyze and improve how a brand appears in AI-generated responses (ChatGPT, Claude, Gemini, Perplexity). Use when the us"
+    },
+    "searchfit-seo:broken-links": {
+      "type": "plugin-skill",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Find and fix broken links on a website or in a codebase. Use when the user asks to \"check broken links\", \"find dead link"
+    },
+    "searchfit-seo:content-brief": {
+      "type": "plugin-skill",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Generate a detailed content brief for a specific article or page. Use when the user asks to \"create a content brief\", \"w"
+    },
+    "searchfit-seo:content-strategy": {
+      "type": "plugin-skill",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Develop a content strategy for SEO and organic growth. Use when the user asks to \"plan content\", \"content strategy\", \"co"
+    },
+    "searchfit-seo:content-translation": {
+      "type": "plugin-skill",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Translate and localize website content for international SEO. Use when the user asks to \"translate content\", \"localize m"
+    },
+    "searchfit-seo:internal-linking": {
+      "type": "plugin-skill",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Analyze and improve internal linking strategy for a website. Use when the user asks about \"internal links\", \"link struct"
+    },
+    "searchfit-seo:keyword-clustering": {
+      "type": "plugin-skill",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Cluster and organize keywords into topical groups for SEO. Use when the user asks to \"cluster keywords\", \"group keywords"
+    },
+    "searchfit-seo:on-page-seo": {
+      "type": "plugin-skill",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Optimize a specific page for on-page SEO. Use when the user asks to \"optimize this page\", \"improve SEO for this page\", \""
+    },
+    "searchfit-seo:schema-markup": {
+      "type": "plugin-skill",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Generate JSON-LD structured data / schema markup for web pages. Use when the user asks to \"add schema\", \"generate JSON-L"
+    },
+    "searchfit-seo:seo-audit": {
+      "type": "plugin-skill",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Run a comprehensive SEO audit on a website or codebase. Use when the user asks to \"audit SEO\", \"check my site's SEO\", \"f"
+    },
+    "searchfit-seo:technical-seo": {
+      "type": "plugin-skill",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Perform a technical SEO audit on a website or codebase. Use when the user asks for \"technical SEO\", \"site speed\", \"core "
+    },
+    "searchfit-seo:create-content": {
+      "type": "plugin-command",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Generate SEO-optimized content for a specific topic or keyword. Creates a full article with title, meta description, hea"
+    },
+    "searchfit-seo:create-topic": {
+      "type": "plugin-command",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Research and generate a complete topic plan with keyword mapping, content angle, audience targeting, and competitive pos"
+    },
+    "searchfit-seo:generate-schema": {
+      "type": "plugin-command",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Generate JSON-LD structured data / schema markup for a page. Outputs ready-to-paste schema based on the page content."
+    },
+    "searchfit-seo:keyword-cluster": {
+      "type": "plugin-command",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Cluster a list of keywords into topical groups mapped to content pages. Paste or provide keywords and get organized clus"
+    },
+    "searchfit-seo:seo-check": {
+      "type": "plugin-command",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Quick SEO check on the current file or page. Instantly evaluates title, meta, headings, images, and structured data for "
+    },
+    "searchfit-seo:translate-content": {
+      "type": "plugin-command",
+      "plugin": "searchfit-seo@claude-plugins-official",
+      "description": "Translate and localize content for international SEO. Translates with keyword research, hreflang tags, and cultural adap"
+    },
+    "mintlify:mintlify": {
+      "type": "plugin-skill",
+      "plugin": "mintlify@claude-plugins-official",
+      "description": "Comprehensive reference for building Mintlify documentation sites. Use when creating pages, configuring docs.json, addin"
+    },
+    "session-report:session-report": {
+      "type": "plugin-skill",
+      "plugin": "session-report@claude-plugins-official",
+      "description": "Generate an explorable HTML report of Claude Code session usage (tokens, cache, subagents, skills, expensive prompts) fr"
+    },
+    "claude-api:algorithmic-art": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Creating algorithmic art using p5.js with seeded randomness and interactive parameter exploration. Use this when users r"
+    },
+    "claude-api:brand-guidelines": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Applies Anthropic's official brand colors and typography to any sort of artifact that may benefit from having Anthropic'"
+    },
+    "claude-api:canvas-design": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Create beautiful visual art in .png and .pdf documents using design philosophy. You should use this skill when the user "
+    },
+    "claude-api:claude-api": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Build, debug, and optimize Claude API / Anthropic SDK apps. Apps built with this skill should include prompt caching. Al"
+    },
+    "claude-api:doc-coauthoring": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Guide users through a structured workflow for co-authoring documentation. Use when user wants to write documentation, pr"
+    },
+    "claude-api:docx": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Use this skill whenever the user wants to create, read, edit, or manipulate Word documents (.docx files). Triggers inclu"
+    },
+    "claude-api:frontend-design": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to "
+    },
+    "claude-api:internal-comms": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "A set of resources to help me write all kinds of internal communications, using the formats that my company likes to use"
+    },
+    "claude-api:mcp-builder": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Guide for creating high-quality MCP (Model Context Protocol) servers that enable LLMs to interact with external services"
+    },
+    "claude-api:pdf": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Use this skill whenever the user wants to do anything with PDF files. This includes reading or extracting text/tables fr"
+    },
+    "claude-api:pptx": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Use this skill any time a .pptx file is involved in any way — as input, output, or both. This includes: creating slide d"
+    },
+    "claude-api:skill-creator": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a sk"
+    },
+    "claude-api:slack-gif-creator": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Knowledge and utilities for creating animated GIFs optimized for Slack. Provides constraints, validation tools, and anim"
+    },
+    "claude-api:theme-factory": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Toolkit for styling artifacts with a theme. These artifacts can be slides, docs, reportings, HTML landing pages, etc. Th"
+    },
+    "claude-api:web-artifacts-builder": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts using modern frontend web technologies ("
+    },
+    "claude-api:webapp-testing": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Toolkit for interacting with and testing local web applications using Playwright. Supports verifying frontend functional"
+    },
+    "claude-api:xlsx": {
+      "type": "plugin-skill",
+      "plugin": "claude-api@anthropic-agent-skills",
+      "description": "Use this skill any time a spreadsheet file is the primary input or output. This means any task where the user wants to: "
+    }
+  },
+  "user_skills": {
+    "autoplan": {
+      "type": "user",
+      "description": "Auto-review pipeline — reads the full CEO, design, eng, and DX review skills from disk"
+    },
+    "benchmark": {
+      "type": "user",
+      "description": "Performance regression detection using the browse daemon. Establishes"
+    },
+    "benchmark-models": {
+      "type": "user",
+      "description": "Cross-model benchmark for gstack skills. Runs the same prompt through Claude,"
+    },
+    "bilibili-research": {
+      "type": "user",
+      "description": "B站搜索词调研与选题分析工具。当用户提到\"B站调研\"、\"搜索词调研\"、\"选题调研\"、\"B站关键词\"、\"bilibili keyword\"、\"帮我调研一下B站\"、\"看看B站上有什么\"、\"选题池\"，或者用户正在做内容策划且提到了B站/bilib"
+    },
+    "browse": {
+      "type": "user",
+      "description": "Fast headless browser for QA testing and site dogfooding. Navigate any URL, interact with"
+    },
+    "canary": {
+      "type": "user",
+      "description": "Post-deploy canary monitoring. Watches the live app for console errors,"
+    },
+    "careful": {
+      "type": "user",
+      "description": "Safety guardrails for destructive commands. Warns before rm -rf, DROP TABLE,"
+    },
+    "codex": {
+      "type": "user",
+      "description": "OpenAI Codex CLI wrapper — three modes. Code review: independent diff review via"
+    },
+    "commit-message": {
+      "type": "user",
+      "description": "根据当前目录暂存区（git diff --staged）自动生成一条符合 Conventional Commits 规范的 commit message（中文描述），"
+    },
+    "config-skills": {
+      "type": "user",
+      "description": "扫描已安装的 plugin 和用户级 skill，按工作场景一键配置项目级 .claude/settings.json 的 skillOverrides 字段。"
+    },
+    "connect-chrome": {
+      "type": "user",
+      "description": "Launch GStack Browser — AI-controlled Chromium with the sidebar extension baked in."
+    },
+    "context-restore": {
+      "type": "user",
+      "description": "Restore working context saved earlier by /context-save. Loads the most recent"
+    },
+    "context-save": {
+      "type": "user",
+      "description": "Save working context. Captures git state, decisions made, and remaining work"
+    },
+    "cso": {
+      "type": "user",
+      "description": "Chief Security Officer mode. Infrastructure-first security audit: secrets archaeology,"
+    },
+    "design-consultation": {
+      "type": "user",
+      "description": "Design consultation: understands your product, researches the landscape, proposes a"
+    },
+    "design-html": {
+      "type": "user",
+      "description": "Design finalization: generates production-quality Pretext-native HTML/CSS."
+    },
+    "design-review": {
+      "type": "user",
+      "description": "Designer's eye QA: finds visual inconsistency, spacing issues, hierarchy problems,"
+    },
+    "design-shotgun": {
+      "type": "user",
+      "description": "Design shotgun: generate multiple AI design variants, open a comparison board,"
+    },
+    "devex-review": {
+      "type": "user",
+      "description": "Live developer experience audit. Uses the browse tool to actually TEST the"
+    },
+    "document-release": {
+      "type": "user",
+      "description": "Post-ship documentation update. Reads all project docs, cross-references the"
+    },
+    "docx2md": {
+      "type": "user",
+      "description": "将 DOCX 文件转换为 Markdown 格式，同时提取并保留所有图片。"
+    },
+    "embedded-lint": {
+      "type": "user",
+      "description": "对嵌入式 C 项目（ML307C / arm-none-eabi）运行静态分析，输出按代码审查清单分类的"
+    },
+    "embedded-test-sop": {
+      "type": "user",
+      "description": "为嵌入式固件功能编写手动测试用例文档（SOP格式）+ 配套日志自动分析规则文件。当用户要求为某个功能、模块或变更编写手动测试、测试步骤、测试用例、冒烟测试、验收测试时，立即使用此技能。也支持\"验证日志\"模式：当用户提供串口日志文件并说\"分析"
+    },
+    "find-skills": {
+      "type": "user",
+      "description": "Helps users discover and install agent skills when they ask questions like \"how do I do X\", \"find a skill for X\", \"is th"
+    },
+    "freeze": {
+      "type": "user",
+      "description": "Restrict file edits to a specific directory for the session. Blocks Edit and"
+    },
+    "goframe-v2": {
+      "type": "user",
+      "description": "GoFrame开发框架专属技能集。为Go语言开发者提供完整的框架使用指南，涵盖命令行管理、配置管理、日志组件、错误处理、数据校验、类型转换、缓存管理、模板引擎、数据库ORM、I18n国际化等核心组件的最佳实践。包含项目工程化结构规范、开发模"
+    },
+    "gstack": {
+      "type": "user",
+      "description": "Fast headless browser for QA testing and site dogfooding. Navigate pages, interact with"
+    },
+    "gstack-init": {
+      "type": "user",
+      "description": "配置 gstack 把 design docs / health reports 等\"过程文档\"接入主仓 .gstack/project/，"
+    },
+    "gstack-upgrade": {
+      "type": "user",
+      "description": "Upgrade gstack to the latest version. Detects global vs vendored install,"
+    },
+    "guard": {
+      "type": "user",
+      "description": "Full safety mode: destructive command warnings + directory-scoped edits."
+    },
+    "health": {
+      "type": "user",
+      "description": "Code quality dashboard. Wraps existing project tools (type checker, linter,"
+    },
+    "investigate": {
+      "type": "user",
+      "description": "Systematic debugging with root cause investigation. Four phases: investigate,"
+    },
+    "land-and-deploy": {
+      "type": "user",
+      "description": "Land and deploy workflow. Merges the PR, waits for CI and deploy,"
+    },
+    "landing-report": {
+      "type": "user",
+      "description": "Read-only queue dashboard for workspace-aware ship. Shows which VERSION slots"
+    },
+    "learn": {
+      "type": "user",
+      "description": "Manage project learnings. Review, search, prune, and export what gstack"
+    },
+    "make-pdf": {
+      "type": "user",
+      "description": "Turn any markdown file into a publication-quality PDF. Proper 1in margins,"
+    },
+    "office-hours": {
+      "type": "user",
+      "description": "YC Office Hours — two modes. Startup mode: six forcing questions that expose"
+    },
+    "open-gstack-browser": {
+      "type": "user",
+      "description": "Launch GStack Browser — AI-controlled Chromium with the sidebar extension baked in."
+    },
+    "opsx-maintain": {
+      "type": "user",
+      "description": "扫描 openspec 目录状态，对比 INDEX.md，报告差异并修复。归档变更后、手动增删 spec 后、合并上游更新后使用。"
+    },
+    "opsx-roadmap-planner": {
+      "type": "user",
+      "description": "制作\"分阶段 roadmap\"的规划工作流。产出 4 件套（requirements / design / roadmap / task-log）+ 可选 memo，"
+    },
+    "pair-agent": {
+      "type": "user",
+      "description": "Pair a remote AI agent with your browser. One command generates a setup key and"
+    },
+    "pdf2md": {
+      "type": "user",
+      "description": "将 PDF 文件转换为 Markdown 格式，同时提取并保留所有图片。"
+    },
+    "plan-ceo-review": {
+      "type": "user",
+      "description": "CEO/founder-mode plan review. Rethink the problem, find the 10-star product,"
+    },
+    "plan-design-review": {
+      "type": "user",
+      "description": "Designer's eye plan review — interactive, like CEO and Eng review."
+    },
+    "plan-devex-review": {
+      "type": "user",
+      "description": "Interactive developer experience plan review. Explores developer personas,"
+    },
+    "plan-eng-review": {
+      "type": "user",
+      "description": "Eng manager-mode plan review. Lock in the execution plan — architecture,"
+    },
+    "plan-tune": {
+      "type": "user",
+      "description": "Self-tuning question sensitivity + developer psychographic for gstack (v1: observational)."
+    },
+    "qa": {
+      "type": "user",
+      "description": "Systematically QA test a web application and fix bugs found. Runs QA testing,"
+    },
+    "qa-only": {
+      "type": "user",
+      "description": "Report-only QA testing. Systematically tests a web application and produces a"
+    },
+    "retro": {
+      "type": "user",
+      "description": "Weekly engineering retrospective. Analyzes commit history, work patterns,"
+    },
+    "review": {
+      "type": "user",
+      "description": "Pre-landing PR review. Analyzes diff against the base branch for SQL safety, LLM trust"
+    },
+    "scrape": {
+      "type": "user",
+      "description": "Pull data from a web page. First call on a new intent prototypes the flow"
+    },
+    "setup-browser-cookies": {
+      "type": "user",
+      "description": "Import cookies from your real Chromium browser into the headless browse session."
+    },
+    "setup-deploy": {
+      "type": "user",
+      "description": "Configure deployment settings for /land-and-deploy. Detects your deploy"
+    },
+    "setup-gbrain": {
+      "type": "user",
+      "description": "Set up gbrain for this coding agent: install the CLI, initialize a"
+    },
+    "ship": {
+      "type": "user",
+      "description": "Ship workflow: detect + merge base branch, run tests, review diff, bump VERSION,"
+    },
+    "skillify": {
+      "type": "user",
+      "description": "Codify the most recent successful /scrape flow into a permanent"
+    },
+    "ssh-tunnel": {
+      "type": "user",
+      "description": "在任意项目中创建和管理 SSH 本地端口转发隧道（ssh -L），支持跳板机跳转、证书/密码认证。"
+    },
+    "sync-gbrain": {
+      "type": "user",
+      "description": "Keep gbrain current with this repo's code and refresh agent search"
+    },
+    "tag": {
+      "type": "user",
+      "description": "在任意 Git 仓库中打语义化版本 tag（SemVer）并推送到远端。"
+    },
+    "unfreeze": {
+      "type": "user",
+      "description": "Clear the freeze boundary set by /freeze, allowing edits to all directories"
+    },
+    "update": {
+      "type": "user",
+      "description": "更新 laodao-skills 到最新版本。执行 git pull 拉取更新，运行 setup.sh 安装，"
+    },
+    "x-research": {
+      "type": "user",
+      "description": "X/Twitter搜索词调研与选题分析工具。当用户提到\"X调研\"、\"Twitter调研\"、\"X上有什么讨论\"、\"帮我看看推特\"、\"X关键词\"、\"twitter keyword\"、\"海外社区讨论\"、\"KOL观点调研\"，或者用户正在做内容策划且"
+    },
+    "xlsx2md": {
+      "type": "user",
+      "description": "将 XLSX 文件转换为 CSV 格式，同时提取所有嵌入图片。"
+    },
+    "youtube-research": {
+      "type": "user",
+      "description": "YouTube搜索词调研与选题分析工具。当用户提到\"YouTube调研\"、\"YouTube关键词\"、\"youtube keyword research\"、\"帮我看看YouTube上有什么\"、\"YouTube竞品分析\"、\"英文内容调研\"，或者"
+    },
+    "zhihu-research": {
+      "type": "user",
+      "description": "知乎搜索词调研与选题分析工具。当用户提到\"知乎调研\"、\"知乎关键词\"、\"知乎上有什么内容\"、\"帮我看看知乎\"、\"知乎竞品分析\"、\"知乎选题\"，或者用户正在做中文图文内容策划且提到了知乎时，触发此skill。也适用于：用户想了解某个话题在知乎"
+    }
+  }
+}
