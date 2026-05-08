@@ -1,8 +1,13 @@
 """Step 2.5: 依赖校验 — 对所有 preset 做传递闭包，将子 skill 强制升为 on。
-规则：preset 中值为 'on' / 'name-only' / 'user-invocable-only' 的 skill，
-      其 dependencies.json 中 calls 列表的所有 callee 必须为 'on'。
+规则：preset 中值为 'on' 的 skill（会被模型自动触发），其 dependencies.json
+      中 calls 列表的所有 callee 必须为 'on'。
+
+设计前提：caller 是 name-only / user-invocable-only / off 时，模型不会自动调它，
+也就没有"突然调用 callee"的风险，callee 不必预先 on。这避免了把 name-only 的
+gstack/office-hours 等聚合入口的 callee 全部强制升回 on，让降级真正生效。
 
 v4: 数据源切换到 presets/all.json（presets.<name>.skills 子树）。
+v5.2: 规则收窄到 value == 'on'（之前是 != 'off'，过严）。
 """
 import json, os
 
@@ -26,7 +31,7 @@ for preset_name in PRESET_NAMES:
     while changed:
         changed = False
         for skill, value in list(skills.items()):
-            if value in ('on', 'name-only', 'user-invocable-only') and skill in deps:
+            if value == 'on' and skill in deps:
                 for callee in deps[skill]:
                     if skills.get(callee) != 'on':
                         old = skills.get(callee, '(未列出)')

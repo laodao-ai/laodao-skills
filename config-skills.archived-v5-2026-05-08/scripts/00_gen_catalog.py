@@ -108,35 +108,37 @@ def body_first_lines(body, n=BODY_FALLBACK_LINES):
 
 
 def read_description_enriched(md_path, label_for_warning):
-    """返回 {description, fallback_used}。
+    """返回 {description, fallback_used, fm_name}。
 
     规则：
     - 抓 frontmatter description；< 80 字符则补 body 前 30 行（fallback_used=True）
     - frontmatter 解析失败：直接取 body 前 30 行（fallback_used=True）
     - 硬截 500 字符
+    - fm_name：frontmatter 的 name 字段（运行时识别用），缺失返回 ''
     """
     try:
         with open(md_path, encoding='utf-8') as f:
             content = f.read()
     except Exception as e:
         WARNINGS.append(f'{label_for_warning}: 读取失败 {e}')
-        return {"description": "", "fallback_used": True}
+        return {"description": "", "fallback_used": True, "fm_name": ""}
 
     fm = parse_frontmatter(content)
     if fm is None:
         WARNINGS.append(f'{label_for_warning}: frontmatter 缺失或解析失败，降级取 body')
         body = get_body(content)
-        return {"description": body_first_lines(body)[:DESC_HARD_LIMIT], "fallback_used": True}
+        return {"description": body_first_lines(body)[:DESC_HARD_LIMIT], "fallback_used": True, "fm_name": ""}
 
+    fm_name = fm.get('name', '').strip()
     desc = fm.get('description', '').strip()
     if len(desc) >= DESC_FALLBACK_THRESHOLD:
-        return {"description": desc[:DESC_HARD_LIMIT], "fallback_used": False}
+        return {"description": desc[:DESC_HARD_LIMIT], "fallback_used": False, "fm_name": fm_name}
 
     # description 太短或缺失，补 body
     body = get_body(content)
     body_part = body_first_lines(body)
     combined = (desc + ' ' + body_part).strip() if desc else body_part
-    return {"description": combined[:DESC_HARD_LIMIT], "fallback_used": True}
+    return {"description": combined[:DESC_HARD_LIMIT], "fallback_used": True, "fm_name": fm_name}
 
 
 def read_plugin_description(plugin_dir):
@@ -189,15 +191,25 @@ for plugin_id in installed.get('plugins', {}):
     })
 
     # ── skills/<name>/SKILL.md ──
-    skill_base_dirs = glob.glob(f'{CACHE_ROOT}/{author}/{name_part}/*/skills/')
+    # 路径兼容两种：标准 <v>/skills/ 与 <v>/.claude/skills/（社区作者打包习惯）
+    skill_base_dirs = (
+        glob.glob(f'{CACHE_ROOT}/{author}/{name_part}/*/skills/')
+        or glob.glob(f'{CACHE_ROOT}/{author}/{name_part}/*/.claude/skills/')
+    )
     if skill_base_dirs:
         latest = latest_version_dir(skill_base_dirs)
         for skill_dir_name in sorted(os.listdir(latest)):
             skill_path = os.path.join(latest, skill_dir_name)
             skill_md = os.path.join(skill_path, 'SKILL.md')
             if os.path.isdir(skill_path) and os.path.isfile(skill_md):
-                skill_id = f"{name_part}:{skill_dir_name}"
-                enriched = read_description_enriched(skill_md, skill_id)
+                default_skill_id = f"{name_part}:{skill_dir_name}"
+                enriched = read_description_enriched(skill_md, default_skill_id)
+                # skill ID 优先用 frontmatter name（运行时识别准确）；不含 ':' 的才用，
+                # 含 ':' 视为内部子模块（如 ckm:design）— 不是顶层 skill，跳过
+                fm_name = enriched.get("fm_name", "")
+                if fm_name and ':' in fm_name:
+                    continue
+                skill_id = f"{name_part}:{fm_name}" if fm_name else default_skill_id
                 # 旧字段（兼容）
                 plugin_entries[skill_id] = {
                     "type": "plugin-skill",

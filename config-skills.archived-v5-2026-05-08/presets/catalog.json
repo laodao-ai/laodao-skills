@@ -221,12 +221,6 @@
       "has_skills": false,
       "has_commands": false
     },
-    "searchfit-seo@claude-plugins-official": {
-      "name": "searchfit-seo",
-      "author": "claude-plugins-official",
-      "has_skills": true,
-      "has_commands": true
-    },
     "mintlify@claude-plugins-official": {
       "name": "mintlify",
       "author": "claude-plugins-official",
@@ -242,7 +236,7 @@
     "ui-ux-pro-max@ui-ux-pro-max-skill": {
       "name": "ui-ux-pro-max",
       "author": "ui-ux-pro-max-skill",
-      "has_skills": false,
+      "has_skills": true,
       "has_commands": false
     },
     "claude-api@anthropic-agent-skills": {
@@ -533,7 +527,7 @@
       "plugin": "chrome-devtools-mcp@claude-plugins-official",
       "description": "Uses Chrome DevTools MCP and documentation to troubleshoot connection and target issues. Trigger this skill when list_pa"
     },
-    "hookify:writing-rules": {
+    "hookify:writing-hookify-rules": {
       "type": "plugin-skill",
       "plugin": "hookify@claude-plugins-official",
       "description": "This skill should be used when the user asks to \"create a hookify rule\", \"write a hook rule\", \"configure hookify\", \"add "
@@ -568,7 +562,7 @@
       "plugin": "firecrawl@claude-plugins-official",
       "description": "AI-powered autonomous data extraction that navigates complex sites and returns structured JSON. Use this skill when the "
     },
-    "firecrawl:firecrawl-cli": {
+    "firecrawl:firecrawl": {
       "type": "plugin-skill",
       "plugin": "firecrawl@claude-plugins-official",
       "description": "Search, scrape, and interact with the web via the Firecrawl CLI. Use this skill whenever the user wants to search the we"
@@ -768,91 +762,6 @@
       "plugin": "data-engineering@claude-plugins-official",
       "description": "Initialize warehouse schema discovery. Generates .astro/warehouse.md with all table metadata for instant lookups. Run on"
     },
-    "searchfit-seo:ai-visibility": {
-      "type": "plugin-skill",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Analyze and improve how a brand appears in AI-generated responses (ChatGPT, Claude, Gemini, Perplexity). Use when the us"
-    },
-    "searchfit-seo:broken-links": {
-      "type": "plugin-skill",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Find and fix broken links on a website or in a codebase. Use when the user asks to \"check broken links\", \"find dead link"
-    },
-    "searchfit-seo:content-brief": {
-      "type": "plugin-skill",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Generate a detailed content brief for a specific article or page. Use when the user asks to \"create a content brief\", \"w"
-    },
-    "searchfit-seo:content-strategy": {
-      "type": "plugin-skill",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Develop a content strategy for SEO and organic growth. Use when the user asks to \"plan content\", \"content strategy\", \"co"
-    },
-    "searchfit-seo:content-translation": {
-      "type": "plugin-skill",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Translate and localize website content for international SEO. Use when the user asks to \"translate content\", \"localize m"
-    },
-    "searchfit-seo:internal-linking": {
-      "type": "plugin-skill",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Analyze and improve internal linking strategy for a website. Use when the user asks about \"internal links\", \"link struct"
-    },
-    "searchfit-seo:keyword-clustering": {
-      "type": "plugin-skill",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Cluster and organize keywords into topical groups for SEO. Use when the user asks to \"cluster keywords\", \"group keywords"
-    },
-    "searchfit-seo:on-page-seo": {
-      "type": "plugin-skill",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Optimize a specific page for on-page SEO. Use when the user asks to \"optimize this page\", \"improve SEO for this page\", \""
-    },
-    "searchfit-seo:schema-markup": {
-      "type": "plugin-skill",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Generate JSON-LD structured data / schema markup for web pages. Use when the user asks to \"add schema\", \"generate JSON-L"
-    },
-    "searchfit-seo:seo-audit": {
-      "type": "plugin-skill",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Run a comprehensive SEO audit on a website or codebase. Use when the user asks to \"audit SEO\", \"check my site's SEO\", \"f"
-    },
-    "searchfit-seo:technical-seo": {
-      "type": "plugin-skill",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Perform a technical SEO audit on a website or codebase. Use when the user asks for \"technical SEO\", \"site speed\", \"core "
-    },
-    "searchfit-seo:create-content": {
-      "type": "plugin-command",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Generate SEO-optimized content for a specific topic or keyword. Creates a full article with title, meta description, hea"
-    },
-    "searchfit-seo:create-topic": {
-      "type": "plugin-command",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Research and generate a complete topic plan with keyword mapping, content angle, audience targeting, and competitive pos"
-    },
-    "searchfit-seo:generate-schema": {
-      "type": "plugin-command",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Generate JSON-LD structured data / schema markup for a page. Outputs ready-to-paste schema based on the page content."
-    },
-    "searchfit-seo:keyword-cluster": {
-      "type": "plugin-command",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Cluster a list of keywords into topical groups mapped to content pages. Paste or provide keywords and get organized clus"
-    },
-    "searchfit-seo:seo-check": {
-      "type": "plugin-command",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Quick SEO check on the current file or page. Instantly evaluates title, meta, headings, images, and structured data for "
-    },
-    "searchfit-seo:translate-content": {
-      "type": "plugin-command",
-      "plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Translate and localize content for international SEO. Translates with keyword research, hreflang tags, and cultural adap"
-    },
     "mintlify:mintlify": {
       "type": "plugin-skill",
       "plugin": "mintlify@claude-plugins-official",
@@ -862,6 +771,11 @@
       "type": "plugin-skill",
       "plugin": "session-report@claude-plugins-official",
       "description": "Generate an explorable HTML report of Claude Code session usage (tokens, cache, subagents, skills, expensive prompts) fr"
+    },
+    "ui-ux-pro-max:ui-ux-pro-max": {
+      "type": "plugin-skill",
+      "plugin": "ui-ux-pro-max@ui-ux-pro-max-skill",
+      "description": "UI/UX design intelligence for web and mobile. Includes 50+ styles, 161 color palettes, 57 font pairings, 161 product typ"
     },
     "claude-api:algorithmic-art": {
       "type": "plugin-skill",
@@ -1609,7 +1523,7 @@
       "fallback_used": false
     },
     {
-      "name": "hookify:writing-rules",
+      "name": "hookify:writing-hookify-rules",
       "source": "plugin",
       "owner_plugin": "hookify@claude-plugins-official",
       "description": "This skill should be used when the user asks to \"create a hookify rule\", \"write a hook rule\", \"configure hookify\", \"add a hookify rule\", or needs guidance on hookify rule syntax and patterns.",
@@ -1658,7 +1572,7 @@
       "fallback_used": false
     },
     {
-      "name": "firecrawl:firecrawl-cli",
+      "name": "firecrawl:firecrawl",
       "source": "plugin",
       "owner_plugin": "firecrawl@claude-plugins-official",
       "description": "Search, scrape, and interact with the web via the Firecrawl CLI. Use this skill whenever the user wants to search the web, find articles, research a topic, look something up online, scrape a webpage, grab content from a URL, get data from a website, crawl documentation, download a site, or interact with pages that need clicks or logins. Also use when they say \"fetch this page\", \"pull the content from\", \"get the page at https://\", or reference external websites. This provides real-time web search",
@@ -1938,125 +1852,6 @@
       "fallback_used": false
     },
     {
-      "name": "searchfit-seo:ai-visibility",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Analyze and improve how a brand appears in AI-generated responses (ChatGPT, Claude, Gemini, Perplexity). Use when the user asks about \"AI visibility\", \"AI tracking\", \"how does my brand appear in AI\", \"AI mentions\", \"LLM visibility\", \"AI search optimization\", \"GEO\", \"generative engine optimization\", \"answer engine optimization\", \"AEO\", or wants their brand to be recommended by AI assistants.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:broken-links",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Find and fix broken links on a website or in a codebase. Use when the user asks to \"check broken links\", \"find dead links\", \"fix 404s\", \"link checker\", \"broken link audit\", \"find dead URLs\", or wants to identify and repair links that lead to non-existent pages.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:content-brief",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Generate a detailed content brief for a specific article or page. Use when the user asks to \"create a content brief\", \"write a brief\", \"article outline\", \"blog brief\", \"writing brief\", \"content outline\", or wants a structured plan before writing content.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:content-strategy",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Develop a content strategy for SEO and organic growth. Use when the user asks to \"plan content\", \"content strategy\", \"content calendar\", \"what should I write about\", \"content gap analysis\", \"topic research\", \"editorial plan\", or wants to plan what content to create for their website.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:content-translation",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Translate and localize website content for international SEO. Use when the user asks to \"translate content\", \"localize my site\", \"multilingual SEO\", \"translate to [language]\", \"international SEO\", \"hreflang\", \"multi-language website\", or wants to expand content to new languages and markets.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:internal-linking",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Analyze and improve internal linking strategy for a website. Use when the user asks about \"internal links\", \"link structure\", \"site architecture\", \"link strategy\", \"orphan pages\", \"link equity\", \"page authority distribution\", or wants to improve how pages connect to each other.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:keyword-clustering",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Cluster and organize keywords into topical groups for SEO. Use when the user asks to \"cluster keywords\", \"group keywords\", \"organize keywords\", \"keyword mapping\", \"topic clusters\", \"keyword grouping\", or has a list of keywords they want structured into a content plan.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:on-page-seo",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Optimize a specific page for on-page SEO. Use when the user asks to \"optimize this page\", \"improve SEO for this page\", \"on-page optimization\", \"optimize meta tags\", \"improve rankings for [keyword]\", or wants to make a specific page rank better.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:schema-markup",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Generate JSON-LD structured data / schema markup for web pages. Use when the user asks to \"add schema\", \"generate JSON-LD\", \"structured data\", \"schema markup\", \"rich snippets\", \"add schema.org\", or wants to improve how their pages appear in search results.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:seo-audit",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Run a comprehensive SEO audit on a website or codebase. Use when the user asks to \"audit SEO\", \"check my site's SEO\", \"find SEO issues\", \"SEO health check\", \"technical SEO review\", \"site audit\", or wants to identify SEO problems on their website.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:technical-seo",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Perform a technical SEO audit on a website or codebase. Use when the user asks for \"technical SEO\", \"site speed\", \"core web vitals\", \"crawlability\", \"indexation issues\", \"robots.txt\", \"sitemap check\", \"render blocking\", \"page speed\", \"mobile-friendly check\", or wants to fix technical factors affecting search rankings.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:create-content",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Generate SEO-optimized content for a specific topic or keyword. Creates a full article with title, meta description, headings, body, internal links, and schema markup.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:create-topic",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Research and generate a complete topic plan with keyword mapping, content angle, audience targeting, and competitive positioning. Use before writing content to ensure you're targeting the right topic the right way.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:generate-schema",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Generate JSON-LD structured data / schema markup for a page. Outputs ready-to-paste schema based on the page content.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:keyword-cluster",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Cluster a list of keywords into topical groups mapped to content pages. Paste or provide keywords and get organized clusters with content recommendations.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:seo-check",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Quick SEO check on the current file or page. Instantly evaluates title, meta, headings, images, and structured data for SEO best practices.",
-      "fallback_used": false
-    },
-    {
-      "name": "searchfit-seo:translate-content",
-      "source": "plugin",
-      "owner_plugin": "searchfit-seo@claude-plugins-official",
-      "description": "Translate and localize content for international SEO. Translates with keyword research, hreflang tags, and cultural adaptation — not just word-for-word translation.",
-      "fallback_used": false
-    },
-    {
       "name": "mintlify:mintlify",
       "source": "plugin",
       "owner_plugin": "mintlify@claude-plugins-official",
@@ -2068,6 +1863,13 @@
       "source": "plugin",
       "owner_plugin": "session-report@claude-plugins-official",
       "description": "Generate an explorable HTML report of Claude Code session usage (tokens, cache, subagents, skills, expensive prompts) from ~/.claude/projects transcripts.",
+      "fallback_used": false
+    },
+    {
+      "name": "ui-ux-pro-max:ui-ux-pro-max",
+      "source": "plugin",
+      "owner_plugin": "ui-ux-pro-max@ui-ux-pro-max-skill",
+      "description": "UI/UX design intelligence for web and mobile. Includes 50+ styles, 161 color palettes, 57 font pairings, 161 product types, 99 UX guidelines, and 25 chart types across 10 stacks (React, Next.js, Vue, Svelte, SwiftUI, React Native, Flutter, Tailwind, shadcn/ui, and HTML/CSS). Actions: plan, build, create, design, implement, review, fix, improve, optimize, enhance, refactor, and check UI/UX code. Projects: website, landing page, dashboard, admin panel, e-commerce, SaaS, portfolio, blog, and mobile",
       "fallback_used": false
     },
     {
@@ -2868,12 +2670,6 @@
       "plain_name": "fakechat",
       "author": "claude-plugins-official",
       "description": "Localhost iMessage-style web chat for Claude Code — test surface with file upload and edits. No tokens, no access control."
-    },
-    {
-      "name": "searchfit-seo@claude-plugins-official",
-      "plain_name": "searchfit-seo",
-      "author": "claude-plugins-official",
-      "description": "Free AI-powered SEO toolkit — audit websites, plan content strategy, optimize pages, generate schema markup, cluster keywords, and track AI visibility. Works with any website or codebase."
     },
     {
       "name": "mintlify@claude-plugins-official",
