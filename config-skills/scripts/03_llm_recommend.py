@@ -28,7 +28,7 @@ TEMPLATE_PATH = os.path.join(CONFIG_DIR, 'scripts', 'templates', 'recommend.txt'
 DEPS_PATH = os.path.join(PRESET_DIR, 'dependencies.json')
 
 DESC_LIST_LIMIT = 200
-SKILL_VALID_VALUES = {'on', 'user-invocable-only', 'off'}
+SKILL_VALID_VALUES = {'on', 'name-only', 'user-invocable-only', 'off'}
 
 
 # ─────────────────────────────────────────────
@@ -176,7 +176,7 @@ def validate_schema(data, preset_name):
     else:
         for k, v in skills.items():
             if v not in SKILL_VALID_VALUES:
-                errors.append(f'skills["{k}"] 值非法：{v!r}（期望 on / user-invocable-only / off）')
+                errors.append(f'skills["{k}"] 值非法：{v!r}（期望 on / name-only / user-invocable-only / off）')
     if not isinstance(plugins, dict):
         errors.append('plugins 字段不是对象')
     else:
@@ -215,7 +215,7 @@ def enforce_dependencies(skills, deps):
     while changed:
         changed = False
         for skill, value in list(skills.items()):
-            if value in ('on', 'user-invocable-only') and skill in deps:
+            if value in ('on', 'name-only', 'user-invocable-only') and skill in deps:
                 for callee in deps[skill]:
                     if skills.get(callee) != 'on':
                         skills[callee] = 'on'
@@ -287,14 +287,14 @@ def apply(preset_name, json_path):
     os.replace(tmp, ALL_PATH)
 
     # 摘要
-    skill_summary = {'on': 0, 'user-invocable-only': 0, 'off': 0}
+    skill_summary = {'on': 0, 'name-only': 0, 'user-invocable-only': 0, 'off': 0}
     for v in new_skills.values():
         skill_summary[v] = skill_summary.get(v, 0) + 1
     plugin_enabled = sum(1 for v in new_plugins.values() if v)
     plugin_disabled = sum(1 for v in new_plugins.values() if not v)
     print()
     print(f'✅ 已应用 LLM 推荐到 preset={preset_name}')
-    print(f'   skills: ON={skill_summary["on"]} | u-i-o={skill_summary["user-invocable-only"]} | off={skill_summary["off"]}')
+    print(f'   skills: ON={skill_summary["on"]} | name-only={skill_summary["name-only"]} | u-i-o={skill_summary["user-invocable-only"]} | off={skill_summary["off"]}')
     print(f'   plugins: enabled={plugin_enabled} | disabled={plugin_disabled}')
     print(f'   _baseline.prompt_hash={preset["_baseline"]["prompt_hash"]}')
 

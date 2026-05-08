@@ -19,23 +19,25 @@
 **场景说明**：
 $preset_description
 
-## 推荐空间
+## 推荐空间（4 态，对齐官方 settings.json.skillOverrides 语义）
 
-每个 skill 三态选其一：
-- `on` — 启动时加载到上下文（"主动调用 + 自动触发"）。仅给该 preset 几乎每个会话都需要的 skill。
-- `user-invocable-only` — 装着备用，仅当用户输入 `/skill-name` 时加载。**默认值**，节省启动 token。
+每个 skill 四态选其一：
+- `on` — 完整加载到上下文（含 description）。**模型可自动调用 + 用户可 / 调用**。给该 preset 几乎每会话需要的核心 skill。
+- `name-only` — **仅加载 skill name，description 折叠**。**模型仍可自动调用、被其他 skill 隐式调用**，但描述不占启动 token。**这是默认安全值**——保留协作能力的同时省 token。
+- `user-invocable-only` — ⚠️ **危险态**。模型完全看不到此 skill，**无法自动调用、无法被其他 skill 调用**，仅能用户输入 `/skill-name` 调用。**仅在确认 skill 永远不该被自动触发时使用**（如调试用、敏感操作）。
 - `off` — 完全屏蔽。该 preset 永远用不到的 skill。
 
 每个 plugin 二态选其一：
 - `true` — 启用（plugin 内的所有 skill / 命令可用）。
 - `false` — 禁用（plugin 整个屏蔽，下属 skill 自动失效）。
 
-## 推荐原则
+## 推荐原则（v5.1 修订 — 原则反转）
 
-1. **多用 `user-invocable-only`，少用 `on`**：除非该 skill 在该 preset 下几乎每会话必用，否则给 u-i-o。`on` 占启动 token 预算。
-2. **场景无关 = `off`**：与 preset 场景明确无关的 skill 给 off（如内容创作场景下的"嵌入式调试器"）。
-3. **plugin 与下属 skill 一致**：若 plugin = false，其下属 skill 应同步为 off（不要给 u-i-o，因为 plugin 禁了 skill 调不到）。
-4. **核心工作流 skill 给 on**：commit / git / SDD / OpenSpec 类全场景都给 on（每会话必用）。
+1. **默认 `name-only`**：装了的 skill 默认就该让模型自动可用（被别的 skill 隐式调用是常态），但 description 折叠节省 token。**少用 `user-invocable-only`**——它会切断 skill 协作链。
+2. **核心高频用 `on`**：commit / git / SDD / OpenSpec / 该 preset 每会话必用的 skill 给 on（让 description 完整加载，提高自动触发准确率）。
+3. **场景无关 = `off`**：与 preset 场景明确无关的 skill 给 off。
+4. **plugin 与下属 skill 一致**：plugin = false 时下属 skill 同步 off；plugin = true 但下属 skill 全 off 则反向：plugin 也应 false（既然不用 plugin 任何能力）。
+5. **`user-invocable-only` 慎用**：仅在该 skill **明确不应被自动触发**（如 destructive 操作、需用户显式确认的工具）时才用。否则 `name-only` 是更优解。
 
 ## 待推荐项
 
@@ -62,7 +64,7 @@ $current_state_block
 {
   "preset": "$preset_name",
   "skills": {
-    "<skill-name>": "on" | "user-invocable-only" | "off",
+    "<skill-name>": "on" | "name-only" | "user-invocable-only" | "off",
     ...
   },
   "plugins": {

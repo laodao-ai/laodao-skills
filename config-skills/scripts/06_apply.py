@@ -48,7 +48,7 @@ warnings = []
 for skill_key, skill_val in new_skills.items():
     if ':' not in skill_key:
         continue
-    if skill_val not in ('on', 'user-invocable-only'):
+    if skill_val not in ('on', 'name-only', 'user-invocable-only'):
         continue
     plugin_name = skill_key.split(':', 1)[0]
     matched_plugin = next((k for k in new_plugins if k.split('@')[0] == plugin_name), None)
@@ -112,7 +112,7 @@ pc = Counter(new_plugins.values())
 print(f'✅ 已应用 {PRESET}')
 if bak:
     print(f'   备份: {bak}')
-print(f'   skillOverrides — ON: {sc.get("on", 0)} | u-i-o: {sc.get("user-invocable-only", 0)} | off: {sc.get("off", 0)}')
+print(f'   skillOverrides — ON: {sc.get("on", 0)} | name-only: {sc.get("name-only", 0)} | u-i-o: {sc.get("user-invocable-only", 0)} | off: {sc.get("off", 0)}')
 print(f'   enabledPlugins — enabled: {pc.get(True, 0)} | disabled: {pc.get(False, 0)}')
 if warnings:
     print(f'   ⚠️  含 {len(warnings)} 项 plugin↔skill 矛盾态（见上方 warning）')

@@ -40,7 +40,7 @@ def load_catalog():
 
 def get_wildcard_defaults(rules):
     """从 rules 段取 wildcard fallback。决策 4：只有 1 条 wildcard 规则。"""
-    skill_default = 'user-invocable-only'
+    skill_default = 'name-only'
     plugin_default = False
     for r in rules:
         if r.get('match') == '*':

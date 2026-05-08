@@ -1,5 +1,5 @@
 """Step 2.5: 依赖校验 — 对所有 preset 做传递闭包，将子 skill 强制升为 on。
-规则：preset 中值为 'on' 或 'user-invocable-only' 的 skill，
+规则：preset 中值为 'on' / 'name-only' / 'user-invocable-only' 的 skill，
       其 dependencies.json 中 calls 列表的所有 callee 必须为 'on'。
 
 v4: 数据源切换到 presets/all.json（presets.<name>.skills 子树）。
@@ -26,7 +26,7 @@ for preset_name in PRESET_NAMES:
     while changed:
         changed = False
         for skill, value in list(skills.items()):
-            if value in ('on', 'user-invocable-only') and skill in deps:
+            if value in ('on', 'name-only', 'user-invocable-only') and skill in deps:
                 for callee in deps[skill]:
                     if skills.get(callee) != 'on':
                         old = skills.get(callee, '(未列出)')
