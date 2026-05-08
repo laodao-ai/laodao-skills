@@ -63,6 +63,23 @@ if warnings:
         print(f'   ... 及其余 {len(warnings) - 10} 项')
     print()
 
+# ── invariant 校验（决策 11 / brainstorm-amendment）：所有用户级与 plugin 级 skill 必须显式列出 ──
+catalog_path = os.path.expanduser('~/.claude/skills/laodao-skills/config-skills/presets/catalog.json')
+if os.path.isfile(catalog_path):
+    with open(catalog_path, encoding='utf-8') as f:
+        _catalog = json.load(f)
+    _expected = set(_catalog.get('user_skills', {}).keys()) | set(_catalog.get('plugin_skills', {}).keys())
+    _actual = set(new_skills.keys())
+    _missing_in_overrides = _expected - _actual
+    if _missing_in_overrides:
+        print(f'❌ invariant 校验失败：catalog 中 {len(_missing_in_overrides)} 项 skill 未出现在 skillOverrides，'
+              f'违反决策 11（禁止 omit）')
+        for s in sorted(_missing_in_overrides)[:10]:
+            print(f'   - {s}')
+        if len(_missing_in_overrides) > 10:
+            print(f'   ... 及其余 {len(_missing_in_overrides) - 10} 项')
+        sys.exit(1)
+
 # ── 渲染 ──
 new_settings = dict(cur)
 new_settings['skillOverrides'] = new_skills

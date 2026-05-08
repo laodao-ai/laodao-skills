@@ -15,23 +15,27 @@ description: >
   "skill 加载策略"、"上下文太满想精简 skill"，也应主动触发本 skill 询问是否套用 preset。
 ---
 
-# Config Skills v4 — 渲染模型 + plugin 对称化
+# Config Skills v5 — 语义推荐器 + 渲染模型
 
-> **推荐模型**：Haiku（流程明确的执行类任务，不需要 Opus 的推理深度）。
-> 触发前可用 `/model` 切换。Skill 本身无法指定模型，这是当前的变通方案。
+> **推荐模型**：Sonnet（v5 的 LLM 推荐流程需要语义判断，比 v4 的纯执行复杂）。
+> 触发前可用 `/model` 切换。日常 `/config-skills`（无新 plugin 时）仍可走 Haiku；
+> 跑 LLM 推荐（`--refresh` 或新装 plugin）时建议 Sonnet。
 
 ## 渲染模型（先读这一节）
 
-`config-skills` v4 把 `.claude/settings.json` 视为**渲染产物**，不是手写文件：
+`config-skills` v5 把 `.claude/settings.json` 视为**渲染产物**，不是手写文件：
 
 ```
-单一数据源                                  渲染产物
-─────────────                              ─────────────
-presets/all.json  ──── /config-skills ────▶ <project>/.claude/settings.json
-（用户级，跨机器共享）                       （项目级，每次 apply 全量覆盖）
-   │ presets.<name>.skills   ──→ skillOverrides
-   │ presets.<name>.plugins  ──→ enabledPlugins
-   └ rules / detect          ──→ 智能默认值与项目类型探测
+单一数据源                                                 渲染产物
+─────────────                                              ─────────────
+catalog.json (含 description)  ───┐
+                                  │  ┌── 03_llm_recommend.py ──┐
+presets/all.json                  ├──┤  emit-prompt + apply    │
+  │ presets.<name>.description ──┘  └── (主对话 LLM 当推荐器) ──┘
+  │ presets.<name>.skills          ─────────────────────────────▶ skillOverrides
+  │ presets.<name>.plugins         ─────────────────────────────▶ enabledPlugins
+  │ presets.<name>._baseline   ──→ 手改自动识别 + prompt_hash 防失效
+  └ rules (1 条 wildcard)      ──→ LLM 未推荐时的 fallback
 ```
 
 **关键约束：每次 apply 会全量覆盖 `skillOverrides` 与 `enabledPlugins` 两个字段。** 其他字段（`permissions` / `hooks` / `env` / `output_style` 等）保留不变。
@@ -65,23 +69,36 @@ Claude Code 的 skill 来自三个层级。本 skill **只覆盖其中两类**�
 
 ```
 presets/
-├── all.json              # ★ 单一数据源（presets / rules / detect 三段）
-│   ├── presets.<name>.{description, skills, plugins}
-│   ├── rules[]           # skill / plugin 的智能默认值规则（含 scope）
-│   └── detect[]          # 项目类型探测规则（files / extensions / package_deps）
-├── catalog.json          # 已装 plugin / skill / command 清单（自动生成）
-├── dependencies.json     # skill 调用依赖图 — caller → callees must be on
-└── .archived/            # v3 旧 9 个 preset 文件归档（只读保留）
+├── all.json                # ★ 单一数据源
+│   ├── presets.<name>.description           # 场景说明（中文，给 LLM 看）
+│   ├── presets.<name>.skills                # skill 三态（on/u-i-o/off）
+│   ├── presets.<name>.plugins               # plugin 二态（true/false）
+│   ├── presets.<name>._baseline             # 隐藏镜像：识别手改 + prompt_hash
+│   ├── rules[]                              # 1 条 wildcard fallback（v5 已瘦身）
+│   └── detect[]                             # 项目类型探测规则
+├── catalog.json            # plugin / skill 清单（自动生成）
+│   ├── installed_plugins / user_skills / plugin_skills / plugins  # 旧字段（兼容）
+│   ├── skills_enriched[]                    # ★ 含 description（推荐器输入）
+│   └── plugins_enriched[]                   # ★ 含 author + description
+├── dependencies.json       # skill 调用依赖图 — caller → callees must be on
+└── .archived/
+    ├── v4-rules.json                        # 22 条 v4 关键字规则归档（回滚用）
+    └── all.json.bak.migration-YYYYMMDD      # v4→v5 迁移备份
 
 scripts/
-├── 00_gen_catalog.py     # 重建 catalog.json（安装/卸载 plugin 后运行）
-├── 01_scan.py            # Step 1: 扫描环境 + 探测项目类型
-├── 02_health_check.py    # Step 2: 双维度 health-check（skill + plugin）
-├── 02_sync.py            # Step 2 sync: 同步 missing/phantom 到 all.json
-├── 025_enforce_deps.py   # Step 2.5: 依赖闭包，子 skill 强制升 on
-├── 04_diff.py            # Step 4: 双维度 diff（skill + plugin）+ 幂等检查
-├── 06_apply.py           # Step 6: 备份 + 渲染（支持 --dry-run）
-└── .archived/migrate_v3_to_v4.py  # 一次性迁移脚本（已用过，归档保留）
+├── 00_gen_catalog.py       # 重建 catalog.json（装/卸 plugin 后运行）
+├── 01_scan.py              # Step 1: 扫描环境 + 探测项目类型
+├── 02_health_check.py      # Step 2: 健康检查（preset_in_sync / needs_sync / needs_llm_recommend）
+├── 02_sync.py              # Step 2 sync: 同步 missing/phantom（wildcard fallback）
+├── 025_enforce_deps.py     # Step 2.5: 依赖闭包
+├── 03_llm_recommend.py     # ★ Step 3 (v5): LLM 推荐器（emit-prompt + apply）
+├── 04_diff.py              # Step 4: 双维度 diff
+├── 06_apply.py             # Step 6: 备份 + 渲染
+├── templates/
+│   └── recommend.txt       # ★ LLM 推荐 prompt 模板（修改触发 prompt_hash 失效）
+└── .archived/
+    ├── migrate_v3_to_v4.py
+    └── migrate_v4_to_semantic.py            # v4→v5 迁移（已跑过，归档）
 ```
 
 > 定义变量 `SCRIPTS=~/.claude/skills/laodao-skills/config-skills/scripts`，下文所有脚本引用均使用此路径。
@@ -151,6 +168,35 @@ python3 $SCRIPTS/02_sync.py '<MISSING_SKILLS>' '<PHANTOM_SKILLS>' '<MISSING_PLUG
 ```
 
 **智能规则**：v3 的 14 条 skill RULES + 8 条 plugin RULES 全部存放在 `presets/all.json.rules`。新增/修改规则只需编辑 JSON，**无需改 Python**。
+
+### Step 2.7: LLM 推荐（v5 新增，仅在 needs_llm_recommend 时跑）
+
+**触发条件**：health-check 输出 `STATUS: needs_llm_recommend` 或 `needs_sync_then_llm_recommend`。
+- `needs_sync_then_llm_recommend`：先跑 02_sync 给 missing 项填 wildcard fallback，再跑 LLM 推荐升级
+- `needs_llm_recommend`：直接跑 LLM 推荐（catalog 多新项 / preset 子树空）
+
+**流程：**
+
+```bash
+# 1. 脚本生成 prompt（不调 API）
+python3 $SCRIPTS/03_llm_recommend.py --preset <PRESET> --mode missing --emit-prompt > /tmp/reco-prompt.txt
+
+# 2. Claude 主对话读 prompt → 输出严格 JSON 到 /tmp/reco.json
+#    （由本对话的 LLM 当推荐器，不调外部 API）
+
+# 3. 脚本校验 + 自动纠正 + 写回
+python3 $SCRIPTS/03_llm_recommend.py --preset <PRESET> --apply /tmp/reco.json
+```
+
+**`--apply` 自动做的事：**
+- 严格 schema 校验（值域、字段名、preset 匹配）
+- 跨字段一致性纠正（`plugin=False` 时其下属 skill 强制 off）
+- 依赖闭包（`dependencies.json` 强升 callee 到 on）
+- 写回 all.json + 刷新 `_baseline` + 写入当前 prompt_hash
+
+**模式说明：**
+- `--mode missing`：仅推荐 catalog 有但 preset 没列的新项（**默认**）
+- `--mode all`：全表重算（`--refresh` 走这个，见下文）
 
 ### Step 2.5: 依赖校验 — 子 skill 强制升 `on`
 
@@ -241,6 +287,66 @@ cp .claude/settings.json.bak.YYYYMMDD-HHMMSS .claude/settings.json
 
 **生效**：必须执行 `/reload-plugins` 才生效。
 
+## --refresh 工作流（v5 新增）
+
+`/config-skills --refresh <preset>` 让 LLM 全表重算该 preset，差异化处理手改项与 LLM 自动管理项。
+
+**何时跑 `--refresh`：**
+- 改了 preset description（场景定义变了）
+- 觉得当前 preset 推荐质量不够好，想让 LLM 重新评估
+- prompt 模板调过（hash 不一致会自动检测）
+
+**流程：**
+
+1. **prompt_hash 一致性检查**
+   ```bash
+   python3 -c "import hashlib,json,os; \
+     t=open(os.path.expanduser('~/.claude/skills/laodao-skills/config-skills/scripts/templates/recommend.txt'),'rb').read(); \
+     a=json.load(open(os.path.expanduser('~/.claude/skills/laodao-skills/config-skills/presets/all.json'))); \
+     print('prompt:', hashlib.sha256(t).hexdigest()[:12], 'baseline:', a['presets']['<PRESET>']['_baseline'].get('prompt_hash'))"
+   ```
+   两 hash 不一致时 → UI 提示"prompt 模板已演化，本次刷新视全表为 LLM 自动管理项"。
+
+2. **生成 prompt（mode=all）**
+   ```bash
+   python3 $SCRIPTS/03_llm_recommend.py --preset <PRESET> --mode all --emit-prompt > /tmp/reco-prompt.txt
+   ```
+
+3. **Claude 主对话读 prompt → 输出 JSON 到 /tmp/reco-new.json**
+
+4. **手改识别 + 逐项 yes/no 确认（在主对话内）**
+
+   读 `all.json.presets.<PRESET>` 与新 JSON 对比 + `_baseline` 对比，给每项打标签：
+   - `手改项`：当前值 ≠ `_baseline` 对应值 → **默认保留当前值**
+   - `LLM 自动管理项`：当前值 == `_baseline` 对应值 → **默认接受新推荐**
+
+   用 AskUserQuestion **分批询问，每批 ≤ 10 项**，区分两类用不同文案：
+
+   ```python
+   # 手改项 — 默认保留
+   {"label": "保留我的手改 (foo: on)（默认）", "description": "..."}
+   {"label": "接受 LLM 新推 (foo: u-i-o)", "description": "..."}
+   {"label": "跳过", "description": "保留当前值"}
+
+   # LLM 自动管理项 — 默认接受
+   {"label": "接受 LLM 新推 (bar: off)（默认）", "description": "..."}
+   {"label": "保留当前值 (bar: u-i-o)", "description": "..."}
+   {"label": "跳过", "description": "保留当前值"}
+   ```
+
+5. **中断 = 整次丢弃**
+
+   所有 yes/no 决定累积在内存中。任何中断（用户 Ctrl+C / 关闭对话 / AskUserQuestion 选 Other）都视为整次取消，**不创建中间状态文件**，下次 `--refresh` 从第一批重头开始。
+
+6. **全部确认后一次写回**
+
+   把累积的最终决定打成 JSON 喂给 `--apply`：
+   ```bash
+   python3 $SCRIPTS/03_llm_recommend.py --preset <PRESET> --apply /tmp/reco-final.json
+   ```
+
+   `--apply` 自动刷新 `_baseline` = LLM 推荐快照（不是用户确认后的最终值），保证下次 `--refresh` 仍能识别新一轮手改。
+
 ## 边界情况
 
 ### 用户手改了 settings.json
@@ -264,16 +370,39 @@ v4 设计的核心就是这件事——把临时定制写到 `settings.local.jso
 本 skill 装在用户级（实体 `~/.claude/skills/laodao-skills/config-skills/`，symlink 接入 `~/.claude/skills/config-skills/`），所有项目都能 `/config-skills`。`presets/all.json` 是单点真相源。
 
 ### 添加新 preset（如 python-dev）
-**完全不动 Python**，仅编辑 JSON + 文档：
+
+**v5 极简流程**（相比 v4 不再需要手填 4×N 表）：
 
 1. **编辑 `presets/all.json`**：
-   - `presets` 顶层加 `"python-dev": { "description": "...", "skills": {}, "plugins": {} }`（空也行，下次跑 `/config-skills` 会被 health-check 自动补全）
-   - `rules` 数组的每条规则的 `values` 都加上 `"python-dev"` 列
-   - `detect` 数组加 `{ "preset": "python-dev", "files": ["pyproject.toml", "requirements.txt"] }`
-2. **改本 SKILL.md**：
-   - "4 套 Preset 简介"表格加一行
-   - Step 4 的 AskUserQuestion 选项加一项
-3. **跑 `/config-skills`**：health-check 自动给新 preset 补齐所有 skill/plugin 默认值
+   ```json
+   "python-dev": {
+     "description": "Python 后端 / 数据科学项目开发；常用 pytest / poetry / pyproject.toml；可能涉及 FastAPI / Django / Pandas / Jupyter Notebook；不主要做前端。",
+     "skills": {},
+     "plugins": {}
+   }
+   ```
+   `skills` 与 `plugins` 留空 — health-check 会识别为 `empty preset`，触发 LLM 全表生成。
+2. **可选**：`detect` 数组加项目类型探测（`pyproject.toml` / `requirements.txt`）。
+3. **改本 SKILL.md**：Step 4 的 AskUserQuestion 选项加一项；"Preset 简介"表格加一行。
+4. **跑 `/config-skills`**：选 python-dev → 自动跑 LLM 推荐 → 一次性给 200+ 项 skill 与 41 项 plugin 推荐值。
+
+### 用户改 preset description 后（v5 新增）
+
+**改 description 不会自动触发重算**（避免误触）。流程：
+
+1. 改 `all.json.presets.<preset>.description`
+2. 跑 `/config-skills` 时 health-check 会输出"💡 提示：description 已变，建议跑 --refresh"
+3. 手动跑 `/config-skills --refresh <preset>` 让 LLM 按新场景重新推荐
+
+### 用户改 preset skills/plugins 后（v5 新增）
+
+`_baseline` 镜像**自动识别**手改：
+
+- 改了某项 skill 值 → 下次 `--refresh` 时被识别为手改 → 默认保留你的修改
+- 删了某项 → health-check 视为 missing，下次 `/config-skills` 用 fallback 或 LLM 推荐补回（你可再次确认）
+- 没改的项 → 视为 LLM 自动管理项，`--refresh` 时默认接受新推荐
+
+**无需手动打标签** — 镜像差异法自动透明工作。
 
 ### 添加新 skill 依赖
 编辑 `presets/dependencies.json` → `dependencies` 节添加条目 → 下次 `/config-skills` 时 Step 2.5 自动生效。

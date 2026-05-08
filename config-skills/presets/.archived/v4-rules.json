@@ -1,0 +1,336 @@
+{
+  "_meta": {
+    "archived_from": "all.json.rules",
+    "archived_at": "2026-05-08T07:47:13+00:00",
+    "note": "v4 关键字规则版的 rules 段。语义推荐版（v5）仅保留 1 条 wildcard fallback；本文件保留作回滚 / 历史参考用。"
+  },
+  "rules": [
+    {
+      "keywords": [
+        "commit",
+        "git",
+        "tag",
+        "release"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "on",
+        "go-dev": "on",
+        "embedded-dev": "on",
+        "web-dev": "on"
+      }
+    },
+    {
+      "keywords": [
+        "roadmap",
+        "openspec",
+        "sdd",
+        "project-activate"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "on",
+        "go-dev": "on",
+        "embedded-dev": "on",
+        "web-dev": "on"
+      }
+    },
+    {
+      "keywords": [
+        "lint",
+        "code-review",
+        "test-driven",
+        "feature-dev",
+        "debug",
+        "refactor"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "off",
+        "go-dev": "on",
+        "embedded-dev": "on",
+        "web-dev": "on"
+      }
+    },
+    {
+      "keywords": [
+        "humanizer",
+        "tech-writing",
+        "mp-article"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "on",
+        "go-dev": "off",
+        "embedded-dev": "off",
+        "web-dev": "user-invocable-only"
+      }
+    },
+    {
+      "keywords": [
+        "embedded",
+        "firmware",
+        "mcu"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "off",
+        "go-dev": "off",
+        "embedded-dev": "on",
+        "web-dev": "off"
+      }
+    },
+    {
+      "keywords": [
+        "frontend",
+        "ui-ux",
+        "react",
+        "vue",
+        "svelte",
+        "css",
+        "design-html",
+        "figma"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "user-invocable-only",
+        "go-dev": "off",
+        "embedded-dev": "off",
+        "web-dev": "on"
+      }
+    },
+    {
+      "keywords": [
+        "qa",
+        "playwright",
+        "chrome-devtools",
+        "browse",
+        "browser",
+        "webapp-testing"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "user-invocable-only",
+        "go-dev": "user-invocable-only",
+        "embedded-dev": "off",
+        "web-dev": "on"
+      }
+    },
+    {
+      "keywords": [
+        "seo",
+        "schema",
+        "keyword-cluster"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "user-invocable-only",
+        "go-dev": "off",
+        "embedded-dev": "off",
+        "web-dev": "user-invocable-only"
+      }
+    },
+    {
+      "keywords": [
+        "research",
+        "bilibili",
+        "youtube",
+        "zhihu",
+        "x-research"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "user-invocable-only",
+        "go-dev": "off",
+        "embedded-dev": "off",
+        "web-dev": "off"
+      }
+    },
+    {
+      "keywords": [
+        "pdf",
+        "docx",
+        "xlsx",
+        "pptx",
+        "pdf2md",
+        "docx2md",
+        "xlsx2md",
+        "make-pdf"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "user-invocable-only",
+        "go-dev": "off",
+        "embedded-dev": "off",
+        "web-dev": "off"
+      }
+    },
+    {
+      "keywords": [
+        "setup-",
+        "init-",
+        "configure-",
+        "scaffold",
+        "setting-up"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "off",
+        "go-dev": "off",
+        "embedded-dev": "off",
+        "web-dev": "off"
+      }
+    },
+    {
+      "keywords": [
+        "update",
+        "sync-"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "user-invocable-only",
+        "go-dev": "user-invocable-only",
+        "embedded-dev": "user-invocable-only",
+        "web-dev": "user-invocable-only"
+      }
+    },
+    {
+      "keywords": [
+        "airflow",
+        "dbt",
+        "data-engineering",
+        "warehouse",
+        "lineage",
+        "dag"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "off",
+        "go-dev": "off",
+        "embedded-dev": "off",
+        "web-dev": "off"
+      }
+    },
+    {
+      "keywords": [
+        "mcp-builder",
+        "mcp-server",
+        "claude-api",
+        "api"
+      ],
+      "scope": "skill",
+      "values": {
+        "content-creation": "user-invocable-only",
+        "go-dev": "user-invocable-only",
+        "embedded-dev": "user-invocable-only",
+        "web-dev": "user-invocable-only"
+      }
+    },
+    {
+      "keywords": [
+        "data-engineering",
+        "airflow",
+        "dbt"
+      ],
+      "scope": "plugin",
+      "values": {
+        "content-creation": false,
+        "go-dev": false,
+        "embedded-dev": false,
+        "web-dev": false
+      }
+    },
+    {
+      "keywords": [
+        "gopls"
+      ],
+      "scope": "plugin",
+      "values": {
+        "content-creation": false,
+        "go-dev": true,
+        "embedded-dev": false,
+        "web-dev": false
+      }
+    },
+    {
+      "keywords": [
+        "clangd"
+      ],
+      "scope": "plugin",
+      "values": {
+        "content-creation": false,
+        "go-dev": false,
+        "embedded-dev": true,
+        "web-dev": false
+      }
+    },
+    {
+      "keywords": [
+        "typescript-lsp",
+        "pyright"
+      ],
+      "scope": "plugin",
+      "values": {
+        "content-creation": false,
+        "go-dev": false,
+        "embedded-dev": false,
+        "web-dev": true
+      }
+    },
+    {
+      "keywords": [
+        "frontend",
+        "figma",
+        "playwright",
+        "chrome-devtools",
+        "ui-ux"
+      ],
+      "scope": "plugin",
+      "values": {
+        "content-creation": false,
+        "go-dev": false,
+        "embedded-dev": false,
+        "web-dev": true
+      }
+    },
+    {
+      "keywords": [
+        "code-review",
+        "feature-dev",
+        "pr-review",
+        "semgrep"
+      ],
+      "scope": "plugin",
+      "values": {
+        "content-creation": false,
+        "go-dev": true,
+        "embedded-dev": true,
+        "web-dev": true
+      }
+    },
+    {
+      "keywords": [
+        "seo"
+      ],
+      "scope": "plugin",
+      "values": {
+        "content-creation": true,
+        "go-dev": false,
+        "embedded-dev": false,
+        "web-dev": true
+      }
+    },
+    {
+      "keywords": [
+        "ui-ux-pro-max"
+      ],
+      "scope": "plugin",
+      "values": {
+        "content-creation": false,
+        "go-dev": false,
+        "embedded-dev": false,
+        "web-dev": true
+      }
+    }
+  ]
+}
