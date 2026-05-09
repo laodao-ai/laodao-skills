@@ -26,30 +26,38 @@ description: 项目级自建 skill 编排——4 态（on/name-only/user-invocab
 python3 ~/.claude/skills/laodao-skills/config-setup/config_setup.py skills status --json
 ```
 
-解析 JSON 输出，渲染状态表：
+解析 JSON 输出，渲染紧凑列表（**禁止使用 markdown 表格**，用等宽文本）：
 
 ```
- #   skill                     effective               description
- 1   humanizer-zh              ✓ on                    去除文本中的 AI 生成痕迹
- 2   mp-article-studio         ● name-only             公众号文章排版工作室
- 3   tech-writing              ✓ on                    图文内容选题规划与草稿审查
- 4   commit-message            ✗ off          ⚠        自动生成 commit message
- 5   openspec-new-change       ~ user-inv-only         OpenSpec 新建变更
+ 状态        推荐   #   [owner] skill                    description
+  🟢 on       —      1. [laodao] humanizer-zh             去除文本中的 AI 生成痕迹
+  🟢 on       —      2. [laodao] tech-writing             图文内容选题规划与草稿审查
+  🟡 name     —      3. [laodao] mp-article-studio        公众号文章排版工作室
+  🟠 user     on     4. [3P] openspec-new-change          OpenSpec 新建变更
+▲ 🔴 off      off    5. [laodao] commit-message           自动生成 commit message
+
+▲ = 项目级覆盖（项目设置与用户全局设置不同）
 ```
 
-**状态符号说明：**
-| 符号 | 状态 |
-|------|------|
-| `✓` | on（完整加载） |
-| `●` | name-only（仅名称可见，不自动触发） |
-| `~` | user-invocable-only（仅用户显式调用触发） |
-| `✗` | off（完全隐藏） |
-| `⚠` | 项目级（layer 4）设置被更高层覆盖，effective 值非 layer 4 值 |
+**渲染规则**（严格遵守）：
+- 首行显示列标题：`状态`、`推荐`、`#`、`[owner] skill`、`description`，与数据列对齐
+- 第一列（状态）：状态图标 + 状态标记：`🟢 on` / `🟡 name` / `🟠 user` / `🔴 off`
+- 有项目级覆盖（CLI `annotation` 非空）时，在圆点前加 `▲`：`▲ 🔴 off`；无覆盖时该位置留空格
+- 状态标记固定 4 字符宽（`on  ` / `name` / `user` / `off `），保持列对齐
+- 第二列（推荐）：固定 4 字符宽，显示推荐的状态标记（on/name/user/off），无推荐时显示 `—`
+- 推荐列仅在 `/config-setup` 编排时由推荐引擎填充；`/config-skills` 独立使用时全部显示 `—`
+- 第三列：编号 + `[owner] skill名`，owner 与 skill 名之间有一个空格
+- `[owner]` 从 JSON 的 `owner` 字段取值（gstack / laodao / 3P / project）
+- 第四列（description）：截断到 50 字符
+- **排序**：先 on 按名称字母序，再 name-only 按名称字母序，再 user-invocable-only，最后 off 按名称字母序
+- 列表末尾固定显示图例：`▲ = 项目级覆盖（项目设置与用户全局设置不同）`
+- 不用 markdown 表格
 
 渲染表后，在表下方显示命令提示：
 
 ```
-输入 ?N 查看详情，Non/Nno/Nuio/Noff/Nunset 修改状态，done 写入，pending 查看待提交，undo N 撤销
+命令：iN 查看详情 | Non/Nname/Nuser/Noff/Nunset 标记变更 | pending 查看待提交 | undo N 撤销 | done 写入
+多命令空格分隔：2name 5off
 ```
 
 ---
@@ -59,22 +67,22 @@ python3 ~/.claude/skills/laodao-skills/config-setup/config_setup.py skills statu
 | 命令格式 | 含义 | 写入值 |
 |----------|------|--------|
 | `Non` | 将第 N 项设为 on | `"on"` |
-| `Nno` | 将第 N 项设为 name-only | `"name-only"` |
-| `Nuio` | 将第 N 项设为 user-invocable-only | `"user-invocable-only"` |
+| `Nname` | 将第 N 项设为 name-only | `"name-only"` |
+| `Nuser` | 将第 N 项设为 user-invocable-only | `"user-invocable-only"` |
 | `Noff` | 将第 N 项设为 off | `"off"` |
 | `Nunset` | 移除第 N 项的项目级覆盖 | `null`（删除该 key） |
-| `?N` | 查看第 N 项详情 | — |
+| `iN` | 查看第 N 项详情（i = info） | — |
 | `pending` | 查看本次会话累积的待提交变更 | — |
 | `undo N` | 撤销第 N 项的待提交变更 | — |
 | `done` | 执行写入 → 显示 diff → 完成 | — |
 
-**简写规则：** N 是表格中的序号（整数），命令直接跟在数字后，无空格。例如：`3no` 表示将第 3 项设为 name-only。
+**简写规则：** N 是表格中的序号（整数），命令直接跟在数字后，无空格。例如：`3name` 表示将第 3 项设为 name-only。
 
 ---
 
-## ?N 详情视图
+## iN 详情视图
 
-用户输入 `?N` 时，调用：
+用户输入 `iN` 时，调用：
 
 ```bash
 python3 ~/.claude/skills/laodao-skills/config-setup/config_setup.py skills detail --json <skill-name>
@@ -156,16 +164,20 @@ effective: name-only  （来源: layer 4）
 用户: /config-skills
 
 Claude:
- #   skill                     effective               description
- 1   humanizer-zh              ✓ on                    去除文本中的 AI 生成痕迹
- 2   mp-article-studio         ● name-only             公众号文章排版工作室
- 3   tech-writing              ✓ on                    图文内容选题规划与草稿审查
- 4   commit-message            ✗ off          ⚠        自动生成 commit message
- 5   openspec-new-change       ~ user-inv-only         OpenSpec 新建变更
 
-输入 ?N 查看详情，Non/Nno/Nuio/Noff/Nunset 修改，done 写入，pending 查看，undo N 撤销
+ 状态        推荐   #   [owner] skill                    description
+  🟢 on       —      1. [laodao] humanizer-zh             去除文本中的 AI 生成痕迹
+  🟢 on       —      2. [laodao] tech-writing             图文内容选题规划与草稿审查
+  🟡 name     —      3. [laodao] mp-article-studio        公众号文章排版工作室
+  🟠 user     —      4. [3P] openspec-new-change          OpenSpec 新建变更
+▲ 🔴 off      —      5. [laodao] commit-message           自动生成 commit message
 
-用户: ?4
+▲ = 项目级覆盖（项目设置与用户全局设置不同）
+
+命令：iN 查看详情 | Non/Nname/Nuser/Noff/Nunset 标记变更 | pending 查看待提交 | undo N 撤销 | done 写入
+多命令空格分隔：2name 5off
+
+用户: i4
 
 Claude:
 skill: commit-message
@@ -179,13 +191,13 @@ SKILL.md 路径: ~/.claude/skills/laodao-skills/commit-message/SKILL.md
 
 effective: off  ⚠（来源: layer 3，已被本地设置覆盖）
 
-用户: 4no
+用户: 4name
 
 Claude:
 pending:
   commit-message → name-only
 
-用户: 5uio
+用户: 5user
 
 Claude:
 pending:

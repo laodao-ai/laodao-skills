@@ -167,8 +167,7 @@ def discover_plugins(cache_dir: Path) -> list:
     for org_dir in cache_dir.iterdir():
         if not org_dir.is_dir():
             continue
-        # Filter temp_git_* directories
-        if org_dir.name.startswith("temp_git_"):
+        if org_dir.name.startswith(("temp_git_", "temp_subdir_")):
             continue
 
         for name_dir in org_dir.iterdir():
@@ -184,15 +183,19 @@ def discover_plugins(cache_dir: Path) -> list:
                     continue
 
                 # Check .claude-plugin first, then .codex-plugin as fallback
-                plugin_json = None
+                # Within each subdir, try plugin.json then marketplace.json
+                meta_path = None
                 for subdir in (".claude-plugin", ".codex-plugin"):
-                    candidate = ver_dir / subdir / "plugin.json"
-                    if candidate.exists():
-                        plugin_json = candidate
+                    for fname in ("plugin.json", "marketplace.json"):
+                        candidate = ver_dir / subdir / fname
+                        if candidate.exists():
+                            meta_path = candidate
+                            break
+                    if meta_path is not None:
                         break
 
-                if plugin_json is not None:
-                    candidates[key][ver_dir.name] = plugin_json
+                # Even without metadata, the directory itself means the plugin is installed
+                candidates[key][ver_dir.name] = meta_path
 
     plugins = []
     for (org, name), versions in candidates.items():
@@ -201,19 +204,20 @@ def discover_plugins(cache_dir: Path) -> list:
 
         # Pick the latest version
         latest_version = max(versions.keys(), key=_version_key)
-        plugin_json_path = versions[latest_version]
-
-        try:
-            raw = json.loads(plugin_json_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            continue
+        meta_path = versions[latest_version]
 
         plugin_id = f"{name}@{org}"
+        raw = {}
+        if meta_path is not None:
+            try:
+                raw = json.loads(meta_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                pass
+
         description = raw.get("description") or f"{plugin_id} (no description)"
         homepage = raw.get("homepage")
         repository = raw.get("repository")
 
-        # Link priority: homepage > repository > None
         link = homepage if homepage else (repository if repository else None)
 
         plugins.append({
@@ -236,8 +240,8 @@ def parse_skill_description(skill_md_path: Path) -> "str | None":
     """
     Parse YAML-style frontmatter from SKILL.md for the 'description:' field.
 
-    Simple line-based parsing (no YAML library needed).
-    Returns the description string if found, None otherwise.
+    Handles both inline (`description: text`) and multi-line YAML block
+    scalar (`description: |` or `description: >` followed by indented lines).
     """
     try:
         text = skill_md_path.read_text(encoding="utf-8")
@@ -246,22 +250,72 @@ def parse_skill_description(skill_md_path: Path) -> "str | None":
 
     lines = text.splitlines()
 
-    # Frontmatter must start with '---' on the first line
     if not lines or lines[0].strip() != "---":
         return None
 
-    # Find the closing '---'
-    in_frontmatter = True
     for i, line in enumerate(lines[1:], start=1):
         if line.strip() == "---":
-            in_frontmatter = False
             break
-        # Look for description: field
-        m = re.match(r"^description:\s*(.+)$", line)
+        m = re.match(r"^description:\s*(.*)$", line)
         if m:
-            return m.group(1).strip()
+            value = m.group(1).strip()
+            # Inline value (not a block scalar indicator)
+            if value and value not in ("|", ">", "|+", "|-", ">+", ">-"):
+                return value
+            # Block scalar: collect indented continuation lines
+            parts = []
+            for j in range(i + 1, len(lines)):
+                cont = lines[j]
+                if cont.strip() == "---":
+                    break
+                if cont.startswith("  ") or cont.startswith("\t"):
+                    parts.append(cont.strip())
+                else:
+                    break
+            return " ".join(parts) if parts else None
 
     return None
+
+
+def _derive_owner(skill_path: Path, user_dir: Path) -> str:
+    """
+    Derive the owner/source of a skill from its path.
+
+    Returns a short label like "gstack", "laodao", "project", "3P", etc.
+    """
+    p = Path(skill_path)
+    resolved = p.resolve()
+    resolved_str = str(resolved)
+    skills_root = user_dir / ".claude" / "skills"
+    skills_root_str = str(skills_root.resolve())
+
+    if skills_root_str not in resolved_str:
+        return "project"
+
+    rel = resolved_str[len(skills_root_str):].lstrip("/")
+    top_dir = rel.split("/")[0] if "/" in rel else ""
+
+    if top_dir == "gstack":
+        return "gstack"
+    if top_dir == "laodao-skills":
+        return "laodao"
+
+    # Check symlink target
+    try:
+        link_target = str(p.readlink())
+        if link_target.startswith("gstack/"):
+            return "gstack"
+        if link_target.startswith("laodao-skills/"):
+            return "laodao"
+    except OSError:
+        pass
+
+    # Heuristic: if gstack/<name>/SKILL.md exists, it's a gstack skill
+    skill_name = p.name
+    if (skills_root / "gstack" / skill_name / "SKILL.md").exists():
+        return "gstack"
+
+    return "3P"
 
 
 def discover_skills(proj_dir: Path, user_dir: Path, plugin_cache: Path) -> list:
@@ -306,11 +360,13 @@ def discover_skills(proj_dir: Path, user_dir: Path, plugin_cache: Path) -> list:
             skill_md = item / "SKILL.md"
             if skill_md.exists():
                 description = parse_skill_description(skill_md)
+                owner = _derive_owner(item, user_dir) if level == "user" else "project"
                 skills.append({
                     "name": item.name,
                     "description": description,
                     "path": str(item),
                     "level": level,
+                    "owner": owner,
                 })
             else:
                 # Level 2: <skills_root>/<group>/<skill-name>/SKILL.md
@@ -329,11 +385,13 @@ def discover_skills(proj_dir: Path, user_dir: Path, plugin_cache: Path) -> list:
                     nested_skill_md = nested / "SKILL.md"
                     if nested_skill_md.exists():
                         description = parse_skill_description(nested_skill_md)
+                        owner = _derive_owner(nested, user_dir) if level == "user" else "project"
                         skills.append({
                             "name": nested.name,
                             "description": description,
                             "path": str(nested),
                             "level": level,
+                            "owner": owner,
                         })
 
     user_skills_root = user_dir / ".claude" / "skills"
@@ -462,7 +520,7 @@ def _plugin_annotation(layer3, layer4, layer5, effective) -> str:
     Compute a human-readable annotation for a plugin's effective state.
 
     Returns:
-    - "⚠ 项目级翻盘"    when layer4=False, layer5=True, layer3 is not True
+    - "⚠ 项目级覆盖"    when layer4=False, layer5=True, layer3 is not True
     - "⚠ 本机救回"       when layer3=True, layer4=False
     - "⚠ local OFF 被忽略" when layer3=False and (layer4=True or (layer4 is None and layer5=True))
     - ""                 otherwise
@@ -473,9 +531,9 @@ def _plugin_annotation(layer3, layer4, layer5, effective) -> str:
     # local OFF 被忽略: layer3=False 被忽略（无法抑制 project/user 的 True）
     if layer3 is False and (layer4 is True or (layer4 is None and layer5 is True)):
         return "⚠ local OFF 被忽略"
-    # 项目级翻盘: project False 推翻 user True，且无本机救回
+    # 项目级覆盖: project False 推翻 user True，且无本机救回
     if layer4 is False and layer5 is True and layer3 is not True:
-        return "⚠ 项目级翻盘"
+        return "⚠ 项目级覆盖"
     return ""
 
 
@@ -571,16 +629,16 @@ def _skill_annotation(layer3, layer4, layer5) -> str:
     Compute a human-readable annotation for a skill's effective state.
 
     Returns:
-    - "⚠ 项目级翻盘" when layer4 and layer5 differ and layer3 is None
+    - "⚠ 项目级覆盖" when layer4 and layer5 differ and layer3 is None
     - "⚠ 本机覆盖"   when layer3 and layer4 differ and both have values
     - ""              otherwise
     """
     # 本机覆盖: layer3 overrides layer4 (both set, different)
     if layer3 is not None and layer4 is not None and layer3 != layer4:
         return "⚠ 本机覆盖"
-    # 项目级翻盘: project (layer4) overrides user (layer5), no local override
+    # 项目级覆盖: project (layer4) overrides user (layer5), no local override
     if layer3 is None and layer4 is not None and layer5 is not None and layer4 != layer5:
-        return "⚠ 项目级翻盘"
+        return "⚠ 项目级覆盖"
     return ""
 
 
@@ -607,6 +665,7 @@ def cmd_skills_status(proj_dir: Path, user_dir: Path, plugin_cache: Path) -> lis
             "description": skill["description"],
             "path": skill["path"],
             "level": skill["level"],
+            "owner": skill.get("owner", ""),
             "layer5": l5,
             "layer4": l4,
             "layer3": l3,
@@ -815,6 +874,16 @@ def _handle_skills_apply(args):
     cmd_skills_apply(args.proj_dir, changes)
 
 
+def _handle_plugins_health(args):
+    issues = health_check_plugins(args.proj_dir, args.user_dir, args.plugin_cache)
+    print(json.dumps(issues, indent=2, ensure_ascii=False))
+
+
+def _handle_skills_health(args):
+    issues = health_check_skills(args.proj_dir, args.user_dir)
+    print(json.dumps(issues, indent=2, ensure_ascii=False))
+
+
 # ============================================================
 # Task 14: Template schema and JSON read/write
 # ============================================================
@@ -1020,6 +1089,12 @@ def main():
     )
     pa_parser.set_defaults(handler=_handle_plugins_apply)
 
+    # plugins health
+    ph_parser = plugins_sub.add_parser("health", help="Run plugin health checks")
+    ph_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    _add_common_args(ph_parser)
+    ph_parser.set_defaults(handler=_handle_plugins_health)
+
     # ── skills ───────────────────────────────────────────────
     skills_parser = subparsers.add_parser("skills", help="Manage skills")
     skills_sub = skills_parser.add_subparsers(dest="subcommand", metavar="SUBCOMMAND")
@@ -1047,6 +1122,12 @@ def main():
         help="Project directory (default: cwd)",
     )
     sa_parser.set_defaults(handler=_handle_skills_apply)
+
+    # skills health
+    sh_parser = skills_sub.add_parser("health", help="Run skill health checks")
+    sh_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    _add_common_args(sh_parser)
+    sh_parser.set_defaults(handler=_handle_skills_health)
 
     # ── templates ────────────────────────────────────────────
     _default_tpl_dir = Path(__file__).parent / "templates"

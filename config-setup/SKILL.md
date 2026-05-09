@@ -119,7 +119,7 @@ python3 ~/.claude/skills/laodao-skills/config-setup/config_setup.py plugins stat
 
 | 指令 | 效果 |
 |------|------|
-| `?N` | 查询第 N 行详细说明 |
+| `iN` | 查询第 N 行详细说明（i = info） |
 | `Non` | 将第 N 行设为 on（仅排队，不写入） |
 | `Noff` | 将第 N 行设为 off |
 | `pending` | 显示当前所有待定变更 |
@@ -165,8 +165,8 @@ python3 ~/.claude/skills/laodao-skills/config-setup/config_setup.py skills statu
 | 指令 | 效果 |
 |------|------|
 | `Non` | 第 N 行设为 on |
-| `Nno` | 第 N 行设为 name-only |
-| `Nuio` | 第 N 行设为 user-invocable-only |
+| `Nname` | 第 N 行设为 name-only |
+| `Nuser` | 第 N 行设为 user-invocable-only |
 | `Noff` | 第 N 行设为 off |
 
 写入指令：
@@ -279,7 +279,7 @@ Claude：
    2   playwright@official                 ✓ on        ✓       Browser automation
    3   slack@official                      ✓ on        ← off   Slack integration
 
-  输入操作（?N 查询 / Non/Noff 调整 / done 完成）：
+  输入操作（iN 查询 / Non/Noff 调整 / done 完成）：
 
 用户：1on 3off
 
