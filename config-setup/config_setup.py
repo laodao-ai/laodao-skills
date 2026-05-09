@@ -1062,6 +1062,7 @@ def main():
 
     # templates list
     tl_parser = tpl_sub.add_parser("list", help="List all templates")
+    tl_parser.add_argument("--json", action="store_true", help="Output as JSON")
     tl_parser.add_argument(
         "--tpl-dir",
         type=Path,
@@ -1075,6 +1076,7 @@ def main():
     # templates load
     tld_parser = tpl_sub.add_parser("load", help="Load a template by name")
     tld_parser.add_argument("name", help="Template name")
+    tld_parser.add_argument("--json", action="store_true", help="Output as JSON")
     tld_parser.add_argument(
         "--tpl-dir",
         type=Path,
@@ -1098,6 +1100,7 @@ def main():
 
     # templates match
     tm_parser = tpl_sub.add_parser("match", help="Find templates matching current project")
+    tm_parser.add_argument("--json", action="store_true", help="Output as JSON")
     tm_parser.add_argument(
         "--proj-dir",
         type=Path,
