@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import pytest
+from datetime import datetime
 from pathlib import Path
 
 # Allow importing config_setup from parent directory
@@ -972,3 +973,281 @@ class TestCLIIntegration:
         assert result.returncode == 0, result.stderr
         data = json.loads(settings_path.read_text())
         assert data["enabledPlugins"]["X@org"] is False
+
+
+# ============================================================
+# Task 14: Template schema and JSON read/write
+# ============================================================
+
+from config_setup import (
+    read_template,
+    write_template,
+)
+
+
+class TestReadWriteTemplate:
+    def _full_template(self):
+        """Return a complete template dict with all fields."""
+        return {
+            "name": "hugo-blog",
+            "description": "Hugo blog project template",
+            "created": "2026-05-09",
+            "updated": "2026-05-09",
+            "signals": {
+                "files": ["config/_default/hugo.toml", "hugo.toml"],
+                "dirs": ["content", "themes"],
+            },
+            "plugins": {
+                "firecrawl@official": True,
+                "playwright@official": False,
+            },
+            "skills": {
+                "commit-message": "on",
+                "tag": "name-only",
+                "humanizer-zh": "off",
+            },
+        }
+
+    def test_roundtrip_all_fields(self, tmp_path):
+        """Write and read roundtrip — all fields preserved"""
+        tpl = self._full_template()
+        write_template(tmp_path, tpl)
+        result = read_template(tmp_path / "hugo-blog.json")
+        assert result["name"] == "hugo-blog"
+        assert result["description"] == "Hugo blog project template"
+        assert result["created"] == "2026-05-09"
+        assert result["updated"] == "2026-05-09"
+        assert result["signals"]["files"] == ["config/_default/hugo.toml", "hugo.toml"]
+        assert result["signals"]["dirs"] == ["content", "themes"]
+        assert result["plugins"]["firecrawl@official"] is True
+        assert result["plugins"]["playwright@official"] is False
+        assert result["skills"]["commit-message"] == "on"
+        assert result["skills"]["tag"] == "name-only"
+        assert result["skills"]["humanizer-zh"] == "off"
+
+    def test_missing_optional_fields(self, tmp_path):
+        """Missing optional fields → file writes and reads back cleanly"""
+        # Only required field is name
+        tpl = {"name": "minimal"}
+        write_template(tmp_path, tpl)
+        result = read_template(tmp_path / "minimal.json")
+        assert result["name"] == "minimal"
+        # Optional fields may be missing or None — just verify name preserved
+        assert "name" in result
+
+    def test_malformed_json_exits(self, tmp_path):
+        """Malformed JSON → SystemExit"""
+        bad_file = tmp_path / "broken.json"
+        bad_file.write_text("{not valid json")
+        with pytest.raises(SystemExit):
+            read_template(bad_file)
+
+    def test_sort_keys_in_output(self, tmp_path):
+        """sort_keys in output (verify key ordering)"""
+        tpl = {
+            "name": "test-sort",
+            "skills": {"zzz-skill": "off", "aaa-skill": "on"},
+            "plugins": {"zzz-plugin": True, "aaa-plugin": False},
+        }
+        write_template(tmp_path, tpl)
+        raw = (tmp_path / "test-sort.json").read_text()
+        data = json.loads(raw)
+        # Top-level keys sorted
+        keys = list(data.keys())
+        assert keys == sorted(keys)
+        # Nested keys sorted
+        if "skills" in data and data["skills"]:
+            skill_keys = list(data["skills"].keys())
+            assert skill_keys == sorted(skill_keys)
+        # File ends with newline
+        assert raw.endswith("\n")
+
+
+# ============================================================
+# Task 15: Template CLI commands + signal matching
+# ============================================================
+
+from config_setup import (
+    match_signals,
+    cmd_templates_list,
+    cmd_templates_load,
+    cmd_templates_save,
+    cmd_templates_match,
+)
+
+
+class TestMatchSignals:
+    def test_both_match_returns_true(self, tmp_path):
+        """Both files and dirs match → True"""
+        (tmp_path / "hugo.toml").write_text("baseURL = 'https://example.com'")
+        (tmp_path / "content").mkdir()
+        signals = {"files": ["hugo.toml"], "dirs": ["content"]}
+        assert match_signals(tmp_path, signals) is True
+
+    def test_files_match_dirs_dont(self, tmp_path):
+        """Files match but dirs don't → False"""
+        (tmp_path / "hugo.toml").write_text("baseURL = 'https://example.com'")
+        signals = {"files": ["hugo.toml"], "dirs": ["nonexistent-dir"]}
+        assert match_signals(tmp_path, signals) is False
+
+    def test_empty_files_list_auto_satisfy(self, tmp_path):
+        """Empty files list → auto-satisfy (that condition is met)"""
+        (tmp_path / "content").mkdir()
+        signals = {"files": [], "dirs": ["content"]}
+        assert match_signals(tmp_path, signals) is True
+
+    def test_empty_dirs_list_auto_satisfy(self, tmp_path):
+        """Empty dirs list → auto-satisfy"""
+        (tmp_path / "hugo.toml").write_text("x")
+        signals = {"files": ["hugo.toml"], "dirs": []}
+        assert match_signals(tmp_path, signals) is True
+
+    def test_both_empty_returns_true(self, tmp_path):
+        """Both empty → True"""
+        signals = {"files": [], "dirs": []}
+        assert match_signals(tmp_path, signals) is True
+
+    def test_nested_path_match(self, tmp_path):
+        """Nested path like config/_default/hugo.toml is supported"""
+        nested = tmp_path / "config" / "_default"
+        nested.mkdir(parents=True)
+        (nested / "hugo.toml").write_text("baseURL = 'https://example.com'")
+        signals = {"files": ["config/_default/hugo.toml"], "dirs": []}
+        assert match_signals(tmp_path, signals) is True
+
+    def test_none_signals_returns_false(self, tmp_path):
+        """None signals → False (template can't auto-match)"""
+        assert match_signals(tmp_path, None) is False
+
+
+class TestCmdTemplatesListLoadSaveMatch:
+    def _make_template_file(self, tpl_dir, tpl):
+        """Helper: write a template JSON file directly."""
+        tpl_dir.mkdir(parents=True, exist_ok=True)
+        path = tpl_dir / f"{tpl['name']}.json"
+        path.write_text(
+            json.dumps(tpl, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+        )
+        return path
+
+    def test_list_returns_all_templates(self, tmp_path):
+        """list returns all templates as summary dicts"""
+        tpl_dir = tmp_path / "templates"
+        self._make_template_file(tpl_dir, {
+            "name": "hugo-blog",
+            "description": "Hugo blog",
+            "created": "2026-05-01",
+            "updated": "2026-05-09",
+        })
+        self._make_template_file(tpl_dir, {
+            "name": "go-service",
+            "description": "Go microservice",
+            "created": "2026-05-01",
+            "updated": "2026-05-09",
+        })
+        result = cmd_templates_list(tpl_dir)
+        names = {r["name"] for r in result}
+        assert "hugo-blog" in names
+        assert "go-service" in names
+        # Each entry has the 4 summary fields
+        for r in result:
+            assert "name" in r
+            assert "description" in r
+            assert "created" in r
+            assert "updated" in r
+
+    def test_list_empty_dir_returns_empty(self, tmp_path):
+        """list empty dir → empty list"""
+        tpl_dir = tmp_path / "templates"
+        tpl_dir.mkdir()
+        result = cmd_templates_list(tpl_dir)
+        assert result == []
+
+    def test_load_existing_returns_full_content(self, tmp_path):
+        """load existing template → full content"""
+        tpl_dir = tmp_path / "templates"
+        tpl = {
+            "name": "hugo-blog",
+            "description": "Hugo blog",
+            "created": "2026-05-01",
+            "updated": "2026-05-09",
+            "signals": {"files": ["hugo.toml"], "dirs": ["content"]},
+            "plugins": {},
+            "skills": {"commit-message": "on"},
+        }
+        self._make_template_file(tpl_dir, tpl)
+        result = cmd_templates_load("hugo-blog", tpl_dir)
+        assert result["name"] == "hugo-blog"
+        assert result["signals"]["files"] == ["hugo.toml"]
+        assert result["skills"]["commit-message"] == "on"
+
+    def test_load_nonexistent_exits(self, tmp_path):
+        """load nonexistent → SystemExit"""
+        tpl_dir = tmp_path / "templates"
+        tpl_dir.mkdir()
+        with pytest.raises(SystemExit):
+            cmd_templates_load("nonexistent", tpl_dir)
+
+    def test_save_creates_new_file(self, tmp_path):
+        """save creates new template file"""
+        tpl_dir = tmp_path / "templates"
+        tpl_dir.mkdir()
+        data_str = json.dumps({
+            "name": "new-template",
+            "description": "A new template",
+            "signals": {"files": [], "dirs": []},
+            "plugins": {},
+            "skills": {},
+        })
+        cmd_templates_save(data_str, tpl_dir)
+        assert (tpl_dir / "new-template.json").exists()
+        saved = json.loads((tpl_dir / "new-template.json").read_text())
+        assert saved["name"] == "new-template"
+        # created and updated set to today
+        today = datetime.now().strftime("%Y-%m-%d")
+        assert saved["created"] == today
+        assert saved["updated"] == today
+
+    def test_match_hugo_project(self, tmp_path):
+        """match Hugo project → hugo template matches"""
+        tpl_dir = tmp_path / "templates"
+        # Hugo template with signals
+        self._make_template_file(tpl_dir, {
+            "name": "hugo-blog",
+            "description": "Hugo blog",
+            "created": "2026-05-01",
+            "updated": "2026-05-09",
+            "signals": {"files": ["hugo.toml"], "dirs": ["content"]},
+            "plugins": {},
+            "skills": {},
+        })
+        # Create a fake Hugo project
+        proj_dir = tmp_path / "my-hugo-proj"
+        proj_dir.mkdir()
+        (proj_dir / "hugo.toml").write_text("baseURL = 'https://example.com'")
+        (proj_dir / "content").mkdir()
+
+        result = cmd_templates_match(proj_dir, tpl_dir)
+        names = [r["name"] for r in result]
+        assert "hugo-blog" in names
+
+    def test_match_no_hit_returns_empty(self, tmp_path):
+        """match no hit → empty list"""
+        tpl_dir = tmp_path / "templates"
+        # Hugo template with signals
+        self._make_template_file(tpl_dir, {
+            "name": "hugo-blog",
+            "description": "Hugo blog",
+            "created": "2026-05-01",
+            "updated": "2026-05-09",
+            "signals": {"files": ["hugo.toml"], "dirs": ["content"]},
+            "plugins": {},
+            "skills": {},
+        })
+        # Create a project that does NOT match Hugo signals
+        proj_dir = tmp_path / "my-go-proj"
+        proj_dir.mkdir()
+        (proj_dir / "main.go").write_text("package main")
+
+        result = cmd_templates_match(proj_dir, tpl_dir)
+        assert result == []

@@ -726,8 +726,173 @@ def _handle_skills_apply(args):
     cmd_skills_apply(args.proj_dir, changes)
 
 
-def _handle_templates_not_implemented(args):
-    print(json.dumps({"error": "not implemented"}, ensure_ascii=False))
+# ============================================================
+# Task 14: Template schema and JSON read/write
+# ============================================================
+
+def read_template(path: Path) -> dict:
+    """
+    Read template JSON file.
+
+    Malformed JSON → sys.exit(1) with an error message.
+    """
+    try:
+        raw = path.read_text(encoding="utf-8")
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        print(f"ERROR: {path} contains malformed JSON: {exc}", file=sys.stderr)
+        sys.exit(1)
+    return data
+
+
+def write_template(tpl_dir: Path, tpl: dict):
+    """
+    Write template to JSON file.
+
+    Creates dir if needed.
+    File name = <tpl["name"]>.json
+    Uses json.dumps(indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    """
+    tpl_dir.mkdir(parents=True, exist_ok=True)
+    name = tpl["name"]
+    path = tpl_dir / f"{name}.json"
+    content = json.dumps(tpl, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    path.write_text(content, encoding="utf-8")
+
+
+# ============================================================
+# Task 15: Template CLI commands + signal matching
+# ============================================================
+
+def match_signals(proj_dir: Path, signals: "dict | None") -> bool:
+    """
+    Check if project directory matches template signals.
+
+    signals.files: check if ANY file in list exists (as file) in proj_dir
+    signals.dirs: check if ANY dir in list exists in proj_dir
+    BOTH must have at least one hit → match
+    Empty list [] → auto-satisfy (that condition is met)
+    None signals → no match (template can't auto-match)
+    Support nested paths like config/_default/hugo.toml
+    Strip trailing / from dir names before checking
+    """
+    if signals is None:
+        return False
+
+    files = signals.get("files", [])
+    dirs = signals.get("dirs", [])
+
+    # Check files condition
+    if files:
+        files_hit = any((proj_dir / f).is_file() for f in files)
+    else:
+        # Empty list → auto-satisfy
+        files_hit = True
+
+    # Check dirs condition
+    if dirs:
+        dirs_hit = any((proj_dir / d.rstrip("/")).is_dir() for d in dirs)
+    else:
+        # Empty list → auto-satisfy
+        dirs_hit = True
+
+    return files_hit and dirs_hit
+
+
+def cmd_templates_list(tpl_dir: Path) -> list:
+    """
+    List all templates.
+
+    Return list of {name, description, created, updated}.
+    Empty dir → empty list.
+    """
+    if not tpl_dir.exists():
+        return []
+
+    result = []
+    for json_file in sorted(tpl_dir.glob("*.json")):
+        try:
+            data = json.loads(json_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        result.append({
+            "name": data.get("name", ""),
+            "description": data.get("description", ""),
+            "created": data.get("created", ""),
+            "updated": data.get("updated", ""),
+        })
+    return result
+
+
+def cmd_templates_load(name: str, tpl_dir: Path) -> dict:
+    """
+    Load template by name.
+
+    Not found → sys.exit(1).
+    """
+    path = tpl_dir / f"{name}.json"
+    if not path.exists():
+        print(f"ERROR: template '{name}' not found", file=sys.stderr)
+        sys.exit(1)
+    return read_template(path)
+
+
+def cmd_templates_save(data_str: str, tpl_dir: Path):
+    """
+    Save/update template from JSON string.
+
+    New template: set both created and updated to today
+    Existing template: preserve created, update updated to today
+    Missing name → sys.exit(1)
+    """
+    try:
+        tpl = json.loads(data_str)
+    except json.JSONDecodeError as exc:
+        print(f"ERROR: invalid JSON: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    name = tpl.get("name")
+    if not name:
+        print("ERROR: template JSON missing 'name' field", file=sys.stderr)
+        sys.exit(1)
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    existing_path = tpl_dir / f"{name}.json"
+
+    if existing_path.exists():
+        # Preserve created, update updated
+        try:
+            existing = json.loads(existing_path.read_text(encoding="utf-8"))
+            tpl["created"] = existing.get("created", today)
+        except (json.JSONDecodeError, OSError):
+            tpl["created"] = today
+    else:
+        # New template: set created to today
+        tpl["created"] = today
+
+    tpl["updated"] = today
+    write_template(tpl_dir, tpl)
+
+
+def cmd_templates_match(proj_dir: Path, tpl_dir: Path) -> list:
+    """
+    Find templates matching current project.
+
+    Return list of full template dicts. Uses match_signals.
+    """
+    if not tpl_dir.exists():
+        return []
+
+    result = []
+    for json_file in sorted(tpl_dir.glob("*.json")):
+        try:
+            tpl = json.loads(json_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        signals = tpl.get("signals")
+        if match_signals(proj_dir, signals):
+            result.append(tpl)
+    return result
 
 
 def main():
@@ -795,12 +960,70 @@ def main():
     sa_parser.set_defaults(handler=_handle_skills_apply)
 
     # ── templates ────────────────────────────────────────────
-    tpl_parser = subparsers.add_parser("templates", help="Manage templates (not implemented)")
+    _default_tpl_dir = Path(__file__).parent / "templates"
+
+    tpl_parser = subparsers.add_parser("templates", help="Manage project config templates")
+    tpl_parser.add_argument(
+        "--tpl-dir",
+        type=Path,
+        default=_default_tpl_dir,
+        help=f"Template directory (default: {_default_tpl_dir})",
+    )
     tpl_sub = tpl_parser.add_subparsers(dest="subcommand", metavar="SUBCOMMAND")
 
-    for tpl_cmd in ("list", "load", "save", "match"):
-        tp = tpl_sub.add_parser(tpl_cmd, help=f"Template {tpl_cmd} (not implemented)")
-        tp.set_defaults(handler=_handle_templates_not_implemented)
+    # templates list
+    tl_parser = tpl_sub.add_parser("list", help="List all templates")
+    tl_parser.add_argument(
+        "--tpl-dir",
+        type=Path,
+        default=_default_tpl_dir,
+        help=f"Template directory (default: {_default_tpl_dir})",
+    )
+    tl_parser.set_defaults(handler=lambda args: print(
+        json.dumps(cmd_templates_list(args.tpl_dir), indent=2, ensure_ascii=False)
+    ))
+
+    # templates load
+    tld_parser = tpl_sub.add_parser("load", help="Load a template by name")
+    tld_parser.add_argument("name", help="Template name")
+    tld_parser.add_argument(
+        "--tpl-dir",
+        type=Path,
+        default=_default_tpl_dir,
+        help=f"Template directory (default: {_default_tpl_dir})",
+    )
+    tld_parser.set_defaults(handler=lambda args: print(
+        json.dumps(cmd_templates_load(args.name, args.tpl_dir), indent=2, ensure_ascii=False)
+    ))
+
+    # templates save
+    ts_parser = tpl_sub.add_parser("save", help="Save/update a template from JSON string")
+    ts_parser.add_argument("--data", required=True, help="JSON string of template data")
+    ts_parser.add_argument(
+        "--tpl-dir",
+        type=Path,
+        default=_default_tpl_dir,
+        help=f"Template directory (default: {_default_tpl_dir})",
+    )
+    ts_parser.set_defaults(handler=lambda args: cmd_templates_save(args.data, args.tpl_dir))
+
+    # templates match
+    tm_parser = tpl_sub.add_parser("match", help="Find templates matching current project")
+    tm_parser.add_argument(
+        "--proj-dir",
+        type=Path,
+        default=Path.cwd(),
+        help="Project directory to match against (default: cwd)",
+    )
+    tm_parser.add_argument(
+        "--tpl-dir",
+        type=Path,
+        default=_default_tpl_dir,
+        help=f"Template directory (default: {_default_tpl_dir})",
+    )
+    tm_parser.set_defaults(handler=lambda args: print(
+        json.dumps(cmd_templates_match(args.proj_dir, args.tpl_dir), indent=2, ensure_ascii=False)
+    ))
 
     # ── dispatch ─────────────────────────────────────────────
     args = parser.parse_args()
