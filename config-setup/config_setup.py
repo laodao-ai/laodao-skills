@@ -663,6 +663,95 @@ def cmd_skills_apply(proj_dir: Path, changes: dict):
 
 
 # ============================================================
+# Task 17: Health check functions
+# ============================================================
+
+def health_check_plugins(proj_dir: Path, user_dir: Path, plugin_cache: Path) -> list:
+    """
+    Check for plugin health issues in the project config.
+
+    Two issue types:
+    1. phantom: plugin ID is in project-level enabledPlugins but NOT installed in cache.
+       Stale entry from an uninstalled plugin.
+    2. unset: plugin IS installed in cache but NOT in project-level enabledPlugins.
+       Informational only — project has not expressed intent for this plugin.
+
+    Returns a list of issue dicts:
+      {"type": "phantom", "plugin_id": "<id>", "message": "..."}
+      {"type": "unset",   "plugin_id": "<id>", "message": "..."}
+    """
+    layers = read_three_layers(proj_dir, user_dir)
+    installed_plugins = discover_plugins(plugin_cache)
+
+    # Build sets for comparison
+    proj_plugin_ids = set(layers["layer4"]["enabledPlugins"].keys())
+    installed_plugin_ids = {p["id"] for p in installed_plugins}
+
+    issues = []
+
+    # 1. Phantom: in project settings but not installed
+    for pid in proj_plugin_ids:
+        if pid not in installed_plugin_ids:
+            issues.append({
+                "type": "phantom",
+                "plugin_id": pid,
+                "message": f"Phantom plugin: {pid} 在项目配置中但未安装，建议 Nunset 清理",
+            })
+
+    # 2. Unset: installed but not in project settings
+    for pid in installed_plugin_ids:
+        if pid not in proj_plugin_ids:
+            issues.append({
+                "type": "unset",
+                "plugin_id": pid,
+                "message": f"Unset plugin: {pid} 已安装但项目级未表态",
+            })
+
+    return issues
+
+
+def health_check_skills(proj_dir: Path, user_dir: Path) -> list:
+    """
+    Check for skillOverrides conflicts where layer 3 (settings.local.json)
+    overrides layer 4 (settings.json) with a DIFFERENT value.
+
+    For each key in layer4's skillOverrides:
+    - If layer3 has the same key with a DIFFERENT value → warn (layer3_override)
+    - Same key, same value → no warn
+    - Key in layer3 but not in layer4 → no warn (nothing being overridden)
+
+    Returns a list of issue dicts:
+      {
+        "type": "layer3_override",
+        "skill": "<name>",
+        "layer4": "<val>",
+        "layer3": "<val>",
+        "message": "⚠ <name>: layer 3 (<val>) 覆盖了项目级 (<val>)",
+      }
+    """
+    layers = read_three_layers(proj_dir, user_dir)
+    layer3_skills = layers["layer3"]["skillOverrides"]
+    layer4_skills = layers["layer4"]["skillOverrides"]
+
+    issues = []
+
+    # Inspect each key in layer4 to check if layer3 overrides it differently
+    for skill_name, layer4_val in layer4_skills.items():
+        layer3_val = layer3_skills.get(skill_name)
+        # Only warn if layer3 has the key AND the value differs
+        if layer3_val is not None and layer3_val != layer4_val:
+            issues.append({
+                "type": "layer3_override",
+                "skill": skill_name,
+                "layer4": layer4_val,
+                "layer3": layer3_val,
+                "message": f"⚠ {skill_name}: layer 3 ({layer3_val}) 覆盖了项目级 ({layer4_val})",
+            })
+
+    return issues
+
+
+# ============================================================
 # Task 11: argparse CLI entry point
 # ============================================================
 

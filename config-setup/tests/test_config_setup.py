@@ -1251,3 +1251,183 @@ class TestCmdTemplatesListLoadSaveMatch:
 
         result = cmd_templates_match(proj_dir, tpl_dir)
         assert result == []
+
+
+# ============================================================
+# Task 17: Health check functions
+# ============================================================
+
+from config_setup import (
+    health_check_plugins,
+    health_check_skills,
+)
+
+
+class TestHealthCheckPlugins:
+    def _setup_dirs(self, tmp_path):
+        proj = tmp_path / "proj"
+        user = tmp_path / "user"
+        cache = tmp_path / "cache"
+        (proj / ".claude").mkdir(parents=True)
+        (user / ".claude").mkdir(parents=True)
+        return proj, user, cache
+
+    def _make_plugin(self, cache_dir, org, name, version, plugin_data):
+        plugin_dir = cache_dir / org / name / version / ".claude-plugin"
+        plugin_dir.mkdir(parents=True, exist_ok=True)
+        (plugin_dir / "plugin.json").write_text(json.dumps(plugin_data))
+
+    def test_phantom_plugin_detected(self, tmp_path):
+        """Plugin in project enabledPlugins but NOT in cache → phantom issue reported"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        # ghost@org is in project settings but not installed in cache
+        (proj / ".claude" / "settings.json").write_text(json.dumps({
+            "enabledPlugins": {"ghost@org": True}
+        }))
+        result = health_check_plugins(proj, user, cache)
+        types = [r["type"] for r in result]
+        assert "phantom" in types
+        phantom = next(r for r in result if r["type"] == "phantom")
+        assert phantom["plugin_id"] == "ghost@org"
+        assert "ghost@org" in phantom["message"]
+        assert "Nunset" in phantom["message"] or "建议" in phantom["message"]
+
+    def test_unset_plugin_detected(self, tmp_path):
+        """Plugin installed in cache but NOT in project enabledPlugins → unset issue reported"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        # installed plugin not mentioned in project settings
+        self._make_plugin(cache, "org1", "myplug", "1.0.0",
+                          {"name": "myplug", "description": "My plugin"})
+        # project settings has no enabledPlugins entry for myplug@org1
+        result = health_check_plugins(proj, user, cache)
+        types = [r["type"] for r in result]
+        assert "unset" in types
+        unset = next(r for r in result if r["type"] == "unset")
+        assert unset["plugin_id"] == "myplug@org1"
+        assert "myplug@org1" in unset["message"]
+
+    def test_installed_and_in_settings_not_phantom(self, tmp_path):
+        """Plugin installed AND in project enabledPlugins → NOT reported as phantom"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        self._make_plugin(cache, "org1", "myplug", "1.0.0",
+                          {"name": "myplug", "description": "My plugin"})
+        (proj / ".claude" / "settings.json").write_text(json.dumps({
+            "enabledPlugins": {"myplug@org1": True}
+        }))
+        result = health_check_plugins(proj, user, cache)
+        phantom_ids = [r["plugin_id"] for r in result if r["type"] == "phantom"]
+        assert "myplug@org1" not in phantom_ids
+
+
+class TestHealthCheckSkills:
+    def _setup_dirs(self, tmp_path):
+        proj = tmp_path / "proj"
+        user = tmp_path / "user"
+        (proj / ".claude").mkdir(parents=True)
+        (user / ".claude").mkdir(parents=True)
+        return proj, user
+
+    def test_layer3_overrides_layer4_different_value_warns(self, tmp_path):
+        """layer3 has same key as layer4 but different value → warn"""
+        proj, user = self._setup_dirs(tmp_path)
+        # layer4 (project settings.json): commit-message = "off"
+        (proj / ".claude" / "settings.json").write_text(json.dumps({
+            "skillOverrides": {"commit-message": "off"}
+        }))
+        # layer3 (local settings.local.json): commit-message = "on" (different!)
+        (proj / ".claude" / "settings.local.json").write_text(json.dumps({
+            "skillOverrides": {"commit-message": "on"}
+        }))
+        result = health_check_skills(proj, user)
+        types = [r["type"] for r in result]
+        assert "layer3_override" in types
+        warn = next(r for r in result if r["type"] == "layer3_override")
+        assert warn["skill"] == "commit-message"
+        assert warn["layer4"] == "off"
+        assert warn["layer3"] == "on"
+        assert "commit-message" in warn["message"]
+
+    def test_layer3_same_value_as_layer4_no_warn(self, tmp_path):
+        """layer3 has same key as layer4 with same value → no warn"""
+        proj, user = self._setup_dirs(tmp_path)
+        (proj / ".claude" / "settings.json").write_text(json.dumps({
+            "skillOverrides": {"tag": "name-only"}
+        }))
+        (proj / ".claude" / "settings.local.json").write_text(json.dumps({
+            "skillOverrides": {"tag": "name-only"}  # same value
+        }))
+        result = health_check_skills(proj, user)
+        assert len(result) == 0
+
+    def test_layer3_key_not_in_layer4_no_warn(self, tmp_path):
+        """layer3 has key not present in layer4 → no warn (nothing overridden)"""
+        proj, user = self._setup_dirs(tmp_path)
+        (proj / ".claude" / "settings.json").write_text(json.dumps({
+            "skillOverrides": {"tag": "name-only"}
+        }))
+        # layer3 has a key that is NOT in layer4 → no override issue
+        (proj / ".claude" / "settings.local.json").write_text(json.dumps({
+            "skillOverrides": {"humanizer-zh": "off"}  # not in layer4
+        }))
+        result = health_check_skills(proj, user)
+        assert len(result) == 0
+
+
+# ============================================================
+# Task 18: Initial template files (hugo-blog + go-backend)
+# ============================================================
+
+TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+
+REQUIRED_FIELDS = {"name", "signals", "plugins", "skills"}
+
+
+class TestInitialTemplateFiles:
+    def test_hugo_blog_exists_and_valid_json(self):
+        """hugo-blog.json exists and is valid JSON"""
+        path = TEMPLATES_DIR / "hugo-blog.json"
+        assert path.exists(), f"Missing: {path}"
+        data = json.loads(path.read_text())
+        assert isinstance(data, dict)
+
+    def test_go_backend_exists_and_valid_json(self):
+        """go-backend.json exists and is valid JSON"""
+        path = TEMPLATES_DIR / "go-backend.json"
+        assert path.exists(), f"Missing: {path}"
+        data = json.loads(path.read_text())
+        assert isinstance(data, dict)
+
+    def test_hugo_template_has_required_fields(self):
+        """hugo-blog.json has all required fields"""
+        data = json.loads((TEMPLATES_DIR / "hugo-blog.json").read_text())
+        for field in REQUIRED_FIELDS:
+            assert field in data, f"Missing required field: {field}"
+
+    def test_go_backend_has_required_fields(self):
+        """go-backend.json has all required fields"""
+        data = json.loads((TEMPLATES_DIR / "go-backend.json").read_text())
+        for field in REQUIRED_FIELDS:
+            assert field in data, f"Missing required field: {field}"
+
+    def test_hugo_template_matches_hugo_project(self, tmp_path):
+        """hugo-blog template matches a directory with hugo.toml + content/"""
+        (tmp_path / "hugo.toml").write_text("baseURL = 'https://example.com'")
+        (tmp_path / "content").mkdir()
+        data = json.loads((TEMPLATES_DIR / "hugo-blog.json").read_text())
+        # Strip trailing slashes from dir signals for matching
+        signals = {
+            "files": data["signals"]["files"],
+            "dirs": [d.rstrip("/") for d in data["signals"]["dirs"]],
+        }
+        assert match_signals(tmp_path, signals) is True
+
+    def test_go_template_matches_go_project(self, tmp_path):
+        """go-backend template matches a directory with go.mod + cmd/"""
+        (tmp_path / "go.mod").write_text("module example.com/myapp\n\ngo 1.21")
+        (tmp_path / "cmd").mkdir()
+        data = json.loads((TEMPLATES_DIR / "go-backend.json").read_text())
+        signals = {
+            "files": data["signals"]["files"],
+            "dirs": [d.rstrip("/") for d in data["signals"]["dirs"]],
+        }
+        assert match_signals(tmp_path, signals) is True
