@@ -553,3 +553,422 @@ class TestMergeAndWriteSettings:
         assert keys == sorted(keys)
         # Verify ends with newline
         assert raw.endswith("\n")
+
+
+# ============================================================
+# Task 8: plugins status CLI
+# ============================================================
+
+from config_setup import (
+    cmd_plugins_status,
+    _plugin_annotation,
+)
+
+
+class TestPluginAnnotation:
+    def test_project_override_annotation(self):
+        """layer4=False, layer5=True, layer3 not True → '⚠ 项目级翻盘'"""
+        assert _plugin_annotation(None, False, True, False) == "⚠ 项目级翻盘"
+        assert _plugin_annotation(False, False, True, False) == "⚠ 项目级翻盘"
+
+    def test_local_rescue_annotation(self):
+        """layer3=True, layer4=False → '⚠ 本机救回'"""
+        assert _plugin_annotation(True, False, None, True) == "⚠ 本机救回"
+        assert _plugin_annotation(True, False, True, True) == "⚠ 本机救回"
+
+    def test_local_off_ignored_annotation(self):
+        """layer3=False, layer4=True → '⚠ local OFF 被忽略'"""
+        assert _plugin_annotation(False, True, None, True) == "⚠ local OFF 被忽略"
+        assert _plugin_annotation(False, None, True, True) == "⚠ local OFF 被忽略"
+
+    def test_no_annotation(self):
+        """Normal cases → empty string"""
+        assert _plugin_annotation(None, True, None, True) == ""
+        assert _plugin_annotation(None, None, None, False) == ""
+        assert _plugin_annotation(True, True, None, True) == ""
+
+
+class TestCmdPluginsStatus:
+    def _setup_dirs(self, tmp_path):
+        proj = tmp_path / "proj"
+        user = tmp_path / "user"
+        cache = tmp_path / "cache"
+        (proj / ".claude").mkdir(parents=True)
+        (user / ".claude").mkdir(parents=True)
+        return proj, user, cache
+
+    def _make_plugin(self, cache_dir, org, name, version, plugin_data):
+        plugin_dir = cache_dir / org / name / version / ".claude-plugin"
+        plugin_dir.mkdir(parents=True, exist_ok=True)
+        (plugin_dir / "plugin.json").write_text(json.dumps(plugin_data))
+
+    def test_returns_all_plugins(self, tmp_path):
+        """Returns all discovered plugins"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        self._make_plugin(cache, "org1", "plugA", "1.0.0",
+                          {"name": "plugA", "description": "desc A"})
+        self._make_plugin(cache, "org1", "plugB", "1.0.0",
+                          {"name": "plugB", "description": "desc B"})
+        result = cmd_plugins_status(proj, user, cache)
+        ids = {r["id"] for r in result}
+        assert "plugA@org1" in ids
+        assert "plugB@org1" in ids
+
+    def test_effective_states_correct(self, tmp_path):
+        """Project OFF overrides user ON"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        self._make_plugin(cache, "org1", "plugA", "1.0.0",
+                          {"name": "plugA", "description": "desc A"})
+        # layer5 (user): plugA=True; layer4 (project): plugA=False
+        (user / ".claude" / "settings.json").write_text(json.dumps({
+            "enabledPlugins": {"plugA@org1": True}
+        }))
+        (proj / ".claude" / "settings.json").write_text(json.dumps({
+            "enabledPlugins": {"plugA@org1": False}
+        }))
+        result = cmd_plugins_status(proj, user, cache)
+        plugA = next(r for r in result if r["id"] == "plugA@org1")
+        assert plugA["effective"] is False
+
+    def test_override_annotation_present(self, tmp_path):
+        """Override annotation '项目级翻盘' present"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        self._make_plugin(cache, "org1", "plugA", "1.0.0",
+                          {"name": "plugA", "description": "desc A"})
+        (user / ".claude" / "settings.json").write_text(json.dumps({
+            "enabledPlugins": {"plugA@org1": True}
+        }))
+        (proj / ".claude" / "settings.json").write_text(json.dumps({
+            "enabledPlugins": {"plugA@org1": False}
+        }))
+        result = cmd_plugins_status(proj, user, cache)
+        plugA = next(r for r in result if r["id"] == "plugA@org1")
+        assert "项目级翻盘" in plugA["annotation"]
+
+    def test_empty_plugins_empty_list(self, tmp_path):
+        """Empty plugin cache → empty list"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        result = cmd_plugins_status(proj, user, cache)
+        assert result == []
+
+
+# ============================================================
+# Task 9: plugins detail + apply CLI
+# ============================================================
+
+from config_setup import (
+    cmd_plugins_detail,
+    cmd_plugins_apply,
+)
+
+
+class TestCmdPluginsDetail:
+    def _setup_dirs(self, tmp_path):
+        proj = tmp_path / "proj"
+        user = tmp_path / "user"
+        cache = tmp_path / "cache"
+        (proj / ".claude").mkdir(parents=True)
+        (user / ".claude").mkdir(parents=True)
+        return proj, user, cache
+
+    def _make_plugin(self, cache_dir, org, name, version, plugin_data):
+        plugin_dir = cache_dir / org / name / version / ".claude-plugin"
+        plugin_dir.mkdir(parents=True, exist_ok=True)
+        (plugin_dir / "plugin.json").write_text(json.dumps(plugin_data))
+
+    def test_detail_returns_full_info(self, tmp_path):
+        """detail returns full info dict"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        self._make_plugin(cache, "official", "firecrawl", "1.0.0", {
+            "name": "firecrawl",
+            "description": "Web scraping",
+            "homepage": "https://firecrawl.dev",
+            "repository": "https://github.com/firecrawl/firecrawl",
+        })
+        result = cmd_plugins_detail("firecrawl@official", proj, user, cache)
+        assert result["id"] == "firecrawl@official"
+        assert result["name"] == "firecrawl"
+        assert result["description"] == "Web scraping"
+        assert result["homepage"] == "https://firecrawl.dev"
+        assert result["repository"] == "https://github.com/firecrawl/firecrawl"
+        assert result["link"] == "https://firecrawl.dev"
+        assert "layer5" in result
+        assert "layer4" in result
+        assert "layer3" in result
+        assert "effective" in result
+        assert "annotation" in result
+
+    def test_detail_not_found_exits(self, tmp_path):
+        """detail not found → SystemExit"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        with pytest.raises(SystemExit):
+            cmd_plugins_detail("nonexistent@org", proj, user, cache)
+
+
+class TestCmdPluginsApply:
+    def test_apply_changes_updates_settings(self, tmp_path):
+        """apply changes → settings updated, other fields preserved"""
+        proj = tmp_path / "proj"
+        (proj / ".claude").mkdir(parents=True)
+        settings_path = proj / ".claude" / "settings.json"
+        settings_path.write_text(json.dumps({
+            "theme": "dark",
+            "enabledPlugins": {"existing@org": True},
+        }, indent=2) + "\n")
+        cmd_plugins_apply(proj, {"newplugin@org": False})
+        data = json.loads(settings_path.read_text())
+        assert data["enabledPlugins"]["newplugin@org"] is False
+        assert data["enabledPlugins"]["existing@org"] is True
+        assert data["theme"] == "dark"
+
+    def test_apply_unset_removes_key(self, tmp_path):
+        """apply unset (None) → key removed"""
+        proj = tmp_path / "proj"
+        (proj / ".claude").mkdir(parents=True)
+        settings_path = proj / ".claude" / "settings.json"
+        settings_path.write_text(json.dumps({
+            "enabledPlugins": {"toremove@org": True, "keep@org": False},
+        }, indent=2) + "\n")
+        cmd_plugins_apply(proj, {"toremove@org": None})
+        data = json.loads(settings_path.read_text())
+        assert "toremove@org" not in data["enabledPlugins"]
+        assert data["enabledPlugins"]["keep@org"] is False
+
+    def test_apply_empty_no_backup(self, tmp_path):
+        """apply empty → no backup created"""
+        proj = tmp_path / "proj"
+        (proj / ".claude").mkdir(parents=True)
+        settings_path = proj / ".claude" / "settings.json"
+        settings_path.write_text(json.dumps({"enabledPlugins": {}}))
+        cmd_plugins_apply(proj, {})
+        backups = list((proj / ".claude").glob("settings.json.bak.*"))
+        assert len(backups) == 0
+
+
+# ============================================================
+# Task 10: skills status/detail/apply CLI
+# ============================================================
+
+from config_setup import (
+    _skill_annotation,
+    cmd_skills_status,
+    cmd_skills_detail,
+    cmd_skills_apply,
+)
+
+
+class TestSkillAnnotation:
+    def test_project_override(self):
+        """layer4 and layer5 differ, layer3 is None → '⚠ 项目级翻盘'"""
+        assert _skill_annotation(None, "off", "on") == "⚠ 项目级翻盘"
+        assert _skill_annotation(None, "name-only", "on") == "⚠ 项目级翻盘"
+
+    def test_local_override(self):
+        """layer3 and layer4 differ, both have values → '⚠ 本机覆盖'"""
+        assert _skill_annotation("on", "off", None) == "⚠ 本机覆盖"
+        assert _skill_annotation("name-only", "off", "on") == "⚠ 本机覆盖"
+
+    def test_no_annotation(self):
+        """No conflict → empty string"""
+        assert _skill_annotation(None, None, None) == ""
+        assert _skill_annotation(None, "on", "on") == ""
+        assert _skill_annotation("on", None, None) == ""
+        assert _skill_annotation(None, "off", None) == ""
+
+
+class TestCmdSkillsStatus:
+    def _setup_dirs(self, tmp_path):
+        proj = tmp_path / "proj"
+        user = tmp_path / "user"
+        cache = tmp_path / "cache"
+        (proj / ".claude").mkdir(parents=True)
+        (user / ".claude").mkdir(parents=True)
+        return proj, user, cache
+
+    def _make_skill(self, skills_root, skill_name, description=None):
+        skill_dir = skills_root / skill_name
+        skill_dir.mkdir(parents=True, exist_ok=True)
+        desc_line = f"description: {description}\n" if description else ""
+        (skill_dir / "SKILL.md").write_text(f"---\nname: {skill_name}\n{desc_line}---\n")
+        return skill_dir
+
+    def test_status_returns_all_skills(self, tmp_path):
+        """Returns all discovered skills"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        user_skills = user / ".claude" / "skills"
+        self._make_skill(user_skills, "commit-message", "Write commit messages")
+        self._make_skill(user_skills, "tag", "Tag skill")
+        result = cmd_skills_status(proj, user, cache)
+        names = {r["name"] for r in result}
+        assert "commit-message" in names
+        assert "tag" in names
+
+    def test_effective_from_layer4_when_layer3_unset(self, tmp_path):
+        """Effective from layer4 when layer3 unset"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        user_skills = user / ".claude" / "skills"
+        self._make_skill(user_skills, "commit-message", "Write commit messages")
+        (proj / ".claude" / "settings.json").write_text(json.dumps({
+            "skillOverrides": {"commit-message": "off"}
+        }))
+        result = cmd_skills_status(proj, user, cache)
+        skill = next(r for r in result if r["name"] == "commit-message")
+        assert skill["effective"] == "off"
+
+    def test_default_on_when_all_unset(self, tmp_path):
+        """Default 'on' when all layers unset"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        user_skills = user / ".claude" / "skills"
+        self._make_skill(user_skills, "my-skill", "My skill")
+        result = cmd_skills_status(proj, user, cache)
+        skill = next(r for r in result if r["name"] == "my-skill")
+        assert skill["effective"] == "on"
+
+
+class TestCmdSkillsDetail:
+    def _setup_dirs(self, tmp_path):
+        proj = tmp_path / "proj"
+        user = tmp_path / "user"
+        cache = tmp_path / "cache"
+        (proj / ".claude").mkdir(parents=True)
+        (user / ".claude").mkdir(parents=True)
+        return proj, user, cache
+
+    def _make_skill(self, skills_root, skill_name, description=None):
+        skill_dir = skills_root / skill_name
+        skill_dir.mkdir(parents=True, exist_ok=True)
+        desc_line = f"description: {description}\n" if description else ""
+        (skill_dir / "SKILL.md").write_text(f"---\nname: {skill_name}\n{desc_line}---\n")
+        return skill_dir
+
+    def test_detail_returns_full_info(self, tmp_path):
+        """detail returns full info dict"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        user_skills = user / ".claude" / "skills"
+        self._make_skill(user_skills, "commit-message", "Write commit messages")
+        result = cmd_skills_detail("commit-message", proj, user, cache)
+        assert result["name"] == "commit-message"
+        assert result["description"] == "Write commit messages"
+        assert "path" in result
+        assert "level" in result
+        assert "layer5" in result
+        assert "layer4" in result
+        assert "layer3" in result
+        assert "effective" in result
+        assert "annotation" in result
+
+    def test_detail_not_found_exits(self, tmp_path):
+        """detail not found → SystemExit"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        with pytest.raises(SystemExit):
+            cmd_skills_detail("nonexistent-skill", proj, user, cache)
+
+
+class TestCmdSkillsApply:
+    def test_apply_merge_write(self, tmp_path):
+        """apply merge write"""
+        proj = tmp_path / "proj"
+        (proj / ".claude").mkdir(parents=True)
+        settings_path = proj / ".claude" / "settings.json"
+        settings_path.write_text(json.dumps({
+            "skillOverrides": {"existing": "off"},
+        }, indent=2) + "\n")
+        cmd_skills_apply(proj, {"newskill": "name-only"})
+        data = json.loads(settings_path.read_text())
+        assert data["skillOverrides"]["newskill"] == "name-only"
+        assert data["skillOverrides"]["existing"] == "off"
+
+    def test_apply_unset(self, tmp_path):
+        """apply unset (None) removes key"""
+        proj = tmp_path / "proj"
+        (proj / ".claude").mkdir(parents=True)
+        settings_path = proj / ".claude" / "settings.json"
+        settings_path.write_text(json.dumps({
+            "skillOverrides": {"toremove": "off", "keep": "on"},
+        }, indent=2) + "\n")
+        cmd_skills_apply(proj, {"toremove": None})
+        data = json.loads(settings_path.read_text())
+        assert "toremove" not in data["skillOverrides"]
+        assert data["skillOverrides"]["keep"] == "on"
+
+
+# ============================================================
+# Task 11: argparse CLI entry point (integration tests)
+# ============================================================
+
+import subprocess
+
+
+class TestCLIIntegration:
+    SCRIPT = str(Path(__file__).parent.parent / "config_setup.py")
+
+    def _setup_dirs(self, tmp_path):
+        proj = tmp_path / "proj"
+        user = tmp_path / "user"
+        cache = tmp_path / "cache"
+        (proj / ".claude").mkdir(parents=True)
+        (user / ".claude").mkdir(parents=True)
+        return proj, user, cache
+
+    def _make_plugin(self, cache_dir, org, name, version, plugin_data):
+        plugin_dir = cache_dir / org / name / version / ".claude-plugin"
+        plugin_dir.mkdir(parents=True, exist_ok=True)
+        (plugin_dir / "plugin.json").write_text(json.dumps(plugin_data))
+
+    def _make_skill(self, skills_root, skill_name, description=None):
+        skill_dir = skills_root / skill_name
+        skill_dir.mkdir(parents=True, exist_ok=True)
+        desc_line = f"description: {description}\n" if description else ""
+        (skill_dir / "SKILL.md").write_text(f"---\nname: {skill_name}\n{desc_line}---\n")
+
+    def test_plugins_status_json(self, tmp_path):
+        """plugins status --json returns valid JSON list"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        self._make_plugin(cache, "org1", "plugA", "1.0.0",
+                          {"name": "plugA", "description": "Plugin A"})
+        result = subprocess.run(
+            [sys.executable, self.SCRIPT,
+             "plugins", "status", "--json",
+             "--proj-dir", str(proj),
+             "--user-dir", str(user),
+             "--plugin-cache", str(cache)],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        data = json.loads(result.stdout)
+        assert isinstance(data, list)
+        assert any(item["id"] == "plugA@org1" for item in data)
+
+    def test_skills_status_json(self, tmp_path):
+        """skills status --json returns valid JSON list"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        user_skills = user / ".claude" / "skills"
+        self._make_skill(user_skills, "my-skill", "My skill")
+        result = subprocess.run(
+            [sys.executable, self.SCRIPT,
+             "skills", "status", "--json",
+             "--proj-dir", str(proj),
+             "--user-dir", str(user),
+             "--plugin-cache", str(cache)],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        data = json.loads(result.stdout)
+        assert isinstance(data, list)
+        assert any(item["name"] == "my-skill" for item in data)
+
+    def test_plugins_apply_changes_file(self, tmp_path):
+        """plugins apply --changes updates file"""
+        proj, user, cache = self._setup_dirs(tmp_path)
+        settings_path = proj / ".claude" / "settings.json"
+        settings_path.write_text(json.dumps({"enabledPlugins": {}}) + "\n")
+        result = subprocess.run(
+            [sys.executable, self.SCRIPT,
+             "plugins", "apply",
+             "--changes", json.dumps({"X@org": False}),
+             "--proj-dir", str(proj)],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        data = json.loads(settings_path.read_text())
+        assert data["enabledPlugins"]["X@org"] is False

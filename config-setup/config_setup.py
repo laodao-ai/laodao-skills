@@ -454,17 +454,363 @@ def merge_and_write_settings(settings_path: Path, field: str, changes: dict):
 
 
 # ============================================================
-# CLI entrypoint (placeholder for Phase 2+)
+# Task 8: plugins status CLI
 # ============================================================
+
+def _plugin_annotation(layer3, layer4, layer5, effective) -> str:
+    """
+    Compute a human-readable annotation for a plugin's effective state.
+
+    Returns:
+    - "⚠ 项目级翻盘"    when layer4=False, layer5=True, layer3 is not True
+    - "⚠ 本机救回"       when layer3=True, layer4=False
+    - "⚠ local OFF 被忽略" when layer3=False and (layer4=True or (layer4 is None and layer5=True))
+    - ""                 otherwise
+    """
+    # 本机救回: layer3=True 救回 layer4=False
+    if layer3 is True and layer4 is False:
+        return "⚠ 本机救回"
+    # local OFF 被忽略: layer3=False 被忽略（无法抑制 project/user 的 True）
+    if layer3 is False and (layer4 is True or (layer4 is None and layer5 is True)):
+        return "⚠ local OFF 被忽略"
+    # 项目级翻盘: project False 推翻 user True，且无本机救回
+    if layer4 is False and layer5 is True and layer3 is not True:
+        return "⚠ 项目级翻盘"
+    return ""
+
+
+def cmd_plugins_status(proj_dir: Path, user_dir: Path, plugin_cache: Path) -> list:
+    """
+    Return status list for all discovered plugins.
+
+    Each dict contains:
+    - id, description, link, layer5, layer4, layer3, effective, annotation
+    """
+    layers = read_three_layers(proj_dir, user_dir)
+    plugins = discover_plugins(plugin_cache)
+
+    result = []
+    for plugin in plugins:
+        pid = plugin["id"]
+        l3 = layers["layer3"]["enabledPlugins"].get(pid)
+        l4 = layers["layer4"]["enabledPlugins"].get(pid)
+        l5 = layers["layer5"]["enabledPlugins"].get(pid)
+        eff = plugin_effective(l3, l4, l5)
+        ann = _plugin_annotation(l3, l4, l5, eff)
+        result.append({
+            "id": pid,
+            "description": plugin["description"],
+            "link": plugin["link"],
+            "layer5": l5,
+            "layer4": l4,
+            "layer3": l3,
+            "effective": eff,
+            "annotation": ann,
+        })
+
+    return result
+
+
+# ============================================================
+# Task 9: plugins detail + apply CLI
+# ============================================================
+
+def cmd_plugins_detail(plugin_id: str, proj_dir: Path, user_dir: Path, plugin_cache: Path) -> dict:
+    """
+    Return full detail dict for a single plugin.
+
+    sys.exit(1) if the plugin is not found.
+    """
+    plugins = discover_plugins(plugin_cache)
+    plugin = next((p for p in plugins if p["id"] == plugin_id), None)
+    if plugin is None:
+        print(f"ERROR: plugin '{plugin_id}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    layers = read_three_layers(proj_dir, user_dir)
+    l3 = layers["layer3"]["enabledPlugins"].get(plugin_id)
+    l4 = layers["layer4"]["enabledPlugins"].get(plugin_id)
+    l5 = layers["layer5"]["enabledPlugins"].get(plugin_id)
+    eff = plugin_effective(l3, l4, l5)
+    ann = _plugin_annotation(l3, l4, l5, eff)
+
+    return {
+        "id": plugin["id"],
+        "name": plugin["name"],
+        "description": plugin["description"],
+        "homepage": plugin["homepage"],
+        "repository": plugin["repository"],
+        "link": plugin["link"],
+        "layer5": l5,
+        "layer4": l4,
+        "layer3": l3,
+        "effective": eff,
+        "annotation": ann,
+    }
+
+
+def cmd_plugins_apply(proj_dir: Path, changes: dict):
+    """
+    Apply enabledPlugins changes to the project settings.json.
+
+    Empty changes → return immediately (no write).
+    """
+    if not changes:
+        return
+
+    settings_path = proj_dir / ".claude" / "settings.json"
+    merge_and_write_settings(settings_path, "enabledPlugins", changes)
+
+
+# ============================================================
+# Task 10: skills status/detail/apply CLI
+# ============================================================
+
+def _skill_annotation(layer3, layer4, layer5) -> str:
+    """
+    Compute a human-readable annotation for a skill's effective state.
+
+    Returns:
+    - "⚠ 项目级翻盘" when layer4 and layer5 differ and layer3 is None
+    - "⚠ 本机覆盖"   when layer3 and layer4 differ and both have values
+    - ""              otherwise
+    """
+    # 本机覆盖: layer3 overrides layer4 (both set, different)
+    if layer3 is not None and layer4 is not None and layer3 != layer4:
+        return "⚠ 本机覆盖"
+    # 项目级翻盘: project (layer4) overrides user (layer5), no local override
+    if layer3 is None and layer4 is not None and layer5 is not None and layer4 != layer5:
+        return "⚠ 项目级翻盘"
+    return ""
+
+
+def cmd_skills_status(proj_dir: Path, user_dir: Path, plugin_cache: Path) -> list:
+    """
+    Return status list for all discovered custom skills.
+
+    Each dict contains:
+    - name, description, path, level, layer5, layer4, layer3, effective, annotation
+    """
+    layers = read_three_layers(proj_dir, user_dir)
+    skills = discover_skills(proj_dir, user_dir, plugin_cache)
+
+    result = []
+    for skill in skills:
+        sname = skill["name"]
+        l3 = layers["layer3"]["skillOverrides"].get(sname)
+        l4 = layers["layer4"]["skillOverrides"].get(sname)
+        l5 = layers["layer5"]["skillOverrides"].get(sname)
+        eff = skill_effective(l3, l4, l5)
+        ann = _skill_annotation(l3, l4, l5)
+        result.append({
+            "name": sname,
+            "description": skill["description"],
+            "path": skill["path"],
+            "level": skill["level"],
+            "layer5": l5,
+            "layer4": l4,
+            "layer3": l3,
+            "effective": eff,
+            "annotation": ann,
+        })
+
+    return result
+
+
+def cmd_skills_detail(skill_name: str, proj_dir: Path, user_dir: Path, plugin_cache: Path) -> dict:
+    """
+    Return full detail dict for a single skill.
+
+    sys.exit(1) if the skill is not found.
+    """
+    skills = discover_skills(proj_dir, user_dir, plugin_cache)
+    skill = next((s for s in skills if s["name"] == skill_name), None)
+    if skill is None:
+        print(f"ERROR: skill '{skill_name}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    layers = read_three_layers(proj_dir, user_dir)
+    l3 = layers["layer3"]["skillOverrides"].get(skill_name)
+    l4 = layers["layer4"]["skillOverrides"].get(skill_name)
+    l5 = layers["layer5"]["skillOverrides"].get(skill_name)
+    eff = skill_effective(l3, l4, l5)
+    ann = _skill_annotation(l3, l4, l5)
+
+    return {
+        "name": skill["name"],
+        "description": skill["description"],
+        "path": skill["path"],
+        "level": skill["level"],
+        "layer5": l5,
+        "layer4": l4,
+        "layer3": l3,
+        "effective": eff,
+        "annotation": ann,
+    }
+
+
+def cmd_skills_apply(proj_dir: Path, changes: dict):
+    """
+    Apply skillOverrides changes to the project settings.json.
+
+    Empty changes → return immediately (no write).
+    """
+    if not changes:
+        return
+
+    settings_path = proj_dir / ".claude" / "settings.json"
+    merge_and_write_settings(settings_path, "skillOverrides", changes)
+
+
+# ============================================================
+# Task 11: argparse CLI entry point
+# ============================================================
+
+def _add_common_args(parser):
+    """Add common directory arguments to a subparser."""
+    parser.add_argument(
+        "--proj-dir",
+        type=Path,
+        default=Path.cwd(),
+        help="Project directory (default: cwd)",
+    )
+    parser.add_argument(
+        "--user-dir",
+        type=Path,
+        default=Path.home(),
+        help="User home directory (default: ~)",
+    )
+    parser.add_argument(
+        "--plugin-cache",
+        type=Path,
+        default=Path.home() / ".claude" / "plugins" / "cache",
+        help="Plugin cache directory (default: ~/.claude/plugins/cache)",
+    )
+
+
+def _handle_plugins_status(args):
+    result = cmd_plugins_status(args.proj_dir, args.user_dir, args.plugin_cache)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+def _handle_plugins_detail(args):
+    result = cmd_plugins_detail(args.id, args.proj_dir, args.user_dir, args.plugin_cache)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+def _handle_plugins_apply(args):
+    try:
+        changes = json.loads(args.changes)
+    except json.JSONDecodeError as exc:
+        print(f"ERROR: --changes is not valid JSON: {exc}", file=sys.stderr)
+        sys.exit(1)
+    cmd_plugins_apply(args.proj_dir, changes)
+
+
+def _handle_skills_status(args):
+    result = cmd_skills_status(args.proj_dir, args.user_dir, args.plugin_cache)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+def _handle_skills_detail(args):
+    result = cmd_skills_detail(args.id, args.proj_dir, args.user_dir, args.plugin_cache)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+def _handle_skills_apply(args):
+    try:
+        changes = json.loads(args.changes)
+    except json.JSONDecodeError as exc:
+        print(f"ERROR: --changes is not valid JSON: {exc}", file=sys.stderr)
+        sys.exit(1)
+    cmd_skills_apply(args.proj_dir, changes)
+
+
+def _handle_templates_not_implemented(args):
+    print(json.dumps({"error": "not implemented"}, ensure_ascii=False))
+
 
 def main():
     parser = argparse.ArgumentParser(
         description="Claude Code project-level settings manager"
     )
-    parser.add_argument("--version", action="version", version="config_setup 0.1.0")
+    parser.add_argument("--version", action="version", version="config_setup 0.2.0")
+
+    subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
+
+    # ── plugins ──────────────────────────────────────────────
+    plugins_parser = subparsers.add_parser("plugins", help="Manage plugins")
+    plugins_sub = plugins_parser.add_subparsers(dest="subcommand", metavar="SUBCOMMAND")
+
+    # plugins status
+    ps_parser = plugins_sub.add_parser("status", help="Show plugin status")
+    ps_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    _add_common_args(ps_parser)
+    ps_parser.set_defaults(handler=_handle_plugins_status)
+
+    # plugins detail
+    pd_parser = plugins_sub.add_parser("detail", help="Show plugin detail")
+    pd_parser.add_argument("id", help="Plugin ID (name@org)")
+    pd_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    _add_common_args(pd_parser)
+    pd_parser.set_defaults(handler=_handle_plugins_detail)
+
+    # plugins apply
+    pa_parser = plugins_sub.add_parser("apply", help="Apply plugin changes")
+    pa_parser.add_argument("--changes", required=True, help="JSON dict of changes")
+    pa_parser.add_argument(
+        "--proj-dir",
+        type=Path,
+        default=Path.cwd(),
+        help="Project directory (default: cwd)",
+    )
+    pa_parser.set_defaults(handler=_handle_plugins_apply)
+
+    # ── skills ───────────────────────────────────────────────
+    skills_parser = subparsers.add_parser("skills", help="Manage skills")
+    skills_sub = skills_parser.add_subparsers(dest="subcommand", metavar="SUBCOMMAND")
+
+    # skills status
+    ss_parser = skills_sub.add_parser("status", help="Show skill status")
+    ss_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    _add_common_args(ss_parser)
+    ss_parser.set_defaults(handler=_handle_skills_status)
+
+    # skills detail
+    sd_parser = skills_sub.add_parser("detail", help="Show skill detail")
+    sd_parser.add_argument("id", help="Skill name")
+    sd_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    _add_common_args(sd_parser)
+    sd_parser.set_defaults(handler=_handle_skills_detail)
+
+    # skills apply
+    sa_parser = skills_sub.add_parser("apply", help="Apply skill changes")
+    sa_parser.add_argument("--changes", required=True, help="JSON dict of changes")
+    sa_parser.add_argument(
+        "--proj-dir",
+        type=Path,
+        default=Path.cwd(),
+        help="Project directory (default: cwd)",
+    )
+    sa_parser.set_defaults(handler=_handle_skills_apply)
+
+    # ── templates ────────────────────────────────────────────
+    tpl_parser = subparsers.add_parser("templates", help="Manage templates (not implemented)")
+    tpl_sub = tpl_parser.add_subparsers(dest="subcommand", metavar="SUBCOMMAND")
+
+    for tpl_cmd in ("list", "load", "save", "match"):
+        tp = tpl_sub.add_parser(tpl_cmd, help=f"Template {tpl_cmd} (not implemented)")
+        tp.set_defaults(handler=_handle_templates_not_implemented)
+
+    # ── dispatch ─────────────────────────────────────────────
     args = parser.parse_args()
 
-    print("config_setup: no subcommand specified. Use --help for usage.")
+    if not hasattr(args, "handler"):
+        # No subcommand given — print help
+        parser.print_help()
+        sys.exit(0)
+
+    args.handler(args)
 
 
 if __name__ == "__main__":
