@@ -21,7 +21,7 @@
 | 文档转换 | docx2md | Word 转 Markdown |
 | 文档转换 | pdf2md | PDF 转 Markdown |
 | 文档转换 | xlsx2md | Excel 转 CSV |
-| 元工具 | **config-skills** | **按场景一键配置 skillOverrides（详见下方专章）** |
+| 元工具 | **config-setup** | **模版驱动的项目级 settings 编排（详见下方专章）** |
 | 元工具 | update | 更新 laodao-skills |
 
 ## 安装
@@ -56,65 +56,55 @@ bash setup.sh
 
 ---
 
-## config-skills - 配置 plugin/skill 的元工具
+## config-setup — 模版驱动的项目级 settings 编排
 
-按工作场景一键配置项目级 `.claude/settings.json` 的 `skillOverrides` 字段，无需手动编辑。
+进新项目的一站式设置入口。分析项目类型 → 匹配/生成模版 → 串行完成 plugin→skill 配置，写入 `.claude/settings.json`。
 
-### 4 套 Preset
+### 架构
 
-| Preset | 适用场景 | 探测特征 | ON 数量 |
-|--------|----------|----------|---------|
-| `content-creation` | 写文章、博客、做封面/配图、SDD | `hugo.toml/yaml` | ~21 |
-| `go-dev` | Go 后端、CLI 项目 | `go.mod` | ~24 |
-| `embedded-dev` | 嵌入式 C/MCU 固件 | `CMakeLists.txt` 或 `.c/.h` | ~28 |
-| `web-dev` | 前端、全栈、博客 QA | `package.json` + react/vue/next/svelte | ~35 |
+`config-setup` 是一个编排入口，内含两个子 skill：
 
-四套共享的"基础 ON"：superpowers 核心入口、git commit 类、remember、OpenSpec/SDD 全套。
+| 命令 | 说明 |
+|------|------|
+| `/config-setup` | 主入口：分析项目、匹配模版、串行调度下面两个子 skill |
+| `/config-plugins` | 项目级 plugin 编排：浏览/决策/写入 `enabledPlugins` |
+| `/config-skills` | 项目级自建 skill 编排：4 态（on/name-only/user-invocable-only/off）编排 `skillOverrides` |
 
-### 工作流（v3：8 步）
+### 模版
 
-1. **扫描环境 + 自动探测项目类型**：根据特征文件推断 preset
-2. **preset 健康检查 + 自动同步**（v3）：检测 missing / phantom，按 12 条智能规则推断默认值
-3. 检查 `.claude/settings.json`（不存在则自动建空）
-4. 询问用户选 preset（探测命中则推荐第一位）
-5. 校验 + 双向 Diff + 幂等检查
-6. AskUserQuestion 展示 Diff 让用户确认
-7. **备份**（保留最近 3 份 `.bak.YYYYMMDD-HHMMSS`）+ **原子写回**（tmp + replace）
-8. 展示分类清单 + 引导修改
+预置模版按项目类型匹配，也可自定义：
 
-### 智能默认值推断（关键词匹配）
+| 模版 | 适用场景 |
+|------|----------|
+| `content-creator` | SDD 内容创作工作区（OpenSpec + Hugo + 写作流水线） |
+| `go-backend` | Go 后端服务项目 |
+| `hugo-blog` | Hugo 静态博客项目 |
 
-新装的 skill 通过 Step 2 自动加入 preset 时，按 skill 名关键词推断各 preset 的默认值：
+### 三层 settings 模型
 
-| 关键词 | content | go-dev | embedded | web | 类型 |
-|--------|:-------:|:------:|:--------:|:---:|------|
-| `git/release` | on | on | on | on | git 类核心 |
-| `lint/code-review/TDD/feature-dev` | off | on | on | on | 代码工程 |
-| `humanizer/tech-writing` | on | off | off | u-i-o | 内容创作 |
-| `embedded/firmware/mcu` | off | off | on | off | 嵌入式 |
-| `frontend/ui-ux/react/vue` | u-i-o | off | off | on | 前端 UI |
-| `qa/playwright/chrome-devtools` | u-i-o | u-i-o | off | on | 浏览器 QA |
-| 未匹配 fallback | u-i-o | u-i-o | u-i-o | u-i-o | 安全保留入口 |
+settings 读取遵循三层合并：
 
-完整 12 条规则见 `config-skills/SKILL.md`。
+1. **Layer 1** — 用户全局 `~/.claude/settings.json`
+2. **Layer 2** — 用户本地 `~/.claude/settings.local.json`
+3. **Layer 3** — 项目级 `.claude/settings.json`（config-setup 的写入目标）
 
 ### 安全特性
 
-- **备份机制**：每次写 settings.json 前自动 `.bak.YYYYMMDD-HHMMSS`，保留最近 3 份
-- **原子写回**：`tmp` 文件 + `os.replace`，防止写一半崩溃损坏文件
-- **双向 Diff**：检测"preset 加了什么"+"settings 多余的会被删什么"
-- **幂等检查**：已 up-to-date 提前结束，不做无意义改动
-- **Skill ID 校验**：preset 列了但本地没装的 phantom，跳过且报告
+- **备份**：每次写入前自动 `.bak.YYYYMMDD-HHMMSS`，保留最近 3 份
+- **原子写回**：tmp 文件 + `os.replace`，防止写一半崩溃
+- **健康检查**：检测 phantom（已删除）/ unset（新增未配置）的 plugin 和 skill
+- **幂等**：已 up-to-date 提前结束
 
 ### 用法
 
 ```
-/config-skills
+/config-setup
 ```
 
-或自然触发："切换到 Go 模式"、"配 settings.json"、"skill 太多了清理一下"等。
+或自然触发："配一下这个项目"、"进新项目"、"配 settings.json"等。
 
-详见 `config-skills/SKILL.md`。
+详见 `config-setup/SKILL.md`。
+
 
 ---
 
