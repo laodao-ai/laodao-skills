@@ -1,0 +1,4 @@
+interface:
+  display_name: "Trademark Basic Search"
+  short_description: "Basic trademark search workflow"
+  default_prompt: "Use $trademark-basic-search to run a basic trademark search for a proposed brand name."

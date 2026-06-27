@@ -13,7 +13,7 @@
 | 开发工具 | commit-message | Git commit 信息生成 |
 | 开发工具 | ssh-tunnel | SSH 隧道管理 |
 | 开发工具 | tag | Git 语义化版本标签 |
-| 开发工具 | gstack-init | gstack 项目级文档归集 |
+| 开发工具 | gstack-project-init | gstack 项目级文档归集 |
 | OpenSpec | opsx-maintain | OpenSpec 目录维护 |
 | OpenSpec | opsx-roadmap-planner | 分阶段 roadmap 规划工作流 |
 | 嵌入式 | embedded-lint | C 语言静态分析 |

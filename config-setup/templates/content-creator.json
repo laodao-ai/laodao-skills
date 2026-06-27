@@ -59,7 +59,7 @@
     "freeze": "off",
     "goframe-v2": "off",
     "gstack": "name-only",
-    "gstack-init": "off",
+    "gstack-project-init": "off",
     "gstack-upgrade": "off",
     "guard": "off",
     "health": "off",

@@ -1,0 +1,52 @@
+{
+  "created": "2026-05-16",
+  "description": "Python 知识库工具 + OpenSpec 工作区，关闭前端/浏览器/设计/嵌入式类插件和技能",
+  "name": "python-kb-openspec",
+  "plugins": {
+    "chrome-devtools-mcp@claude-plugins-official": false,
+    "frontend-design@claude-plugins-official": false,
+    "playground@claude-plugins-official": false,
+    "playwright@claude-plugins-official": false,
+    "pyright-lsp@claude-plugins-official": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": false
+  },
+  "signals": [
+    "pyproject.toml",
+    "openspec/",
+    "src/"
+  ],
+  "skills": {
+    "benchmark": "off",
+    "benchmark-models": "off",
+    "bilibili-research": "off",
+    "browse": "off",
+    "canary": "off",
+    "design-consultation": "off",
+    "design-html": "off",
+    "design-review": "off",
+    "design-shotgun": "off",
+    "devex-review": "off",
+    "embedded-lint": "off",
+    "embedded-test-sop": "off",
+    "goframe-v2": "off",
+    "gstack": "off",
+    "land-and-deploy": "off",
+    "landing-report": "off",
+    "open-gstack-browser": "off",
+    "pair-agent": "off",
+    "plan-design-review": "off",
+    "plan-devex-review": "off",
+    "prototype": "off",
+    "qa": "off",
+    "qa-only": "off",
+    "scrape": "off",
+    "setup-browser-cookies": "off",
+    "setup-deploy": "off",
+    "ship": "off",
+    "skillify": "off",
+    "x-research": "off",
+    "youtube-research": "off",
+    "zhihu-research": "off"
+  },
+  "updated": "2026-05-16"
+}
