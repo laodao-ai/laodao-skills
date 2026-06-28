@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.0 — 2026-06-28
+
+- 新增 `/opsx-project-init` skill：把整套 OpenSpec spec 工作流（openspec/workflow/ bundle）一键铺进项目
+  - **skill 的 assets/workflow/ 是该 bundle 的唯一权威源**（28 文件：workflow.md / trigger-catalog / spec-checklists / code-checklists / config.template.yaml / reference 等）
+  - 两模式：`init`（空项目首铺：建目录 + 拷 bundle + 从模版生成 config.yaml + 注入 INDEX/CLAUDE/AGENTS 托管区块）、`update`（已铺项目重拉最新 bundle，不动 config 本项目段/不覆盖用户内容）
+  - 托管区块用 HTML 注释标记幂等注入；脚本兜确定性，模型管判断（填 config 本项目段、合并已存在 config）
+  - 注入的 CLAUDE/AGENTS 段说明 3 个配套 skill（/spec-review /impl-review /opsx-done）及安装方式
+
 ## 1.5.0 — 2026-06-28
 
 - 新增 `/buglist-recorder` skill：自动记录/回写/扫描 buglist（`openspec/buglists/YYYY-MM-DD-buglist.md`）
