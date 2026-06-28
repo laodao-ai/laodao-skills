@@ -28,8 +28,8 @@ CLAUDE.md。**本 skill 的 `assets/workflow/` 是该 bundle 的唯一权威源*
 
 | 模式 | 用于 | 行为 |
 |------|------|------|
-| **init** | 空项目首次铺设 | 建目录骨架 + 拷 bundle + 从模版生成 config.yaml + 注入 INDEX/CLAUDE/AGENTS 托管区块 + 注册 FF-0 hook |
-| **update** | 已铺过的项目 | 重拉最新 bundle（覆盖 `workflow/` 托管文件）+ 重注入托管区块 + 幂等注册 FF-0 hook；**不动 config.yaml、不覆盖用户内容** |
+| **init** | 空项目首次铺设 | 建目录骨架 + 拷 bundle + 从模版生成 config.yaml + 注入 INDEX/CLAUDE/AGENTS 托管区块 + 确保全局 FF-0 hook |
+| **update** | 已铺过的项目 | 重拉最新 bundle（覆盖 `workflow/` 托管文件）+ 重注入托管区块 + 幂等确保全局 FF-0 hook；**不动 config.yaml、不覆盖用户内容** |
 
 ## 怎么用
 
@@ -73,15 +73,15 @@ openspec/
 │   ├── workflow.md trigger-catalog.md ff-generation-constraints.md
 │   ├── generation-process.md design-diagrams.md spec-review.md
 │   ├── config.template.yaml
-│   ├── hooks/             ← ff0-branch-guard.py（FF-0 PreToolUse hook，随 bundle 铺设）
 │   ├── spec-checklists/  code-checklists/   (base + domains)
 │   └── reference/         (说明类，可删)
 ├── config.yaml            ← init 从 config.template.yaml 生成（本项目段待填）
 ├── INDEX.md               ← 注入「工作流规则」托管区块
 ├── changes/  specs/       ← 目录骨架
 CLAUDE.md / AGENTS.md      ← 注入「OpenSpec 工作流」托管区块（强制规范 + 3 配套 skill 说明）
-.claude/settings.json      ← 注册 FF-0 PreToolUse hook（幂等；拦受保护分支上创建变更）
 ```
+
+> **FF-0 hook 是全局的**：装于 `~/.claude/hooks/ff0-branch-guard.py` + 注册进 `~/.claude/settings.json`（**不写项目 `.claude/`**），init/update 幂等确保、跨所有项目生效。
 
 ## 托管区块（幂等、勿手改区块内）
 
@@ -97,5 +97,5 @@ CLAUDE.md / AGENTS.md      ← 注入「OpenSpec 工作流」托管区块（强�
   别在某个项目里直接改 `openspec/workflow/` 然后忘了回灌（会被下次 update 覆盖）。
 - **不覆盖用户内容**：config.yaml 的本项目段、CLAUDE.md/AGENTS.md 标记区块外的内容，脚本一律不动。
 - **`openspec/rules/` 不在本 bundle**（destructive-commands、task-completion 等是独立通用规则，按需自行加）。
-- **FF-0 硬强制**：`workflow/hooks/ff0-branch-guard.py` + `.claude/settings.json` 的 PreToolUse 注册，使得在 `master`/`main` 上跑 `openspec new change`（`/opsx:new`、`/opsx:propose`、`/opsx:ff`、`/opsx:onboard` 共用此 CLI 入口）被直接拦下，逼先开 feature 分支。`init`/`update` 都会幂等注册；想卸载只需删该 hook 脚本 + 移除 settings.json 中对应 PreToolUse entry。权威定义见 `workflow/ff-generation-constraints.md` FF-0。
+- **FF-0 硬强制（全局）**：hook 脚本源在本 skill 的 `assets/hooks/ff0-branch-guard.py`，由 `init`/`update` **全局安装**到 `~/.claude/hooks/` + 注册进 `~/.claude/settings.json` 的 PreToolUse.Bash（幂等、跨所有项目，**不写项目 `.claude/`**）。使得在 `master`/`main` 上跑 `openspec new change`（`/opsx:new`、`/opsx:propose`、`/opsx:ff`、`/opsx:onboard` 共用此 CLI 入口）被直接拦下，逼先开 feature 分支。想卸载：删 `~/.claude/hooks/ff0-branch-guard.py` + 移除 `~/.claude/settings.json` 中对应 PreToolUse entry。权威定义见 `workflow/ff-generation-constraints.md` FF-0。
 - 脚本默认 `--root .`（当前目录）；务必在目标项目根跑，或用 `--root` 指定。

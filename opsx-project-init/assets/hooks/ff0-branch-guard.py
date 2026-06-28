@@ -11,9 +11,8 @@ workflow，但**全都殊途同归调同一条命令 `openspec new change`** 来
   · 已在 feature 分支 → 放行（幂等，FF-0 满足）。
   · 任何解析/探测异常 → 放行（fail-open，绝不因守卫自身故障阻断正常工作）。
 
-权威定义：openspec/workflow/ff-generation-constraints.md 的 FF-0。
-铺设/注册：由 opsx-project-init 拷入 openspec/workflow/hooks/ +
-          注册进 .claude/settings.json 的 PreToolUse.Bash。
+铺设/注册：全局装于 ~/.claude/hooks/ + 注册进 ~/.claude/settings.json 的 PreToolUse.Bash
+          （通用功能，跨项目生效；非 openspec 项目里命令不匹配即放行）。
 """
 import json
 import re
@@ -73,8 +72,7 @@ def main() -> None:
             f"FF-0 守卫：当前在受保护分支 `{branch}`，禁止在此创建 OpenSpec 变更。\n"
             "请先开 feature 分支再重试：\n"
             "  git checkout -b feat/<change-name>\n"
-            "（依据 openspec/workflow/ff-generation-constraints.md FF-0：变更的 "
-            "proposal/design/specs/tasks 须随 feature 分支落地，merge 后 PR 完整呈现设计→实现故事）"
+            "（FF-0：变更工件须随 feature 分支落地，merge 后 PR 完整呈现设计→实现故事）"
         )
 
     sys.exit(0)  # 在 feature 分支 → 放行
