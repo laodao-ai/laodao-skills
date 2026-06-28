@@ -34,14 +34,14 @@ context: |
 # 槽位分「无条件必填」与「〔TG-NN〕命中才必填」两类；TG 定义见 trigger-catalog.md。
 rules:
   proposal:
-    - 无条件必含：问题/动机、成功指标(Success Metrics)、不在本次范围、合规声明(可写"不适用")
+    - 无条件必含小节，统一用英文标题（与 OpenSpec 模板一致）：`## Why`（问题/动机）、`## Success Metrics`、`## Non-Goals`（不在本次范围）、`## Compliance`（合规声明，不适用写 N/A）
     - 按 @openspec/workflow/trigger-catalog.md 评估并加节：TG-19→需求优先级(P0/P1/P2)、TG-20→利益相关方与外部依赖、TG-21→开放问题(负责人/截止)、TG-22→假设(失效影响)、TG-24→外部服务成本估算
     - 命中 TG-01/02/03（技术栈）则在 Impact 标注，供下游按 @openspec/workflow/spec-checklists/ 选用领域清单
   specs:
     - 每个 Requirement 必挂 #### Scenario(WHEN/THEN)，Requirement 有稳定 ID（schema 已要求，强调不得遗漏）
     - 验收标准可观察、可测试，不得只写"测试通过"
   design:
-    - 无条件必含：规则/边界合规声明（遵守或显式豁免，禁沉默例外）
+    - 无条件必含小节，英文标题：`## Compliance`（规则/边界合规声明，遵守或显式豁免，禁沉默例外）
     - 按 trigger-catalog 命中加节：TG-04→v_old/v_new 对照表、TG-05→数据模型与生命周期、TG-07→请求/响应 JSON 示例、TG-08→失败模式表+可观测性、TG-15→可观测性、TG-16→NFR 数字化、TG-17→安全与数据保护、TG-23→决策记录 ADR、TG-13/14→组件清单
     - 按 @openspec/workflow/design-diagrams.md 画图：TG-09→状态机图、TG-10→序列图、TG-11→数据流图、TG-12→决策图、TG-13→C4 Context+Container；非平凡变更至少一张组件/依赖图
     - 代码事实(函数名/字段/API 路径)先核验再写入，禁从记忆直接写
