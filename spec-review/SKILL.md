@@ -43,12 +43,13 @@ description: >
 | **对抗镜** | 2-3 | 各从一个**不同角度**「证明这份 spec 会在实现期爆炸」：隐藏假设 / 失败模式 / 乐观估计与边界。默认 refuted=true，找不到爆点才放过 | Sonnet（对抗推理） |
 | **接地镜** | 1 | grep/读真实代码，核验 spec 里**所有代码事实**（函数名/字段/API 路径/schema）是否真实存在且一致，列出不符项 | Haiku（机械） |
 
-> 每个子 agent 的 prompt 必须自带：`{change_dir}` 路径、它负责的清单/角度、"返回结构化 findings 列表（每条带：问题/证据 file:line/严重度/建议），不要 AskUserQuestion"。
+> 每个子 agent 的 prompt 必须自带：`{change_dir}` 路径、它负责的清单/角度、"返回结构化 findings 列表（每条带：问题/证据 file:line/**置信度(高/中/低)**/严重度/建议），不要 AskUserQuestion"。
 
 ## 第三步：综合 + 对抗裁决（主 session · 强模型）
 
 - 汇总各镜 findings，**去重**（同一问题多镜命中合并）。
 - **对抗裁决**：对每条 finding 判"是否真的会在实现期出问题"——对抗镜的反驳若 ≥ 多数成立则采信；存疑的降级或标"需人确认"。
+- **标注、不丢弃（escalate-not-drop）**：按置信度分流——高=直接采信、中=标"需人确认"进第四步、低=**仍上抛（一行带过），绝不静默滤除**。**不照搬 impl-review 的数值 <80 一刀切**：设计漏掉的代价高（会传导进实现），spec 评审优化召回而非精度；对抗裁决（强模型带上下文）已是比数值打分更强的过滤。
 - 按 `design-diagrams.md`：命中触发的图**只验证存在/正确/未过时**，缺失/过时标记，不重画。
 
 ## 第四步：拍板（主 session · 仅此处可 AskUserQuestion）
@@ -58,7 +59,7 @@ description: >
 
 ## 第五步：产出
 
-- 写 `{change_dir}/spec-review-report.md`（各镜 findings + 裁决 + 拍板结论）。
+- 写 `{change_dir}/spec-review-report.md`（各镜 findings〔带置信/严重度〕 + 裁决 + 拍板结论；低置信项一行带过、可审计，不静默丢）。
 - 据此更新 design/specs，改动处标 `[spec-review-amendment]`。
 - 结尾一句：是否建议进 HARD-GATE（用户批准 → writing-plans）。
 

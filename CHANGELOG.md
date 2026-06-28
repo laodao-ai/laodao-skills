@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0 — 2026-06-28
+
+- 新增 `/impl-review` skill：并行多镜的独立**代码实现**评审，是 `/spec-review` 的代码侧镜像，操作化 `openspec/workflow/code-checklists/`（CR-01~09 + 领域 delta）
+  - 镜头：领域镜（逐条过 code-checklists）+ 对抗镜（证明运行期会爆：竞态/泄漏/错误路径）+ 历史镜（git blame + 旧 PR 意见）+ 置信过滤（<80 滤除 nitpick/假阳，借官方 code-review 插件 rubric）
+  - **与 spec-review 唯一结构差异**：代码即 ground truth，去掉接地镜，换成历史镜 + 置信过滤
+  - 与 gstack/review（scope-drift + 计划审计）、官方 /code-review（PR 回帖）**互补不重复**；自制 skill 做清单逐条 + 对抗的主审
+  - 按本步性质选 model：裁决/门禁 = 强模型，对抗/领域 = Sonnet，blame/打分 = Haiku
+  - 出 `impl-review-report.md`，改动标 `[impl-review-fix]`
+- `/spec-review` 微调：finding 加**置信/严重度标注**，明确 **escalate-not-drop**（不确定项上抛而非静默丢）；注明与 impl-review 数值过滤是**有意的不对称**（设计漏掉代价高→优化召回，代码优化精度）
+
 ## 1.3.0 — 2026-06-28
 
 - 补提交 `/domain-availability-check` skill（早先创建未入库）：跨 .com/.dev/.io 等查域名可用性 + 反查持有者，用于品牌/产品命名排查（trademark-basic-search 的配套）
