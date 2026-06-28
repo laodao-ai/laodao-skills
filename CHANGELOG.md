@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0 — 2026-06-28
+
+- 补提交 `/domain-availability-check` skill（早先创建未入库）：跨 .com/.dev/.io 等查域名可用性 + 反查持有者，用于品牌/产品命名排查（trademark-basic-search 的配套）
+  - 含 `scripts/check_domains.py`、`scripts/domain_owner.py`
+- `.gitignore` 忽略 `*-workspace/`（skill 优化/eval 运行时 scratch）
+
 ## 1.2.0 — 2026-06-28
 
 - 新增 `/spec-review` skill：并行多镜的独立设计评审，操作化项目 `openspec/workflow/spec-review.md` 方法论
