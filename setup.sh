@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# laodao-skills setup — install/update skills into ~/.claude/skills/
+# laodao-skills setup — install/update skills into BOTH:
+#   - Claude  ~/.claude/skills/
+#   - Codex   ~/.codex/skills/
+# Idempotent. Unix: absolute symlink (layout-independent). Windows: copy + marker.
 set -e
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_NAME="$(basename "$REPO_DIR")"
-SKILLS_DIR="$(dirname "$REPO_DIR")"
+
+# Install destinations (explicit + absolute → independent of where the repo lives)
+TARGET_DIRS=("$HOME/.claude/skills" "$HOME/.codex/skills")
 
 # Platform detection
 IS_WINDOWS=0
@@ -12,77 +17,100 @@ case "$(uname -s)" in
   MINGW*|MSYS*|CYGWIN*|Windows_NT) IS_WINDOWS=1 ;;
 esac
 
-# Counters
+# Counters (entries formatted "skill @ dest")
 installed=()
 skipped=()
 cleaned=()
 
-# ─── Install skills ──────────────────────────────────────────
-for skill_dir in "$REPO_DIR"/*/; do
-  [ -f "$skill_dir/SKILL.md" ] || continue
-  skill_name="$(basename "$skill_dir")"
-  target="$SKILLS_DIR/$skill_name"
+# ─── Install all skills into one destination ─────────────────
+install_into() {
+  local dest="$1"
+  mkdir -p "$dest"
+  for skill_dir in "$REPO_DIR"/*/; do
+    [ -f "$skill_dir/SKILL.md" ] || continue
+    local skill_name target
+    skill_name="$(basename "$skill_dir")"
+    target="$dest/$skill_name"
 
-  if [ "$IS_WINDOWS" -eq 1 ]; then
-    # Windows: copy + marker file
-    if [ -d "$target" ] && [ ! -f "$target/.laodao-skills" ] && [ ! -L "$target" ]; then
-      skipped+=("$skill_name")
-      continue
-    fi
-    # Remove old copy if it's ours
-    if [ -d "$target" ] && [ -f "$target/.laodao-skills" ]; then
-      rm -rf "$target"
-    fi
-    cp -r "$skill_dir" "$target"
-    git -C "$REPO_DIR" rev-parse HEAD 2>/dev/null > "$target/.laodao-skills" || echo "unknown" > "$target/.laodao-skills"
-    installed+=("$skill_name")
-  else
-    # Unix: relative symlink
-    if [ -e "$target" ] && [ ! -L "$target" ]; then
-      # Real directory, not a symlink — check if it's our marker copy
-      if [ -f "$target/.laodao-skills" ]; then
-        rm -rf "$target"
-      else
-        skipped+=("$skill_name")
+    if [ "$IS_WINDOWS" -eq 1 ]; then
+      # Windows: copy + marker file
+      if [ -d "$target" ] && [ ! -f "$target/.laodao-skills" ] && [ ! -L "$target" ]; then
+        skipped+=("$skill_name @ $dest")
         continue
       fi
+      if [ -d "$target" ] && [ -f "$target/.laodao-skills" ]; then
+        rm -rf "$target"
+      fi
+      cp -r "$skill_dir" "$target"
+      git -C "$REPO_DIR" rev-parse HEAD 2>/dev/null > "$target/.laodao-skills" || echo "unknown" > "$target/.laodao-skills"
+      installed+=("$skill_name @ $dest")
+    else
+      # Unix: absolute symlink. Only ever replace symlinks or our own marker
+      # copies — never clobber a real directory we don't own (e.g. another
+      # tool's skill of the same name).
+      if [ -e "$target" ] && [ ! -L "$target" ]; then
+        if [ -f "$target/.laodao-skills" ]; then
+          rm -rf "$target"
+        else
+          skipped+=("$skill_name @ $dest")
+          continue
+        fi
+      fi
+      ln -snf "$REPO_DIR/$skill_name" "$target"
+      installed+=("$skill_name @ $dest")
     fi
-    ln -snf "$REPO_NAME/$skill_name" "$target"
-    installed+=("$skill_name")
-  fi
-done
+  done
+}
 
-# ─── Orphan cleanup ──────────────────────────────────────────
-for entry in "$SKILLS_DIR"/*/; do
-  entry_name="$(basename "$entry")"
-  [ "$entry_name" = "$REPO_NAME" ] && continue
+# ─── Remove our orphaned links (source skill deleted) ────────
+cleanup_orphans() {
+  local dest="$1"
+  [ -d "$dest" ] || return 0
+  for entry in "$dest"/*/; do
+    [ -e "$entry" ] || continue
+    local entry_name="$(basename "$entry")"
+    [ "$entry_name" = "$REPO_NAME" ] && continue
 
-  is_ours=0
+    local is_ours=0
+    # Symlink pointing into our repo (absolute or relative form)
+    if [ -L "$dest/$entry_name" ]; then
+      local link_dest
+      link_dest="$(readlink "$dest/$entry_name" 2>/dev/null || true)"
+      case "$link_dest" in
+        "$REPO_NAME"/*|*/"$REPO_NAME"/*) is_ours=1 ;;
+      esac
+    fi
+    # Marker file (Windows copies)
+    [ -f "$entry/.laodao-skills" ] && is_ours=1
 
-  # Check symlink pointing to our repo
-  if [ -L "$SKILLS_DIR/$entry_name" ]; then
-    link_dest="$(readlink "$SKILLS_DIR/$entry_name" 2>/dev/null || true)"
-    case "$link_dest" in
-      "$REPO_NAME"/*|*/"$REPO_NAME"/*) is_ours=1 ;;
-    esac
-  fi
+    # Ours, but the link now dangles (source skill removed) → clean up.
+    # Use a resolve check (-e follows the symlink) so VALID links are kept,
+    # including nested sub-skills like config-setup/config-plugins whose source
+    # is not a top-level $REPO_DIR/<name> dir.
+    if [ "$is_ours" -eq 1 ]; then
+      local gone=0
+      if [ -L "$dest/$entry_name" ]; then
+        [ ! -e "$dest/$entry_name" ] && gone=1          # dangling symlink
+      elif [ ! -d "$REPO_DIR/$entry_name" ]; then
+        gone=1                                          # Windows marker copy, source gone
+      fi
+      if [ "$gone" -eq 1 ]; then
+        rm -rf "$dest/$entry_name"
+        cleaned+=("$entry_name @ $dest")
+      fi
+    fi
+  done
+}
 
-  # Check marker file (Windows copies)
-  if [ -f "$entry/.laodao-skills" ]; then
-    is_ours=1
-  fi
-
-  # If it's ours but the source no longer exists, clean up
-  if [ "$is_ours" -eq 1 ] && [ ! -d "$REPO_DIR/$entry_name" ]; then
-    rm -rf "$SKILLS_DIR/$entry_name"
-    cleaned+=("$entry_name")
-  fi
+for d in "${TARGET_DIRS[@]}"; do
+  install_into "$d"
+  cleanup_orphans "$d"
 done
 
 # ─── Summary ─────────────────────────────────────────────────
 version="$(cat "$REPO_DIR/VERSION" 2>/dev/null || echo "unknown")"
 echo ""
-echo "laodao-skills v${version} ready."
+echo "laodao-skills v${version} ready → ${TARGET_DIRS[*]}"
 echo ""
 
 if [ ${#installed[@]} -gt 0 ]; then
@@ -102,10 +130,9 @@ if [ ${#cleaned[@]} -gt 0 ]; then
   for s in "${cleaned[@]}"; do echo "    ✗ $s"; done
 fi
 
+echo ""
 if [ "$IS_WINDOWS" -eq 1 ]; then
-  echo ""
   echo "  mode: copy (Windows)"
 else
-  echo ""
   echo "  mode: symlink (Unix)"
 fi
