@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0 — 2026-06-28
+
+- 新增 `/buglist-recorder` skill：自动记录/回写/扫描 buglist（`openspec/buglists/YYYY-MM-DD-buglist.md`）
+  - 脚本兜底确定性：全局 ID 自增、今日文件/目录创建、状态总览表↔详细块双写一致、FIXED 门禁（必带根因+证据）、扫描+一致性自检
+  - 自包含整套约定（原 openspec rule 已删，skill 成唯一真相源）
+- 新增 `/todolist-recorder` skill：buglist 的姊妹版，记录优化想法/技术债/改进（`openspec/todolists/YYYY-MM-todolist.md`）
+  - 差异：每月一文件、T 前缀、按类型分类、详细块可选（轻量优先）、DONE 门禁（必带关联 change/commit）
+  - 与 buglist-recorder 明确分工：缺陷用 buglist，改进用 todolist
+
 ## 1.4.0 — 2026-06-28
 
 - 新增 `/impl-review` skill：并行多镜的独立**代码实现**评审，是 `/spec-review` 的代码侧镜像，操作化 `openspec/workflow/code-checklists/`（CR-01~09 + 领域 delta）
