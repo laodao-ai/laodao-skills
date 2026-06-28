@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 — 2026-06-28
+
+- 新增 `/spec-review` skill：并行多镜的独立设计评审，操作化项目 `openspec/workflow/spec-review.md` 方法论
+  - 主 session（强模型）协调 + 对抗裁决 + AskUserQuestion；fan-out 领域镜 / 对抗镜 / 接地镜 并行子 agent
+  - 只审 prevention 焊不住的残差（Validation / 对抗 / 接地读码），与 gstack autoplan 互补、不重复（autoplan 已含 eng 镜）
+  - 按本步性质选 model：综合判断/门禁 = 强模型，对抗/领域判断 = Sonnet，机械接地 = Haiku
+
 ## 1.1.0 — 2026-05-08
 
 - config-skills v3 → v4 重构：渲染模型 + plugin 维度对称化 + 单文件 preset
