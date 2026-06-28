@@ -19,6 +19,7 @@ skill `opsx-project-init` 的执行核心。权威源 = 本 skill 的 assets/wor
 """
 
 import argparse
+import json
 import os
 import shutil
 import sys
@@ -34,6 +35,10 @@ MARK_IDX = ("<!-- opsx-init:rules:start —— 由 opsx-project-init 维护，�
             "<!-- opsx-init:rules:end -->")
 
 CORE_DIRS = ["changes", "specs"]  # openspec 核心；buglists/todolists 由各自 recorder skill 首用时建
+
+# FF-0 PreToolUse hook：拦在受保护分支上创建变更（hook 脚本随 bundle 铺进 openspec/workflow/hooks/）
+HOOK_REL = "openspec/workflow/hooks/ff0-branch-guard.py"
+HOOK_CMD = 'python3 "$CLAUDE_PROJECT_DIR/openspec/workflow/hooks/ff0-branch-guard.py"'
 
 
 # ── 标记区块幂等注入 ─────────────────────────────────────────
@@ -97,6 +102,50 @@ def handle_config(root, mode):
     return ("created", "已从 config.template.yaml 生成 config.yaml → 填写「本项目」context 段")
 
 
+def register_hook(root):
+    """幂等把 FF-0 PreToolUse hook 注册进项目 .claude/settings.json。返回动作描述。
+
+    hook 脚本本体随 bundle 铺进 openspec/workflow/hooks/（copy_bundle 负责）；
+    本函数只负责在 settings.json 里挂上 PreToolUse.Bash 引用。
+    """
+    settings = os.path.join(root, ".claude", "settings.json")
+    os.makedirs(os.path.dirname(settings), exist_ok=True)
+
+    if os.path.exists(settings):
+        try:
+            data = json.load(open(settings, encoding="utf-8"))
+        except (ValueError, OSError):
+            return "跳过（.claude/settings.json 非合法 JSON，请手动注册 FF-0 hook）"
+        if not isinstance(data, dict):
+            return "跳过（.claude/settings.json 顶层非对象，请手动注册 FF-0 hook）"
+    else:
+        data = {}
+
+    hooks = data.get("hooks")
+    if not isinstance(hooks, dict):
+        hooks = {}
+        data["hooks"] = hooks
+    pre = hooks.get("PreToolUse")
+    if not isinstance(pre, list):
+        pre = []
+        hooks["PreToolUse"] = pre
+
+    # 幂等：任一 entry 的 command 已含本 hook 路径 → 跳过
+    for entry in pre:
+        for h in (entry.get("hooks") or []):
+            if HOOK_REL in (h.get("command") or ""):
+                return "跳过（FF-0 hook 已注册）"
+
+    pre.append({
+        "matcher": "Bash",
+        "hooks": [{"type": "command", "command": HOOK_CMD}],
+    })
+    with open(settings, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    return "已注册 FF-0 PreToolUse hook → .claude/settings.json"
+
+
 # ── 主流程 ──────────────────────────────────────────────────
 
 def run(root, mode):
@@ -113,6 +162,8 @@ def run(root, mode):
 
     dst, n = copy_bundle(root)
     report.append(f"铺 bundle：openspec/workflow/（{n} 文件，{'覆盖' if mode=='update' else '写入'}）")
+
+    report.append(".claude/settings.json：" + register_hook(root))
 
     cstat, cmsg = handle_config(root, mode)
     report.append(f"config.yaml：{cmsg}")

@@ -20,7 +20,7 @@
 调用方在 ff prompt 第一句注入：
 `先确保在 feature 分支（不在则 git checkout -b feat/{change}），再按 config + trigger-catalog 生成`。
 
-> 想要**硬强制**（不开分支就拦住 ff）：需配 PreToolUse hook 检测分支；本规范是文档级强制（调用方注入 + review 核对）。
+> **硬强制已配套**：`hooks/ff0-branch-guard.py`（PreToolUse·Bash）拦在受保护分支（master/main）上执行 `openspec new change` 的所有入口（`/opsx:new`、`/opsx:propose`、`/opsx:ff`、`/opsx:onboard` 殊途同归调它）。由 opsx-project-init 随 bundle 铺设 + 注册进 `.claude/settings.json`。文档级强制（调用方注入 + review 核对）作为补充层。
 
 ## 背景
 
