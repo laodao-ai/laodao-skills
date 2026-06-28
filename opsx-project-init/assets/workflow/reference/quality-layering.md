@@ -33,7 +33,7 @@ tests verify real behavior / architecture / security`——**纯通用**。它�
 | **领域规则（CR-EMB/ML307C/ESP32/GO）** | ❌ 通用 rubric 盲区 | **真残差** ← 唯一不可替代 |
 | scope-drift / 计划完成度 | ⚠️ 部分 | gstack/review 补全 |
 | 全冷独立（脱离 controller） | ❌ 终审仍 controller 裁决 | /impl-review 补，但边际 |
-| PR 级 R1/R2/R3 | ❌ | 官方 code-review |
+| PR 级 DB/API/Auth 改动 | ❌ | 官方 code-review |
 
 **结论**：后置 review 的**通用质量部分是冗余**；真正残差只剩 **领域规则 + scope-drift + PR 风险 + 一点冷独立**。
 

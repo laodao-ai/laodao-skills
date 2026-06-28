@@ -165,7 +165,7 @@ spec 的真相源有四个，逐个问「这一维有没有锚」：
 - 本文给出的「两轴元模型 + 三原则 + V&V 切分」是**思考框架**，不替代具体清单。
 - 落地时：用 L2 规则集（`spec-checklists/` 的 base + domains）做尺子，用 L1（Collaboration 里的 brainstorming/autoplan 分工）做手，
   用本文判断「某一维该放在 prevent / detect / correct 哪一格、由谁判」。
-- 任何对工作流的改动（如 `openspec/workflow-serverside.md`）应先回到本文的元模型上定位，
+- 任何对工作流的改动（如 `openspec/workflow/workflow.md`）应先回到本文的元模型上定位，
   确认是在补「最薄的格子」，而非在已经很厚的「生成后检查」上再加冗余。
 
 ---

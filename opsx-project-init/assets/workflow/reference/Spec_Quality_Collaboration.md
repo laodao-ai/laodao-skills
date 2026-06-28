@@ -56,7 +56,7 @@ Spec Self-Review（4 项）
 
 **这 4 项是纯结构性检查，不依赖对话上下文，可以独立成 skill。**
 
-在 OpenSpec 工作流中，workflow-serverside.md 已在 brainstorming prompt 里额外注入了：
+在 OpenSpec 工作流中，生成 prompt 里已额外注入了：
 > `先按 @openspec/checklist/spec-quality-checklist.md 阻塞级检查项逐一检查`
 
 这说明 spec 结构自检和内容精炼已经被人为分层——**前者是门禁，后者是优化**。
