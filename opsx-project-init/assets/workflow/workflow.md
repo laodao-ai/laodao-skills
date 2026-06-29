@@ -52,16 +52,16 @@
 |----|----|----|----|----|
 | 1 | /opsx:explore | `/opsx:explore {topic}` | — | generation-process ③发散；**问题模糊才跑** |
 | 2 | /opsx:ff | `/opsx:ff {change}。若不在 feature 分支则先 git checkout -b feat/{change}。` | proposal/design/specs/tasks | ff-generation-constraints(FF-0)+config；**必跑** |
-| 3 | /grill-with-docs | `/grill-with-docs 逐分支死磕 {change dir} 的 design.md：拷问到共识、对齐术语、边界场景压测、代码与主张不符即揭穿、落 ADR/术语。ADR 写 docs/gstack/，勿新建 docs/adr/。文档标注 [grill-amendment]。` | design/ADR 更新 | generation-process ③对抗；非平凡变更 |
+| 3 | /grill-with-docs | `/grill-with-docs 逐分支死磕 {change dir} 的 design.md：拷问到共识、对齐术语、边界场景压测、代码与主张不符即揭穿、落 ADR/术语。更新已有的文档，并标 [grill-amendment]。` | design/ADR 更新 | generation-process ③对抗；非平凡变更 |
 | 4 | /clear | `/clear` | — | spec-review 原则1（独立性）；**评审前必做** |
-| 5 | /autoplan | `/autoplan {change dir}` | 多镜评审结论 | gstack 广审（CEO/design/eng/DX·自动决策，跑自己的流程、prompt 不注入）；**高风险才跑** |
+| 5 | /autoplan | `/autoplan {change dir} 评审报告写入 change 目录中 gstack-review.md； 更新现有文档，并标 [gstack-amendment]` | 多镜评审结论 | gstack 广审（CEO/design/eng/DX·自动决策，跑自己的流程、prompt 不注入）；**高风险才跑** |
 | 6 | /spec-review | `/spec-review 独立审查 {change dir}` | spec-review-report.md | 自制 skill：按 spec-review.md ①②③ + 命中领域 spec-checklists/domains 深审；**非平凡必跑（主审）** |
 | 7 | HARD-GATE | （人工：批准设计后才进实现） | — | generation-process 门；**必跑** |
 | 7.5 | /embedded-test-sop | `/embedded-test-sop 基于 {change dir} 的 specs/ + 评审结论生成 {change}-sop.md 手工测试文档 + log-checks.yaml，存到 {change dir}。` | {change}-sop.md + log-checks.yaml | 嵌入式专属条件触发：命中 TG-02(嵌入式固件) **∧**（命中启动/复位(EMB-11)·状态机(TG-09)·协议(TG-25) 等高风险 **∨** TG-18 有测试计划）才跑；非嵌入式项目天然不触发 |
-| 8 | /writing-plans | `/writing-plans 按 {change dir} 的 design.md 与评审结论生成原子任务清单 superpowers-plan.md，每任务 TDD，参考 tasks.md 分组；有测试计划则附测试覆盖图。把 design 的领域约束逐字写进 plan 的 Global Constraints（注入点 A）。生成后自动以 subagent-driven-development 执行实现，自动完成全部任务，每任务完成跑测试套件，确认无 warning。` | superpowers-plan.md + 代码 | superpowers + quality-layering 注入点 A；**必跑（计划→实现自动化）** |
+| 8 | /writing-plans | `/writing-plans 按 {change dir} 的 design.md 与评审结论生成原子任务清单 superpowers-plan.md，每任务 TDD，参考 tasks.md 分组；有测试计划则附测试覆盖图。把 design 的领域约束逐字写进 plan 的 Global Constraints。生成后自动以 subagent-driven-development 执行实现，自动完成全部任务，每任务完成跑测试套件，确认无 warning。final whole-branch 终审 dispatch 时，把 @openspec/workflow/code-checklists/domains/<命中栈> 作为额外 review lens 附给 reviewer` | superpowers-plan.md + 代码 | superpowers + quality-layering 注入点 A；**必跑（计划→实现自动化）** |
 | 9 | /subagent-driven-development | `/subagent-driven-development 按 {change dir}/superpowers-plan.md 实现，每任务完成跑测试套件，确认无 warning。final whole-branch 终审 dispatch 时，把 @openspec/workflow/code-checklists/domains/<命中栈> 作为额外 review lens 附给 reviewer（注入点 B，勿改插件文件）。` | 代码 | 由步骤 8 自动触发；quality-layering 注入点 B（领域审前移进生成循环） |
 | 10 | /clear | `/clear` | — | spec-review 原则1（独立性）；**代码评审前必做**（实现完才清，子 agent 调度中禁清） |
-| 11 | gstack /review | `/review 检查 {change dir} 的代码变更是否有 scope-drift（顺手多改）与计划完成度缺口（建的=计划的?），出文字结论。` | scope/计划核对 | gstack/review 专长（scope-drift + 计划审计）；**可选** |
+| 11 | gstack /review | `/review 检查 {change dir} 的代码变更是否有 scope-drift（顺手多改）与计划完成度缺口（建的=计划的?），出 staff-review-report.md 并修复，改动标 [staff-review-fix]` | scope/计划核对 | gstack/review 专长（scope-drift + 计划审计）；**可选** |
 | 12 | /impl-review | `/impl-review 独立审查 {change dir} 的代码变更，按 @openspec/workflow/code-checklists/code-review-base.md + 命中领域 domains/<栈>（backend·go / embedded·ml307c·esp32）逐条过 CR-* 查错误处理/资源/并发/数据安全 + 对抗（证明运行期会爆）+ 历史镜（git blame/旧 PR 意见）+ 置信过滤（<80 滤除）；出 impl-review-report.md 并修复，改动标 [impl-review-fix]。` | impl-review-report.md | 自制 skill：清单逐条 + 对抗 + 置信过滤；**高风险才跑·冷独立抽查**（命中 TG 安全/并发/DB；普通变更信任注入点 B 的循环内增强审，见 reference/quality-layering.md §五） |
 | 13 | /code-review | `/code-review:code-review 审查当前 PR，出 code-review-report.md 到 {change dir}。` | code-review-report.md | 改 DB schema/API 合约/Auth 边界（TG-04/07/17）才跑 |
 | 14 | /opsx-done | `/opsx-done` | verify-report + 归档 + 提交 + 合并 | opsx-done skill；**必跑（闭环）** |
