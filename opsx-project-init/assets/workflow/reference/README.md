@@ -16,6 +16,7 @@
 | `PRD_vs_Spec.md` | PRD 与 spec 的概念区分 |
 | `Token_Saving_Strategies.md` | Claude Code token 节省技巧（与 spec 质量机器无关，纯使用提示） |
 | `quality-layering.md` | 质量分层 Prevention/Inline/Residual（代码层 shift-left）：为什么生成期已三层审、领域清单注入终审、事后 impl-review 缩成高风险残差（操作指令在 workflow.md，本文只解释为什么） |
+| `scope-drift-diagnosis.md` | 协议/契约文档漂移诊断：未完成 vs 未列入、诊断捷径、反 pattern（生成期强制动作在 BASE-29/TG-25，本文只解释为什么 + 排障） |
 
 ## 操作类 ⇄ 说明类 的划分判据
 
