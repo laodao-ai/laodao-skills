@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0 — 2026-06-29
+
+- `opsx-project-init` bundle 工作流补强（吸收 smartrelay-4g `workflow-embedded.md` 的三项特化资产，使其可退役）：
+  - **embedded.md 新增 EMB-11「启动/复位路径完整性」**：补齐启动序列/复位重启/安全(降级)模式/跨重启持久化这条正交审查轴（原 EMB-05 管"何时触发重启"、EMB-07 管"失败后降级"，本项管"启动/复位本身安全完整"）
+  - **trigger-catalog 新增 TG-25「版本化多文件协议/契约文档套件变更」** + **spec-quality-base 新增 BASE-29「契约文档套件完整性」**：协议防漂移——改契约必出 scope-check 表（全套文档×是否改×不改理由，空理由=不通过），强制暴露"未列入"漏点
+  - **workflow.md 新增条件触发步骤 7.5 `/embedded-test-sop`**：门控 TG-02 ∧（高风险 ∨ TG-18），仅嵌入式 + 有 SOP 测试需求时触发，不污染通用流
+  - **reference/ 新增 `scope-drift-diagnosis.md`**：防漂移诊断捷径 + 反 pattern（说明类）
+
 ## 1.6.0 — 2026-06-28
 
 - 新增 `/opsx-project-init` skill：把整套 OpenSpec spec 工作流（openspec/workflow/ bundle）一键铺进项目

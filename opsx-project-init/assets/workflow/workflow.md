@@ -25,6 +25,8 @@
         │
  〔HARD-GATE：用户批准设计〕              未批准不进实现
         │
+ 〔嵌入式+SOP测试需求〕embedded-test-sop  生成手工测试 SOP + log-checks（条件触发,见步骤表 7.5）
+        │
   writing-plans                           原子任务计划(TDD)
         │
   subagent-driven-development             并行子代理实现(内含 TDD + 两阶段审查)
@@ -55,6 +57,7 @@
 | 5 | /autoplan | `/autoplan {change dir}` | 多镜评审结论 | gstack 广审（CEO/design/eng/DX·自动决策，跑自己的流程、prompt 不注入）；**高风险才跑** |
 | 6 | /spec-review | `/spec-review 独立审查 {change dir}` | spec-review-report.md | 自制 skill：按 spec-review.md ①②③ + 命中领域 spec-checklists/domains 深审；**非平凡必跑（主审）** |
 | 7 | HARD-GATE | （人工：批准设计后才进实现） | — | generation-process 门；**必跑** |
+| 7.5 | /embedded-test-sop | `/embedded-test-sop 基于 {change dir} 的 specs/ + 评审结论生成 {change}-sop.md 手工测试文档 + log-checks.yaml，存到 {change dir}。` | {change}-sop.md + log-checks.yaml | 嵌入式专属条件触发：命中 TG-02(嵌入式固件) **∧**（命中启动/复位(EMB-11)·状态机(TG-09)·协议(TG-25) 等高风险 **∨** TG-18 有测试计划）才跑；非嵌入式项目天然不触发 |
 | 8 | /writing-plans | `/writing-plans 按 {change dir} 的 design.md 与评审结论生成原子任务清单 superpowers-plan.md，每任务 TDD，参考 tasks.md 分组；有测试计划则附测试覆盖图。把 design 的领域约束逐字写进 plan 的 Global Constraints（注入点 A）。生成后自动以 subagent-driven-development 执行实现，自动完成全部任务，每任务完成跑测试套件，确认无 warning。` | superpowers-plan.md + 代码 | superpowers + quality-layering 注入点 A；**必跑（计划→实现自动化）** |
 | 9 | /subagent-driven-development | `/subagent-driven-development 按 {change dir}/superpowers-plan.md 实现，每任务完成跑测试套件，确认无 warning。final whole-branch 终审 dispatch 时，把 @openspec/workflow/code-checklists/domains/<命中栈> 作为额外 review lens 附给 reviewer（注入点 B，勿改插件文件）。` | 代码 | 由步骤 8 自动触发；quality-layering 注入点 B（领域审前移进生成循环） |
 | 10 | /clear | `/clear` | — | spec-review 原则1（独立性）；**代码评审前必做**（实现完才清，子 agent 调度中禁清） |
