@@ -47,18 +47,38 @@ function parentOf(dirPath) {
   return trimmed.slice(0, idx + 1);
 }
 
-function formatPathBar(projectName, dirPath) {
+function normalizeProjectName(projectName) {
   // `projectName` comes from `window.__OPENSPEC_PROJECT_NAME__`, baked into review-stub.html
   // at generation time (see init.py / change-review-stub.py / gen_review_stub.py). It can be
   // missing entirely (undefined, e.g. an old template copy predating this feature), empty, or
   // — in the rare case someone serves the raw unrendered template — the literal, unsubstituted
-  // `__PROJECT_NAME__` token. All three cases must degrade to directory-only, never displaying
+  // `__PROJECT_NAME__` token. All three cases must normalize to '' so every caller (path bar,
+  // tab title, ...) shares one fallback rule and none of them ever display
   // "undefined"/"null"/the raw placeholder token.
   const name = (projectName || '').trim();
-  if (!name || name === '__PROJECT_NAME__') {
+  if (!name || name === '__PROJECT_NAME__') return '';
+  return name;
+}
+
+function formatPathBar(projectName, dirPath) {
+  const name = normalizeProjectName(projectName);
+  if (!name) {
     return `📂 ${dirPath}`;
   }
   return `📂 ${name} · ${dirPath}`;
+}
+
+function formatTabTitle(projectName, path) {
+  // Browser tab titles get truncated (with an end-of-string ellipsis) long before the
+  // in-page path bar does, so — unlike a document read top-to-bottom — the FRONT of this
+  // string is what stays visible when several projects' review tools are open in narrow
+  // tabs. Put the project name first (same order as formatPathBar's "name · path") so a
+  // truncated tab still identifies which project it belongs to.
+  const name = normalizeProjectName(projectName);
+  if (!name) {
+    return path;
+  }
+  return `${name} · ${path}`;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -69,6 +89,7 @@ if (typeof module !== 'undefined' && module.exports) {
     isMarkdownPath,
     parentOf,
     formatPathBar,
+    formatTabTitle,
   };
 }
 
@@ -173,14 +194,14 @@ if (typeof document !== 'undefined') {
     async function loadDir(path) {
       await loadSidebar(path);
       contentBody.innerHTML = `<p class="hint">目录：${escapeHtml(path)}<br>请选择左侧的文档。</p>`;
-      document.title = path;
+      document.title = formatTabTitle(projectName, path);
     }
 
     async function loadDoc(path) {
       const md = await fetchText(path);
       const rendered = window.marked ? window.marked.parse(md) : `<pre>${escapeHtml(md)}</pre>`;
       contentBody.innerHTML = linkifyBacktickPaths(rendered);
-      document.title = path;
+      document.title = formatTabTitle(projectName, path);
       const dir = path.replace(/[^/]*$/, '');
       await loadSidebar(dir);
     }
