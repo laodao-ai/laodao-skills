@@ -184,6 +184,9 @@ roadmap 的质量 100% 取决于讨论是否充分。开工前**必须**先评�
 - [ ] 2.3 生成 openspec/roadmaps/{name}/roadmap.md
 - [ ] 2.4 生成 openspec/roadmaps/{name}/task-log.md
 - [ ] 2.5 (可选) 保留或生成 openspec/roadmaps/{name}/memo.md
+- [ ] 2.6 生成 openspec/roadmaps/{name}/review.html：跑
+      `python3 ~/.skills/laodao-skills/opsx-roadmap-planner/scripts/gen_review_stub.py {name}`
+      （若报错提示项目未铺设 review 工具，先跑 opsx-project-init init/update 再重试）
 
 ## 3. 交叉 review（强烈建议，别跳过——见陷阱 6）
 - [ ] 3.1 把 4 件套作为"整体 plan"显式说明给 review skill（见 SKILL.md 阶段 3.5 的措辞）
@@ -213,6 +216,7 @@ roadmap 的质量 100% 取决于讨论是否充分。开工前**必须**先评�
 | `roadmap.md` | WHEN：分阶段计划 + 每阶段验收 | `references/roadmap-template.md` |
 | `task-log.md` | DID：执行过程记录（初始占位） | `references/task-log-template.md` |
 | `memo.md` (可选) | 讨论备忘，考古用 | `references/memo-template.md` |
+| `review.html` | 查看器 stub（浏览用，不是内容文件） | 跑 `scripts/gen_review_stub.py {name}`（不读模板，是脚本，四件套写完之后再跑） |
 
 #### 4 件套之间的引用关系
 
