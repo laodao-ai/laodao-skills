@@ -109,7 +109,10 @@ def auto_default_doc(root, change):
     2) openspec/changes/{change}/proposal.md
     3) openspec/changes/archive/*-{change}/design.md（glob，归档目录名前缀是不可预测的日期）
     4) 同上但 proposal.md
-    每一步只在“唯一匹配”时采用；glob 命中多个时不猜，直接跳过该步。
+    归档层的歧义检查只做一次、在“目录”这一级：先看 `*-{change}` 这个 glob 命中几个归档目录——
+    不是恰好 1 个就整层跳过（design.md/proposal.md 都不试），不能因为其中一个目录碰巧只有
+    proposal.md 就把它当成唯一匹配悄悄采用（那样目录本身仍是歧义的）。只有 glob 恰好命中 1 个
+    目录时，才在该目录内按 design.md → proposal.md 的优先级取值。
     全部落空则返回 []（best-effort，不是必须项）。仅在调用方没有显式传 doc 时才应调用本函数，
     不覆盖显式值。"""
     if not change:
@@ -118,12 +121,15 @@ def auto_default_doc(root, change):
         candidate = os.path.join("openspec", "changes", change, name)
         if os.path.isfile(os.path.join(root, candidate)):
             return [candidate.replace(os.sep, "/")]
-    for name in ("design.md", "proposal.md"):
-        pattern = os.path.join(root, "openspec", "changes", "archive", f"*-{change}", name)
-        matches = glob.glob(pattern)
-        if len(matches) == 1:
-            rel = os.path.relpath(matches[0], root)
-            return [rel.replace(os.sep, "/")]
+    archive_pattern = os.path.join(root, "openspec", "changes", "archive", f"*-{change}")
+    archive_dirs = [d for d in glob.glob(archive_pattern) if os.path.isdir(d)]
+    if len(archive_dirs) == 1:
+        archive_dir = archive_dirs[0]
+        for name in ("design.md", "proposal.md"):
+            candidate = os.path.join(archive_dir, name)
+            if os.path.isfile(candidate):
+                rel = os.path.relpath(candidate, root)
+                return [rel.replace(os.sep, "/")]
     return []
 
 
@@ -250,7 +256,8 @@ def cmd_add(args):
     time_str = args.time or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     change = data.get("change") or detect_change(root)
 
-    docs = normalize_doc_paths(data.get("doc"))
+    explicit_docs = normalize_doc_paths(data.get("doc"))
+    docs = explicit_docs
     if not docs:
         docs = auto_default_doc(root, change)  # 显式 doc 优先；仅在为空时才尝试自动关联
     validate_doc_paths(root, docs)
@@ -265,8 +272,9 @@ def cmd_add(args):
            f"{status} | {time_str} | {change or '-'} |\n")
     lines.insert(sec["rows_end"], row)
 
-    # 详细块可选：给了 动机/思路/备注，或有关联文档，才写（轻量优先）
-    block = _build_block(tid, data, status, docs)
+    # 详细块可选：给了 动机/思路/备注，或显式传了关联文档，才写（轻量优先）。
+    # auto-default 探测到的 doc 本身不触发建块——只用来丰富一个本来就会建的块。
+    block = _build_block(tid, data, status, docs, explicit_docs)
     if block:
         lines.append(block)
 
@@ -277,11 +285,16 @@ def cmd_add(args):
                      ensure_ascii=False))
 
 
-def _build_block(tid, data, status, docs=None):
+def _build_block(tid, data, status, docs=None, explicit_docs=None):
+    """是否建块 只看：motivation/approach/note 任一非空，或调用方显式传了 doc
+    （explicit_docs 非空）。auto-default 探测到的 doc（docs 里有、explicit_docs 里没有）不参与这个
+    判断——它只在块因为其它理由已经要建时，用来丰富该块的『关联文档』行；如果块本不该建，
+    auto-default 的结果在这里被静默丢弃，条目仍保持轻量（只记一行）。"""
     docs = docs or []
+    explicit_docs = explicit_docs or []
     parts = {k: data.get(k, "").strip() for k in ("motivation", "approach", "note")}
-    if not any(parts.values()) and not docs:
-        return ""  # 简单项：不建块
+    if not any(parts.values()) and not explicit_docs:
+        return ""  # 简单项：不建块（auto-default 的 doc 不单独触发建块）
     title = data.get("title") or data["summary"]
     b = f"\n---\n\n## {tid}: {title}\n\n"
     b += "| 属性 | 值 |\n|------|------|\n"

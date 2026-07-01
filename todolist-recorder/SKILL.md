@@ -70,12 +70,15 @@ echo '{
 - **关联文档**（`doc` 字段，可选，string 或 list[string]）：记录时如果这个改进想法关联某个 openspec
   文档（design/proposal/rule 等），尽量把该文档路径填进 `doc` 字段——填对格式后在 review 工具里能直接
   点开。路径不带 `openspec/` 前缀也会被自动补上；写进详细块的 **关联文档** 行（多个路径用「、」分隔）。
-  `doc` 非空会强制建块（哪怕没写动机/思路/备注），否则这行没地方放。路径不存在只警告不阻断。
-  不传时，若能从 `change` 探测到 `design.md`/`proposal.md`（含已归档的 `changes/archive/*-{change}/`），
-  会自动带上。
+  **显式**传 `doc` 会强制建块（哪怕没写动机/思路/备注），否则这行没地方放。路径不存在只警告不阻断。
+  不传 `doc` 时，若能从 `change` 探测到 `design.md`/`proposal.md`（含已归档的 `changes/archive/*-{change}/`，
+  且归档目录唯一不歧义），会尝试自动带上——但这个 auto-default 结果**只用来丰富一个本来就会建的块**
+  （因为写了动机/思路/备注，或显式传了 `doc`），它自己不会单独触发建块：轻量项（无动机/思路/备注、
+  无显式 `doc`）即便 `change` 恰好探测到了文档，仍然只记一行、不建块——不然一个随手记的轻量 TODO
+  会因为当时恰好有个 change 在跑而被悄悄升级成带块的项，破坏"轻量项只记一行"的默认体验。
 
 ```bash
-# 带关联文档：即使没写动机/思路，也会建块只为承载 doc 行
+# 带显式关联文档：即使没写动机/思路，也会建块只为承载 doc 行
 echo '{"module":"meter_collect.c","summary":"温度采样改 DMA 批量读取","type":"性能优化",
        "doc":"changes/dma-sampling/design.md"}' | python scripts/todolist.py add
 ```

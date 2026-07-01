@@ -126,19 +126,39 @@ class TestAutoDefaultDoc:
     def test_empty_when_nothing_matches(self, tmp_path):
         assert auto_default_doc(str(tmp_path), "foo") == []
 
+    def test_ambiguous_archive_dirs_skip_even_if_only_one_has_proposal(self, tmp_path):
+        """回归 Finding 1：两个归档目录都匹配 `*-{change}`（目录级本就歧义），
+        只有其中一个恰好带 proposal.md（另一个只有 design.md）。修复前的 bug：per-filename
+        分别判断『唯一匹配』，导致 design.md 判定歧义（2 个）但 proposal.md 判定不歧义（1 个），
+        从而错误地悄悄采用了那个歧义目录的 proposal.md。歧义检查必须在『目录』这一级只做一次：
+        `*-{change}` glob 命中 2 个目录就该整层跳过，返回 []。"""
+        d1 = tmp_path / "openspec" / "changes" / "archive" / "2026-01-01-foo"
+        d1.mkdir(parents=True)
+        (d1 / "design.md").write_text("x", encoding="utf-8")
+        (d1 / "proposal.md").write_text("x", encoding="utf-8")
+        d2 = tmp_path / "openspec" / "changes" / "archive" / "2026-02-02-foo"
+        d2.mkdir(parents=True)
+        (d2 / "design.md").write_text("x", encoding="utf-8")
+        assert auto_default_doc(str(tmp_path), "foo") == []
+
     def test_empty_when_no_change(self, tmp_path):
         assert auto_default_doc(str(tmp_path), "") == []
         assert auto_default_doc(str(tmp_path), None) == []
 
-    def test_add_auto_defaults_from_change_when_doc_missing(self, tmp_path):
+    def test_add_auto_default_enriches_block_created_for_other_reason(self, tmp_path):
+        """auto-default 探测到 doc，但只有在块已经因为别的理由（这里是 motivation）要建时，
+        才把这个 doc 塞进去——不是 auto-default 自己触发建块。"""
         d = tmp_path / "openspec" / "changes" / "foo"
         d.mkdir(parents=True)
         (d / "design.md").write_text("x", encoding="utf-8")
-        payload = base_payload(change="foo")
+        payload = base_payload(change="foo", motivation="降低采样耗时")
         proc = run_add(tmp_path, payload)
         assert proc.returncode == 0, proc.stderr
+        result = json.loads(proc.stdout)
+        assert result["block"] is True
         content = _todolist_content(tmp_path)
         assert "**关联文档**：`openspec/changes/foo/design.md`" in content
+        assert "**动机**：降低采样耗时" in content
 
     def test_explicit_doc_not_overridden_by_auto_default(self, tmp_path):
         d = tmp_path / "openspec" / "changes" / "foo"
@@ -150,6 +170,34 @@ class TestAutoDefaultDoc:
         content = _todolist_content(tmp_path)
         assert "**关联文档**：`openspec/rules/other.md`" in content
         assert "changes/foo/design.md" not in content
+
+    def test_auto_default_alone_does_not_force_a_block(self, tmp_path):
+        """回归 Finding 2：change 能解出已存在的 design.md，但没有显式 doc、也没有
+        motivation/approach/note 时，auto-default 不应单独把一个轻量项升级成带块的项——
+        条目应仍是总览表里的一行，不出现块，也不出现『关联文档』行。"""
+        d = tmp_path / "openspec" / "changes" / "foo"
+        d.mkdir(parents=True)
+        (d / "design.md").write_text("x", encoding="utf-8")
+        payload = base_payload(change="foo")
+        proc = run_add(tmp_path, payload)
+        assert proc.returncode == 0, proc.stderr
+        result = json.loads(proc.stdout)
+        assert result["block"] is False
+        content = _todolist_content(tmp_path)
+        assert "**关联文档**" not in content
+        assert f"## {result['id']}:" not in content  # 没有该项的详细块标题
+        assert "\n---\n" not in content  # 没有块分隔线（表头分隔行 |----| 不受影响）
+
+    def test_explicit_doc_alone_still_forces_a_block(self, tmp_path):
+        """回归护栏：显式传 doc（没有 motivation/approach/note）必须仍然强制建块并带上 doc 行，
+        这是 Finding 2 修复前就有的行为，不应被这次改动破坏。"""
+        payload = base_payload(doc="rules/other.md")
+        proc = run_add(tmp_path, payload)
+        assert proc.returncode == 0, proc.stderr
+        result = json.loads(proc.stdout)
+        assert result["block"] is True
+        content = _todolist_content(tmp_path)
+        assert "**关联文档**：`openspec/rules/other.md`" in content
 
 
 def _todolist_content(root):

@@ -109,7 +109,10 @@ def auto_default_doc(root, change):
     2) openspec/changes/{change}/proposal.md
     3) openspec/changes/archive/*-{change}/design.md（glob，归档目录名前缀是不可预测的日期）
     4) 同上但 proposal.md
-    每一步只在“唯一匹配”时采用；glob 命中多个时不猜，直接跳过该步。
+    归档层的歧义检查只做一次、在“目录”这一级：先看 `*-{change}` 这个 glob 命中几个归档目录——
+    不是恰好 1 个就整层跳过（design.md/proposal.md 都不试），不能因为其中一个目录碰巧只有
+    proposal.md 就把它当成唯一匹配悄悄采用（那样目录本身仍是歧义的）。只有 glob 恰好命中 1 个
+    目录时，才在该目录内按 design.md → proposal.md 的优先级取值。
     全部落空则返回 []（best-effort，不是必须项）。仅在调用方没有显式传 doc 时才应调用本函数，
     不覆盖显式值。"""
     if not change:
@@ -118,12 +121,15 @@ def auto_default_doc(root, change):
         candidate = os.path.join("openspec", "changes", change, name)
         if os.path.isfile(os.path.join(root, candidate)):
             return [candidate.replace(os.sep, "/")]
-    for name in ("design.md", "proposal.md"):
-        pattern = os.path.join(root, "openspec", "changes", "archive", f"*-{change}", name)
-        matches = glob.glob(pattern)
-        if len(matches) == 1:
-            rel = os.path.relpath(matches[0], root)
-            return [rel.replace(os.sep, "/")]
+    archive_pattern = os.path.join(root, "openspec", "changes", "archive", f"*-{change}")
+    archive_dirs = [d for d in glob.glob(archive_pattern) if os.path.isdir(d)]
+    if len(archive_dirs) == 1:
+        archive_dir = archive_dirs[0]
+        for name in ("design.md", "proposal.md"):
+            candidate = os.path.join(archive_dir, name)
+            if os.path.isfile(candidate):
+                rel = os.path.relpath(candidate, root)
+                return [rel.replace(os.sep, "/")]
     return []
 
 

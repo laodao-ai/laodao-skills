@@ -118,6 +118,21 @@ class TestAutoDefaultDoc:
     def test_empty_when_nothing_matches(self, tmp_path):
         assert auto_default_doc(str(tmp_path), "foo") == []
 
+    def test_ambiguous_archive_dirs_skip_even_if_only_one_has_proposal(self, tmp_path):
+        """回归 Finding 1：两个归档目录都匹配 `*-{change}`（目录级本就歧义），
+        只有其中一个恰好带 proposal.md（另一个只有 design.md）。修复前的 bug：per-filename
+        分别判断『唯一匹配』，导致 design.md 判定歧义（2 个）但 proposal.md 判定不歧义（1 个），
+        从而错误地悄悄采用了那个歧义目录的 proposal.md。歧义检查必须在『目录』这一级只做一次：
+        `*-{change}` glob 命中 2 个目录就该整层跳过，返回 []。"""
+        d1 = tmp_path / "openspec" / "changes" / "archive" / "2026-01-01-foo"
+        d1.mkdir(parents=True)
+        (d1 / "design.md").write_text("x", encoding="utf-8")
+        (d1 / "proposal.md").write_text("x", encoding="utf-8")
+        d2 = tmp_path / "openspec" / "changes" / "archive" / "2026-02-02-foo"
+        d2.mkdir(parents=True)
+        (d2 / "design.md").write_text("x", encoding="utf-8")
+        assert auto_default_doc(str(tmp_path), "foo") == []
+
     def test_empty_when_no_change(self, tmp_path):
         assert auto_default_doc(str(tmp_path), "") == []
         assert auto_default_doc(str(tmp_path), None) == []
