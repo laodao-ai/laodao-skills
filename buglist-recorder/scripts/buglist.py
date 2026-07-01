@@ -43,6 +43,36 @@ def repo_root(start="."):
         return os.path.abspath(start)
 
 
+BRANCH_PREFIX_RE = re.compile(r"^[a-z]+/")
+
+
+def detect_change(root):
+    """自动探测当前所处 OpenSpec change 名，供 add 时记录来源（可被 --json 里的 change 覆盖）。
+    优先级：openspec/changes/ 下唯一未归档目录 → git branch 名去前缀 → 空字符串（多 change 并行/
+    无法判断时交给模型显式传 change，不瞎猜）。"""
+    changes_dir = os.path.join(root, "openspec", "changes")
+    dirs = []
+    if os.path.isdir(changes_dir):
+        dirs = sorted(
+            d for d in os.listdir(changes_dir)
+            if d != "archive" and os.path.isdir(os.path.join(changes_dir, d))
+        )
+    if len(dirs) == 1:
+        return dirs[0]
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=root, capture_output=True, text=True, check=True,
+        )
+        branch = out.stdout.strip()
+    except Exception:
+        branch = ""
+    candidate = BRANCH_PREFIX_RE.sub("", branch) if branch else ""
+    if candidate and (not dirs or candidate in dirs):
+        return candidate
+    return ""
+
+
 def buglists_dir(root):
     return os.path.join(root, "openspec", "buglists")
 
@@ -74,8 +104,8 @@ HEADER_TMPL = """# {date} Buglist
 
 ## 状态总览
 
-| ID | 模块 | 问题摘要 | 优先级 | 状态 |
-|----|------|----------|--------|------|
+| ID | 模块 | 问题摘要 | 优先级 | 状态 | 时间 | 关联Change |
+|----|------|----------|--------|------|------|------------|
 """
 
 
@@ -196,6 +226,8 @@ def cmd_add(args):
     date = today_str(args.date)
     path = ensure_file(root, date, data.get("source"))
     bid = data.get("id") or next_id(root, args.prefix)
+    time_str = args.time or datetime.datetime.now().strftime("%H:%M")
+    change = data.get("change") or detect_change(root)
 
     with open(path, encoding="utf-8") as f:
         lines = f.readlines()
@@ -203,7 +235,8 @@ def cmd_add(args):
     if sec is None:
         _die("文件结构异常：找不到状态总览表")
 
-    row = f"| {bid} | `{data['module']}` | {data['summary']} | {data['priority']} | {status} |\n"
+    row = (f"| {bid} | `{data['module']}` | {data['summary']} | {data['priority']} | "
+           f"{status} | {time_str} | {change or '-'} |\n")
     lines.insert(sec["rows_end"], row)
 
     block = BLOCK_TMPL.format(
@@ -222,8 +255,8 @@ def cmd_add(args):
 
     with open(path, "w", encoding="utf-8") as f:
         f.writelines(lines)
-    print(json.dumps({"id": bid, "file": os.path.relpath(path, root), "status": status},
-                     ensure_ascii=False))
+    print(json.dumps({"id": bid, "file": os.path.relpath(path, root), "status": status,
+                      "time": time_str, "change": change or None}, ensure_ascii=False))
 
 
 # ── set-status ───────────────────────────────────────────────────────────────
@@ -332,7 +365,10 @@ def cmd_scan(args):
         for bid, info in rows.items():
             c = info["cells"]
             bugs.append({"id": bid, "module": c[1], "summary": c[2],
-                         "priority": c[3], "status": c[4], "file": rel})
+                         "priority": c[3], "status": c[4],
+                         "time": c[5] if len(c) > 5 else None,
+                         "change": c[6] if len(c) > 6 and c[6] != "-" else None,
+                         "file": rel})
 
     if args.status:
         bugs = [b for b in bugs if b["status"] == args.status]
@@ -386,6 +422,7 @@ def main():
     s.add_argument("--json", help="JSON 文件路径；缺省读 stdin")
     s.add_argument("--prefix", default=DEFAULT_PREFIX)
     s.add_argument("--date", help="覆盖日期 YYYY-MM-DD（默认今天）")
+    s.add_argument("--time", help="覆盖记录时间 HH:MM（默认当前时刻）")
     s.set_defaults(func=cmd_add)
 
     s = sub.add_parser("set-status", help="回写状态（双写 + 门禁 + 追加历史）")

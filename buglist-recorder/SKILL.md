@@ -48,7 +48,8 @@ echo '{
   "rootcause": "publish 前未从 ctx 取 type，结构体零值直接发出",
   "fix": ["发送前用 ctx->msg_type 填充 envelope.type", "加单测覆盖三种 type"],
   "impact": "所有 DATA/LOG 上行；server 侧无法路由",
-  "source": "0628 烧板日志"
+  "source": "0628 烧板日志",
+  "change": "add-envelope-type"
 }' | python scripts/buglist.py add
 ```
 
@@ -56,7 +57,11 @@ echo '{
 - 必填：`module` / `summary` / `priority` / `phenomenon`。`rootcause`/`fix`/`impact` 缺省留占位。
 - `source` 只在**新建当日文件**时用作头部「来源」。
 - 不传 `id` 则自动分配（默认前缀 `B`，要 `A`/其它分类用 `--prefix A`）。
-- 脚本回 `{"id","file","status"}`——把分到的 ID 告诉用户。
+- **时间**自动记录当前 `HH:MM`（当日文件已含日期，无需重复年月日），需要回填历史记录时用 `--time HH:MM` 覆盖。
+- **关联Change**（`change` 字段，可选）：不传时脚本自动探测——优先取 `openspec/changes/` 下唯一未归档目录名，
+  找不到再退化到当前 git branch 名（去掉 `feat/`/`fix/` 等前缀）；**多个 change 并行时脚本探测不到，
+  这时模型应结合当前 session 上下文判断在哪个 change 里发现的 bug，显式传 `change` 字段覆盖**。
+- 脚本回 `{"id","file","status","time","change"}`——把分到的 ID 告诉用户。
 
 **摘要 vs 标题**：表里 `summary` 一句话讲现象（不是根因）；详细块标题默认取 summary，
 要不同可加 `"title"`。需要额外字段（触发路径/时序/前置条件/验证方式）放 `"optional": {...}`。
@@ -89,7 +94,9 @@ python scripts/buglist.py scan --json          # 机器可读
 ## 约定速查（本 skill 即真相源）
 
 **文件**：`openspec/buglists/YYYY-MM-DD-buglist.md`，每天一个，当天所有 bug 追加进去，不拆分。
-**结构**：头部元信息 → `## 状态总览`（表）→ 各 bug 的 `---` 分隔详细块。
+**结构**：头部元信息 → `## 状态总览`（表，7 列：ID/模块/问题摘要/优先级/状态/**时间**/**关联Change**）
+→ 各 bug 的 `---` 分隔详细块。时间与关联Change **只记在总览表**，不进详细块——每条 bug 都会有，
+便于事后追溯"哪天几点、在哪个 change 里发现的"。
 
 **优先级**
 

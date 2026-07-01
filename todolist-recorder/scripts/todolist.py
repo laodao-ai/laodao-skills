@@ -43,6 +43,36 @@ def repo_root(start="."):
         return os.path.abspath(start)
 
 
+BRANCH_PREFIX_RE = re.compile(r"^[a-z]+/")
+
+
+def detect_change(root):
+    """自动探测当前所处 OpenSpec change 名，供 add 时记录来源（可被 --json 里的 change 覆盖）。
+    优先级：openspec/changes/ 下唯一未归档目录 → git branch 名去前缀 → 空字符串（多 change 并行/
+    无法判断时交给模型显式传 change，不瞎猜）。"""
+    changes_dir = os.path.join(root, "openspec", "changes")
+    dirs = []
+    if os.path.isdir(changes_dir):
+        dirs = sorted(
+            d for d in os.listdir(changes_dir)
+            if d != "archive" and os.path.isdir(os.path.join(changes_dir, d))
+        )
+    if len(dirs) == 1:
+        return dirs[0]
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=root, capture_output=True, text=True, check=True,
+        )
+        branch = out.stdout.strip()
+    except Exception:
+        branch = ""
+    candidate = BRANCH_PREFIX_RE.sub("", branch) if branch else ""
+    if candidate and (not dirs or candidate in dirs):
+        return candidate
+    return ""
+
+
 def todolists_dir(root):
     return os.path.join(root, "openspec", "todolists")
 
@@ -73,8 +103,8 @@ HEADER_TMPL = """# {month} TODO
 
 ## 状态总览
 
-| ID | 模块 | 描述 | 类型 | 状态 |
-|----|------|------|------|------|
+| ID | 模块 | 描述 | 类型 | 状态 | 时间 | 关联Change |
+|----|------|------|------|------|------|------------|
 """
 
 
@@ -163,6 +193,8 @@ def cmd_add(args):
     month = this_month(args.month)
     path = ensure_file(root, month, data.get("project"))
     tid = data.get("id") or next_id(root, args.prefix)
+    time_str = args.time or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    change = data.get("change") or detect_change(root)
 
     with open(path, encoding="utf-8") as f:
         lines = f.readlines()
@@ -170,7 +202,8 @@ def cmd_add(args):
     if sec is None:
         _die("文件结构异常：找不到状态总览表")
 
-    row = f"| {tid} | `{data['module']}` | {data['summary']} | {data['type']} | {status} |\n"
+    row = (f"| {tid} | `{data['module']}` | {data['summary']} | {data['type']} | "
+           f"{status} | {time_str} | {change or '-'} |\n")
     lines.insert(sec["rows_end"], row)
 
     # 详细块可选：只有给了 动机/思路/备注 才写（轻量优先）
@@ -180,8 +213,9 @@ def cmd_add(args):
 
     with open(path, "w", encoding="utf-8") as f:
         f.writelines(lines)
-    print(json.dumps({"id": tid, "file": os.path.relpath(path, root),
-                      "status": status, "block": bool(block)}, ensure_ascii=False))
+    print(json.dumps({"id": tid, "file": os.path.relpath(path, root), "status": status,
+                      "block": bool(block), "time": time_str, "change": change or None},
+                     ensure_ascii=False))
 
 
 def _build_block(tid, data, status):
@@ -291,7 +325,10 @@ def cmd_scan(args):
                     problems.append(f"{rel}: {bid} 状态不一致（表={info['cells'][4]} 块={bstatus}）")
             c = info["cells"]
             items.append({"id": bid, "module": c[1], "summary": c[2],
-                          "type": c[3], "status": c[4], "file": rel})
+                          "type": c[3], "status": c[4],
+                          "time": c[5] if len(c) > 5 else None,
+                          "change": c[6] if len(c) > 6 and c[6] != "-" else None,
+                          "file": rel})
 
     if args.status:
         items = [b for b in items if b["status"] == args.status]
@@ -339,6 +376,7 @@ def main():
     s.add_argument("--json", help="JSON 文件路径；缺省读 stdin")
     s.add_argument("--prefix", default=DEFAULT_PREFIX)
     s.add_argument("--month", help="覆盖月份 YYYY-MM（默认本月）")
+    s.add_argument("--time", help="覆盖记录时间 YYYY-MM-DD HH:MM（默认当前时刻）")
     s.set_defaults(func=cmd_add)
 
     s = sub.add_parser("set-status", help="回写状态（表写 + 门禁 + 有证据则补块留痕）")
