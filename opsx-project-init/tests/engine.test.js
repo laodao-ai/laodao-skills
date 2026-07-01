@@ -43,7 +43,7 @@ test('linkifyBacktickPaths: converts rendered <code> spans referencing openspec 
   const output = linkifyBacktickPaths(input);
   assert.equal(
     output,
-    'See <a href="/openspec/CONTEXT.md" class="auto-link">openspec/CONTEXT.md</a> for details.'
+    'See <a href="/CONTEXT.md" class="auto-link">openspec/CONTEXT.md</a> for details.'
   );
 });
 

@@ -20,7 +20,13 @@ function parseDirectoryListing(html) {
 function linkifyBacktickPaths(html) {
   return html.replace(
     /<code>(openspec\/[A-Za-z0-9_\-./]+\.md)<\/code>/g,
-    (_match, path) => `<a href="/${path}" class="auto-link">${path}</a>`
+    (_match, path) => {
+      // The server root is `openspec/` itself, so the href must strip the
+      // redundant "openspec/" prefix (else it 404s at .../openspec/openspec/...).
+      // The visible text keeps the full prose-style path for readability.
+      const hrefPath = path.replace(/^openspec\//, '');
+      return `<a href="/${hrefPath}" class="auto-link">${path}</a>`;
+    }
   );
 }
 
