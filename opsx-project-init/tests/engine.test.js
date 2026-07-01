@@ -7,6 +7,7 @@ const {
   isMarkdownPath,
   parentOf,
   formatPathBar,
+  formatTabTitle,
 } = require('../assets/review-tool/tools/engine.js');
 
 test('parseDirectoryListing: files and subdirectories', () => {
@@ -107,4 +108,24 @@ test('formatPathBar: falls back to directory-only when project name is undefined
 
 test('formatPathBar: falls back to directory-only when project name is the unsubstituted placeholder token', () => {
   assert.equal(formatPathBar('__PROJECT_NAME__', '/roadmaps/'), '📂 /roadmaps/');
+});
+
+test('formatTabTitle: includes project name alongside path when present', () => {
+  assert.equal(formatTabTitle('mqtt-console', '/'), 'mqtt-console · /');
+  assert.equal(
+    formatTabTitle('mqtt-console', '/roadmaps/mqtt-console/'),
+    'mqtt-console · /roadmaps/mqtt-console/'
+  );
+});
+
+test('formatTabTitle: falls back to path-only when project name is empty string', () => {
+  assert.equal(formatTabTitle('', '/'), '/');
+});
+
+test('formatTabTitle: falls back to path-only when project name is undefined (old template copy)', () => {
+  assert.equal(formatTabTitle(undefined, '/'), '/');
+});
+
+test('formatTabTitle: falls back to path-only when project name is the unsubstituted placeholder token', () => {
+  assert.equal(formatTabTitle('__PROJECT_NAME__', '/roadmaps/'), '/roadmaps/');
 });
