@@ -27,6 +27,7 @@ import sys
 SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(SKILL_DIR, "assets")
 BUNDLE_SRC = os.path.join(ASSETS, "workflow")
+REVIEW_TOOL_SRC = os.path.join(ASSETS, "review-tool")
 SNIPPETS = os.path.join(ASSETS, "snippets")
 
 MARK_DOC = ("<!-- opsx-init:start —— 由 opsx-project-init 维护，勿手改本区块 -->",
@@ -78,6 +79,29 @@ def copy_bundle(root):
     shutil.copytree(BUNDLE_SRC, dst, dirs_exist_ok=True)
     n = sum(len(fs) for _, _, fs in os.walk(dst))
     return dst, n
+
+
+def copy_review_tool(root):
+    """铺设 review.html / serve.sh / tools/（engine.js, engine.css, vendor/, review-stub.html）到
+    openspec/。根 review.html 由 review-stub.html 模板生成（__SCOPE__ 替换为空串）。
+    update 模式整体覆盖刷新（与 copy_bundle 同款语义）。
+    """
+    osroot = os.path.join(root, "openspec")
+    dst_tools = os.path.join(osroot, "tools")
+    shutil.copytree(os.path.join(REVIEW_TOOL_SRC, "tools"), dst_tools, dirs_exist_ok=True)
+
+    serve_src = os.path.join(REVIEW_TOOL_SRC, "serve.sh")
+    serve_dst = os.path.join(osroot, "serve.sh")
+    shutil.copyfile(serve_src, serve_dst)
+    shutil.copymode(serve_src, serve_dst)
+
+    stub_path = os.path.join(dst_tools, "review-stub.html")
+    template = open(stub_path, encoding="utf-8").read()
+    review_html = template.replace("__SCOPE__", "")
+    with open(os.path.join(osroot, "review.html"), "w", encoding="utf-8") as f:
+        f.write(review_html)
+
+    return sum(len(fs) for _, _, fs in os.walk(dst_tools)) + 2  # +serve.sh +review.html
 
 
 def ensure_dirs(root):
@@ -180,6 +204,12 @@ def run(root, mode):
 
     dst, n = copy_bundle(root)
     report.append(f"铺 bundle：openspec/workflow/（{n} 文件，{'覆盖' if mode=='update' else '写入'}）")
+
+    n_review = copy_review_tool(root)
+    report.append(
+        f"铺 review 工具：openspec/review.html + openspec/tools/ + openspec/serve.sh"
+        f"（{n_review} 文件，{'覆盖' if mode=='update' else '写入'}）"
+    )
 
     report.append("FF-0 hook（全局）：" + ensure_global_hook())
 
