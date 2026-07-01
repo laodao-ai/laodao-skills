@@ -79,7 +79,8 @@ openspec/
 ├── INDEX.md               ← 注入「工作流规则」托管区块
 ├── changes/  specs/       ← 目录骨架
 ├── review.html            ← 文档查看器根入口（scope="" 全树导航）
-├── serve.sh                ← 一行封装：cd 到 openspec/ 再起 python3 -m http.server
+├── serve.sh                ← 后台起停封装：start [port] / stop / restart [port]，
+│                             cd 到 openspec/ 再起 python3 -m http.server（detached，打印可点链接）
 ├── tools/                  ← engine.js + engine.css + vendor/marked.min.js + review-stub.html
 │                             （review-stub.html 是模板，roadmap/change 目录的 review.html 由它生成）
 CLAUDE.md / AGENTS.md      ← 注入「OpenSpec 工作流」托管区块（强制规范 + 3 配套 skill 说明）
