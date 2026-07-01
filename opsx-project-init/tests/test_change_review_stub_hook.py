@@ -9,10 +9,13 @@ from pathlib import Path
 
 HOOK = str(Path(__file__).parent.parent / "assets" / "hooks" / "change-review-stub.py")
 
-# Placeholder template content used by the fixture below. The hook no longer does any
-# scope-token substitution — it's a plain copy — so this can be any fixed string; tests
-# assert the written stub equals this exact content.
-STUB_TEMPLATE = '<script>window.location.pathname; /* review stub fixture */</script>'
+# Placeholder template content used by the fixture below. The hook substitutes
+# __PROJECT_NAME__ with the project root's basename (in addition to otherwise being a
+# plain copy — no other token/scope substitution happens).
+STUB_TEMPLATE = (
+    '<script>window.location.pathname; /* review stub fixture */</script>\n'
+    '<script>window.__OPENSPEC_PROJECT_NAME__ = "__PROJECT_NAME__";</script>'
+)
 
 
 def run_hook(payload, cwd):
@@ -48,7 +51,13 @@ class TestChangeReviewStubHook:
         assert result.returncode == 0
         stub = tmp_path / "openspec" / "changes" / "add-widget" / "review.html"
         assert stub.is_file()
-        assert stub.read_text(encoding="utf-8") == STUB_TEMPLATE
+        rendered = stub.read_text(encoding="utf-8")
+        # __PROJECT_NAME__ substituted with the project root's (cwd's) basename …
+        assert "__PROJECT_NAME__" not in rendered
+        assert rendered == STUB_TEMPLATE.replace("__PROJECT_NAME__", tmp_path.name)
+        # … while the template source itself (openspec/tools/review-stub.html) stays raw.
+        template_src = tmp_path / "openspec" / "tools" / "review-stub.html"
+        assert "__PROJECT_NAME__" in template_src.read_text(encoding="utf-8")
 
     def test_skips_silently_when_review_tool_not_installed(self, tmp_path):
         make_project(tmp_path, with_review_tool=False)
@@ -139,6 +148,6 @@ class TestChangeReviewStubHook:
         }
         result = run_hook(payload, tmp_path)
         assert result.returncode == 0
-        # Verify the file now contains valid content (fresh copy of the template)
+        # Verify the file now contains valid content (fresh, substituted copy of the template)
         content = review_file.read_text(encoding="utf-8")
-        assert content == STUB_TEMPLATE
+        assert content == STUB_TEMPLATE.replace("__PROJECT_NAME__", tmp_path.name)

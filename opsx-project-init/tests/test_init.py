@@ -27,12 +27,21 @@ class TestCopyReviewTool:
         assert (osroot / "review.html").is_file()
         assert n > 0
 
-    def test_root_review_html_matches_template(self, tmp_path):
-        copy_review_tool(str(tmp_path))
-        osroot = tmp_path / "openspec"
+    def test_root_review_html_substitutes_project_name(self, tmp_path):
+        project_dir = tmp_path / "my-project"
+        project_dir.mkdir()
+        copy_review_tool(str(project_dir))
+        osroot = project_dir / "openspec"
         content = (osroot / "review.html").read_text(encoding="utf-8")
         template = (osroot / "tools" / "review-stub.html").read_text(encoding="utf-8")
-        assert content == template
+        # The template source (as copied into openspec/tools/) must stay RAW/un-substituted —
+        # it's read by the other two producers (change-review-stub.py hook, gen_review_stub.py)
+        # as their own substitution source, so it must still contain the literal token.
+        assert "__PROJECT_NAME__" in template
+        # The generated root review.html, in contrast, must have the token substituted with
+        # the project's directory basename — and be otherwise byte-identical to the template.
+        assert "__PROJECT_NAME__" not in content
+        assert content == template.replace("__PROJECT_NAME__", "my-project")
 
     def test_serve_sh_is_executable(self, tmp_path):
         copy_review_tool(str(tmp_path))
@@ -40,13 +49,16 @@ class TestCopyReviewTool:
         assert mode & stat.S_IXUSR
 
     def test_idempotent_rerun_overwrites_cleanly(self, tmp_path):
-        copy_review_tool(str(tmp_path))
-        copy_review_tool(str(tmp_path))  # update-mode re-run
-        osroot = tmp_path / "openspec"
+        project_dir = tmp_path / "another-project"
+        project_dir.mkdir()
+        copy_review_tool(str(project_dir))
+        copy_review_tool(str(project_dir))  # update-mode re-run
+        osroot = project_dir / "openspec"
         assert (osroot / "review.html").is_file()
         content = (osroot / "review.html").read_text(encoding="utf-8")
         template = (osroot / "tools" / "review-stub.html").read_text(encoding="utf-8")
-        assert content == template  # still a clean copy, not duplicated/appended
+        # still a clean substituted copy, not duplicated/appended, not re-substituted-twice
+        assert content == template.replace("__PROJECT_NAME__", "another-project")
 
 
 class TestEnsureGlobalHooks:

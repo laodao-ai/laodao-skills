@@ -11,10 +11,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 from gen_review_stub import gen_review_stub
 
 
-# Placeholder template content used by the fixture below. gen_review_stub no longer does
-# any scope-token substitution — it's a plain copy — so this can be any fixed string; tests
-# assert the written stub equals this exact content.
-STUB_TEMPLATE = '<script>window.location.pathname; /* review stub fixture */</script>'
+# Placeholder template content used by the fixture below. gen_review_stub substitutes
+# __PROJECT_NAME__ with the project root's basename (in addition to otherwise being a
+# plain copy — no other token/scope substitution happens).
+STUB_TEMPLATE = (
+    '<script>window.location.pathname; /* review stub fixture */</script>\n'
+    '<script>window.__OPENSPEC_PROJECT_NAME__ = "__PROJECT_NAME__";</script>'
+)
 
 
 def make_project(tmp_path, with_review_tool=True, with_roadmap_dir=True):
@@ -33,7 +36,12 @@ class TestGenReviewStub:
         make_project(tmp_path)
         dst = gen_review_stub(str(tmp_path), "my-feature")
         content = Path(dst).read_text(encoding="utf-8")
-        assert content == STUB_TEMPLATE
+        # __PROJECT_NAME__ substituted with the project root's basename …
+        assert "__PROJECT_NAME__" not in content
+        assert content == STUB_TEMPLATE.replace("__PROJECT_NAME__", tmp_path.name)
+        # … while the template source itself (openspec/tools/review-stub.html) stays raw.
+        template_src = tmp_path / "openspec" / "tools" / "review-stub.html"
+        assert "__PROJECT_NAME__" in template_src.read_text(encoding="utf-8")
 
     def test_raises_when_review_tool_missing(self, tmp_path):
         make_project(tmp_path, with_review_tool=False)

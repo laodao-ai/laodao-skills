@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """生成 openspec/roadmaps/{name}/review.html —— roadmap 四件套产出后顺手落一份查看器 stub。
 
-读取项目根 openspec/tools/review-stub.html 模板（由 opsx-project-init 铺设），原样拷贝为
+读取项目根 openspec/tools/review-stub.html 模板（由 opsx-project-init 铺设），替换
+__PROJECT_NAME__（项目根目录名，对一次安装永不变，故不重蹈 __SCOPE__ 的过时症）后写为
 openspec/roadmaps/{name}/review.html——目录 scope 不再靠模板占位符固化，而由 engine.js 在
 加载时从 window.location.pathname 推导。
 
@@ -10,7 +11,6 @@ opsx-roadmap-planner 流程里模型显式调用的一步，缺前提直接抛�
 """
 import argparse
 import os
-import shutil
 import sys
 
 
@@ -28,7 +28,11 @@ def gen_review_stub(root, name):
         raise FileNotFoundError(f"目录不存在：{roadmap_dir}（应在四件套生成之后再跑本脚本）")
 
     dst = os.path.join(roadmap_dir, "review.html")
-    shutil.copyfile(stub_template_path, dst)
+    project_name = os.path.basename(os.path.abspath(root))
+    template_text = open(stub_template_path, encoding="utf-8").read()
+    rendered = template_text.replace("__PROJECT_NAME__", project_name)
+    with open(dst, "w", encoding="utf-8") as f:
+        f.write(rendered)
     return dst
 
 

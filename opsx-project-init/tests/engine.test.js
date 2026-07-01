@@ -6,6 +6,7 @@ const {
   resolveLink,
   isMarkdownPath,
   parentOf,
+  formatPathBar,
 } = require('../assets/review-tool/tools/engine.js');
 
 test('parseDirectoryListing: files and subdirectories', () => {
@@ -86,4 +87,24 @@ test('parentOf: top-level directory goes up to root', () => {
 
 test('parentOf: root has no parent', () => {
   assert.equal(parentOf('/'), null);
+});
+
+test('formatPathBar: includes project name alongside directory path when present', () => {
+  assert.equal(formatPathBar('mqtt-console', '/'), '📂 mqtt-console · /');
+  assert.equal(
+    formatPathBar('mqtt-console', '/roadmaps/mqtt-console/'),
+    '📂 mqtt-console · /roadmaps/mqtt-console/'
+  );
+});
+
+test('formatPathBar: falls back to directory-only when project name is empty string', () => {
+  assert.equal(formatPathBar('', '/'), '📂 /');
+});
+
+test('formatPathBar: falls back to directory-only when project name is undefined (old template copy)', () => {
+  assert.equal(formatPathBar(undefined, '/'), '📂 /');
+});
+
+test('formatPathBar: falls back to directory-only when project name is the unsubstituted placeholder token', () => {
+  assert.equal(formatPathBar('__PROJECT_NAME__', '/roadmaps/'), '📂 /roadmaps/');
 });

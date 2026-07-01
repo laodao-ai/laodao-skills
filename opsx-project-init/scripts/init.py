@@ -96,8 +96,11 @@ def copy_bundle(root):
 
 def copy_review_tool(root):
     """铺设 review.html / serve.sh / tools/（engine.js, engine.css, vendor/, review-stub.html）到
-    openspec/。根 review.html 是 review-stub.html 模板的原样拷贝（无占位符替换——
-    目录 scope 现由 engine.js 在加载时从 window.location.pathname 推导）。
+    openspec/。目录 scope 由 engine.js 在加载时从 window.location.pathname 推导（无占位符替换）。
+    根 review.html 是 review-stub.html 模板的拷贝，但**替换 __PROJECT_NAME__ 为项目目录名**——
+    这个值对一次安装永不变（不随目录搬迁而变），故不会重蹈 __SCOPE__ 的过时症。
+    openspec/tools/review-stub.html 本身（供 change-review-stub.py / gen_review_stub.py 两个
+    生产者读作模板源）必须保持原始未替换状态，仍含字面 token。
     update 模式整体覆盖刷新（与 copy_bundle 同款语义）。
     """
     osroot = os.path.join(root, "openspec")
@@ -110,7 +113,11 @@ def copy_review_tool(root):
     shutil.copymode(serve_src, serve_dst)
 
     stub_path = os.path.join(dst_tools, "review-stub.html")
-    shutil.copyfile(stub_path, os.path.join(osroot, "review.html"))
+    project_name = os.path.basename(os.path.abspath(root))
+    template_text = open(stub_path, encoding="utf-8").read()
+    rendered = template_text.replace("__PROJECT_NAME__", project_name)
+    with open(os.path.join(osroot, "review.html"), "w", encoding="utf-8") as f:
+        f.write(rendered)
 
     return sum(len(fs) for _, _, fs in os.walk(dst_tools)) + 2  # +serve.sh +review.html
 

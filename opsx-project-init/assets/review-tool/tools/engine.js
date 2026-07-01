@@ -47,6 +47,20 @@ function parentOf(dirPath) {
   return trimmed.slice(0, idx + 1);
 }
 
+function formatPathBar(projectName, dirPath) {
+  // `projectName` comes from `window.__OPENSPEC_PROJECT_NAME__`, baked into review-stub.html
+  // at generation time (see init.py / change-review-stub.py / gen_review_stub.py). It can be
+  // missing entirely (undefined, e.g. an old template copy predating this feature), empty, or
+  // — in the rare case someone serves the raw unrendered template — the literal, unsubstituted
+  // `__PROJECT_NAME__` token. All three cases must degrade to directory-only, never displaying
+  // "undefined"/"null"/the raw placeholder token.
+  const name = (projectName || '').trim();
+  if (!name || name === '__PROJECT_NAME__') {
+    return `📂 ${dirPath}`;
+  }
+  return `📂 ${name} · ${dirPath}`;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     parseDirectoryListing,
@@ -54,6 +68,7 @@ if (typeof module !== 'undefined' && module.exports) {
     resolveLink,
     isMarkdownPath,
     parentOf,
+    formatPathBar,
   };
 }
 
@@ -62,6 +77,10 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof document !== 'undefined') {
   (function () {
     const initialDir = window.location.pathname.replace(/[^/]*$/, '');
+    // Baked into review-stub.html at generation time (see formatPathBar's comment above for
+    // why this is safe to bake in, unlike the removed __SCOPE__ mechanism). `|| ''` covers the
+    // undefined case (old template copy predating this feature); formatPathBar covers the rest.
+    const projectName = window.__OPENSPEC_PROJECT_NAME__ || '';
     // The shell page itself never navigates (history is hash-based, see `navigate`
     // below), so `window.location.pathname` always stays at the shell's own path.
     // Relative markdown links must instead be resolved against whatever doc/dir is
@@ -112,7 +131,7 @@ if (typeof document !== 'undefined') {
       // Same directory-path value the sidebar itself draws from — surface it
       // in the persistent path bar too, so "where am I" is visible without
       // relying on the sidebar's home/up toolbar (which is hidden at root).
-      pathBar.textContent = `📂 ${dirPath}`;
+      pathBar.textContent = formatPathBar(projectName, dirPath);
       const html = await fetchText(dirPath);
       const entries = parseDirectoryListing(html)
         .filter((e) => e.isDir || isMarkdownPath(e.name))
