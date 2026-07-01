@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.8.0 — 2026-07-01
+
+- `opsx-project-init` 新增 OpenSpec 文档 HTML Review 工具（零构建、离线可用）：
+  - **根入口** `openspec/review.html` + `openspec/serve.sh`：一条 `bash openspec/serve.sh` 起本地
+    静态服务器，浏览整个 `openspec/` 树；目录内容通过解析 Python `http.server` 自带的目录索引页
+    动态发现（不打包清单，md 增删即时反映）；markdown 渲染内联 vendor 了 `marked.js`（离线可用，
+    见 `opsx-project-init/assets/review-tool/tools/vendor/NOTICE.md`）；反引号包裹的
+    `` `openspec/xxx.md` `` 路径自动转可点链接。
+  - **`openspec/roadmaps/<name>/review.html`**：`opsx-roadmap-planner` 四件套生成完之后，跑
+    `scripts/gen_review_stub.py {name}` 生成，scope 默认聚焦本目录。
+  - **`openspec/changes/<name>/review.html`**：新增全局 PostToolUse hook
+    `change-review-stub.py`（`ff0-branch-guard.py` 的姊妹篇，同样拦 `openspec new change <name>`
+    这一条 CLI 命令，覆盖 `/opsx:new`/`/opsx:ff`/`/opsx:propose`/`/opsx:onboard` 全部入口），change
+    目录建好后自动补一份，随 `openspec archive` 搬迁到 `changes/archive/` 无需重新生成。
+  - 三处 stub 共用同一模板 + 同一份共享引擎（`tools/engine.js`/`engine.css`），全部使用
+    **根相对路径**引用资源与"回根"链接——不管目录搬多深，链接都不断。目录 scope 不再靠模板
+    占位符在生成时固化，而是由 `engine.js` 在加载时从 `window.location.pathname` 动态推导，
+    修复了归档后 `changes/archive/<date>-<name>/review.html` 侧边栏 404、报"加载失败"且无回根链接的问题。
+  - `ensure_global_hook()` 从单一硬编码 hook 重构为数据驱动的多 hook 安装器（`HOOKS` 列表），
+    向后兼容既有的 ff0 hook 注册状态。
+  - 设计过程详见 `opsx-project-init/memo-review-html-tool.md`。
+
 ## 1.7.0 — 2026-06-29
 
 - `opsx-project-init` bundle 工作流补强（吸收 smartrelay-4g `workflow-embedded.md` 的三项特化资产，使其可退役）：
