@@ -45,3 +45,90 @@ class TestCopyReviewTool:
         assert (osroot / "review.html").is_file()
         content = (osroot / "review.html").read_text(encoding="utf-8")
         assert content.count("__OPENSPEC_REVIEW_SCOPE__") == 1  # not duplicated/appended
+
+
+class TestEnsureGlobalHooks:
+    def _settings_path(self, home):
+        return home / "settings.json"
+
+    def test_installs_and_registers_a_new_hook_spec(self, tmp_path, monkeypatch):
+        home = tmp_path / "home"
+        home.mkdir()
+        monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+        src = tmp_path / "myhook.py"
+        src.write_text("print('hi')\n", encoding="utf-8")
+        spec = {
+            "name": "myhook.py",
+            "src": str(src),
+            "event": "PostToolUse",
+            "matcher": "Bash",
+            "cmd": 'python3 "$HOME/.claude/hooks/myhook.py"',
+        }
+        msg = init_mod.ensure_global_hook(spec)
+        assert "安装" in msg
+        assert (home / "hooks" / "myhook.py").is_file()
+        data = json.loads(self._settings_path(home).read_text(encoding="utf-8"))
+        assert data["hooks"]["PostToolUse"][0]["matcher"] == "Bash"
+        assert "myhook.py" in data["hooks"]["PostToolUse"][0]["hooks"][0]["command"]
+
+    def test_rerun_is_idempotent_no_duplicate_registration(self, tmp_path, monkeypatch):
+        home = tmp_path / "home"
+        home.mkdir()
+        monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+        src = tmp_path / "myhook.py"
+        src.write_text("print('hi')\n", encoding="utf-8")
+        spec = {
+            "name": "myhook.py",
+            "src": str(src),
+            "event": "PostToolUse",
+            "matcher": "Bash",
+            "cmd": 'python3 "$HOME/.claude/hooks/myhook.py"',
+        }
+        init_mod.ensure_global_hook(spec)
+        init_mod.ensure_global_hook(spec)
+        data = json.loads(self._settings_path(home).read_text(encoding="utf-8"))
+        assert len(data["hooks"]["PostToolUse"]) == 1
+
+    def test_two_different_hooks_land_in_their_own_event_lists(self, tmp_path, monkeypatch):
+        home = tmp_path / "home"
+        home.mkdir()
+        monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+        pre_src = tmp_path / "pre.py"
+        pre_src.write_text("print('pre')\n", encoding="utf-8")
+        post_src = tmp_path / "post.py"
+        post_src.write_text("print('post')\n", encoding="utf-8")
+        init_mod.ensure_global_hook({
+            "name": "pre.py", "src": str(pre_src), "event": "PreToolUse",
+            "matcher": "Bash", "cmd": 'python3 "$HOME/.claude/hooks/pre.py"',
+        })
+        init_mod.ensure_global_hook({
+            "name": "post.py", "src": str(post_src), "event": "PostToolUse",
+            "matcher": "Bash", "cmd": 'python3 "$HOME/.claude/hooks/post.py"',
+        })
+        data = json.loads(self._settings_path(home).read_text(encoding="utf-8"))
+        assert len(data["hooks"]["PreToolUse"]) == 1
+        assert len(data["hooks"]["PostToolUse"]) == 1
+
+    def test_preexisting_single_hook_registration_still_recognized(self, tmp_path, monkeypatch):
+        """Backward compat: a settings.json written by the OLD single-hook ensure_global_hook()
+        must still be recognized as 'already registered' by the new generalized version."""
+        home = tmp_path / "home"
+        home.mkdir()
+        (home / "hooks").mkdir()
+        src = tmp_path / "ff0.py"
+        src.write_text("print('ff0')\n", encoding="utf-8")
+        (home / "hooks" / "ff0.py").write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+        monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+        (self._settings_path(home)).write_text(json.dumps({
+            "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [
+                {"type": "command", "command": 'python3 "$HOME/.claude/hooks/ff0.py"'}
+            ]}]}
+        }), encoding="utf-8")
+        spec = {
+            "name": "ff0.py", "src": str(src), "event": "PreToolUse",
+            "matcher": "Bash", "cmd": 'python3 "$HOME/.claude/hooks/ff0.py"',
+        }
+        msg = init_mod.ensure_global_hook(spec)
+        assert "已注册" in msg
+        data = json.loads(self._settings_path(home).read_text(encoding="utf-8"))
+        assert len(data["hooks"]["PreToolUse"]) == 1  # not duplicated

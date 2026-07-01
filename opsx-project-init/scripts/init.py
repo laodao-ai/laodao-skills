@@ -37,10 +37,23 @@ MARK_IDX = ("<!-- opsx-init:rules:start —— 由 opsx-project-init 维护，�
 
 CORE_DIRS = ["changes", "specs"]  # openspec 核心；buglists/todolists 由各自 recorder skill 首用时建
 
-# FF-0 PreToolUse hook：通用功能，全局安装一次（~/.claude/），跨所有项目生效，不随 per-project bundle 铺设。
-HOOK_SRC = os.path.join(ASSETS, "hooks", "ff0-branch-guard.py")  # 全局 hook 脚本单一源
-HOOK_NAME = "ff0-branch-guard.py"
-HOOK_CMD = 'python3 "$HOME/.claude/hooks/ff0-branch-guard.py"'
+# 全局 hooks：通用功能，全局安装一次（~/.claude/），跨所有项目生效，不随 per-project bundle 铺设。
+HOOKS = [
+    {
+        "name": "ff0-branch-guard.py",
+        "src": os.path.join(ASSETS, "hooks", "ff0-branch-guard.py"),
+        "event": "PreToolUse",
+        "matcher": "Bash",
+        "cmd": 'python3 "$HOME/.claude/hooks/ff0-branch-guard.py"',
+    },
+    {
+        "name": "change-review-stub.py",
+        "src": os.path.join(ASSETS, "hooks", "change-review-stub.py"),
+        "event": "PostToolUse",
+        "matcher": "Bash",
+        "cmd": 'python3 "$HOME/.claude/hooks/change-review-stub.py"',
+    },
+]
 
 
 # ── 标记区块幂等注入 ─────────────────────────────────────────
@@ -127,30 +140,26 @@ def handle_config(root, mode):
     return ("created", "已从 config.template.yaml 生成 config.yaml → 填写「本项目」context 段")
 
 
-def ensure_global_hook():
-    """幂等把 FF-0 hook 全局安装：脚本拷进 ~/.claude/hooks/ + 注册进 ~/.claude/settings.json。
-
-    通用功能、全局一次、跨所有项目生效（非 openspec 项目里命令不匹配即放行）。
-    不再随 per-project bundle 铺设/注册。返回动作描述。
+def ensure_global_hook(spec):
+    """幂等把单个全局 hook 装好：脚本拷进 ~/.claude/hooks/ + 注册进 ~/.claude/settings.json
+    对应 event 的 hooks 列表。spec 形如 HOOKS 里的一项。返回动作描述。
     """
     home_claude = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
     acts = []
 
-    # 1) 脚本就位（内容变了才覆盖）
     hooks_dir = os.path.join(home_claude, "hooks")
     os.makedirs(hooks_dir, exist_ok=True)
-    dst = os.path.join(hooks_dir, HOOK_NAME)
-    if not os.path.exists(HOOK_SRC):
-        return f"跳过（hook 源缺失：{HOOK_SRC}）"
-    new_src = open(HOOK_SRC, encoding="utf-8").read()
+    dst = os.path.join(hooks_dir, spec["name"])
+    if not os.path.exists(spec["src"]):
+        return f"跳过（hook 源缺失：{spec['src']}）"
+    new_src = open(spec["src"], encoding="utf-8").read()
     old_src = open(dst, encoding="utf-8").read() if os.path.exists(dst) else None
     if old_src != new_src:
-        shutil.copyfile(HOOK_SRC, dst)
+        shutil.copyfile(spec["src"], dst)
         acts.append("脚本已" + ("更新" if old_src is not None else "安装") + f" {dst}")
     else:
         acts.append("脚本已最新")
 
-    # 2) 全局 settings.json 注册（幂等：按文件名匹配，路径写法无关）
     settings = os.path.join(home_claude, "settings.json")
     if os.path.exists(settings):
         try:
@@ -166,26 +175,31 @@ def ensure_global_hook():
     if not isinstance(hooks, dict):
         hooks = {}
         data["hooks"] = hooks
-    pre = hooks.get("PreToolUse")
-    if not isinstance(pre, list):
-        pre = []
-        hooks["PreToolUse"] = pre
+    event_list = hooks.get(spec["event"])
+    if not isinstance(event_list, list):
+        event_list = []
+        hooks[spec["event"]] = event_list
 
-    for entry in pre:
+    for entry in event_list:
         for h in (entry.get("hooks") or []):
-            if HOOK_NAME in (h.get("command") or ""):
+            if spec["name"] in (h.get("command") or ""):
                 acts.append("已注册（全局）")
                 return "；".join(acts)
 
-    pre.append({
-        "matcher": "Bash",
-        "hooks": [{"type": "command", "command": HOOK_CMD}],
+    event_list.append({
+        "matcher": spec["matcher"],
+        "hooks": [{"type": "command", "command": spec["cmd"]}],
     })
     with open(settings, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
         f.write("\n")
-    acts.append("已注册 → ~/.claude/settings.json")
+    acts.append(f"已注册 → ~/.claude/settings.json（{spec['event']}）")
     return "；".join(acts)
+
+
+def ensure_global_hooks():
+    """按 HOOKS 逐个幂等安装，返回多行汇总。"""
+    return "\n".join(f"  · {spec['name']}：{ensure_global_hook(spec)}" for spec in HOOKS)
 
 
 # ── 主流程 ──────────────────────────────────────────────────
@@ -211,7 +225,7 @@ def run(root, mode):
         f"（{n_review} 文件，{'覆盖' if mode=='update' else '写入'}）"
     )
 
-    report.append("FF-0 hook（全局）：" + ensure_global_hook())
+    report.append("全局 hooks：\n" + ensure_global_hooks())
 
     cstat, cmsg = handle_config(root, mode)
     report.append(f"config.yaml：{cmsg}")
