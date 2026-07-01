@@ -83,6 +83,15 @@ if (typeof document !== 'undefined') {
       }[c]));
     }
 
+    // Rendered docs are our own openspec/ markdown, but escape any raw HTML tokens
+    // (marked otherwise passes them through verbatim) so a stray `<script>` or
+    // `<img onerror=...>` pasted into a doc can't execute in this local viewer.
+    if (window.marked) {
+      const renderer = new window.marked.Renderer();
+      renderer.html = (html) => escapeHtml(html);
+      window.marked.setOptions({ renderer });
+    }
+
     async function fetchText(path) {
       const res = await fetch(path);
       if (!res.ok) throw new Error(`fetch failed: ${path} (${res.status})`);
