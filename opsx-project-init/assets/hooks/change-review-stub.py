@@ -59,7 +59,12 @@ def main() -> None:
 
     stub_content = template.replace("__SCOPE__", f"changes/{name}/")
     dst = os.path.join(change_dir, "review.html")
-    existing = open(dst, encoding="utf-8").read() if os.path.exists(dst) else None
+    existing = None
+    if os.path.exists(dst):
+        try:
+            existing = open(dst, encoding="utf-8").read()
+        except (OSError, UnicodeDecodeError):
+            existing = None
     if existing != stub_content:
         try:
             with open(dst, "w", encoding="utf-8") as f:

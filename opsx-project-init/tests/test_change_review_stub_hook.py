@@ -99,3 +99,43 @@ class TestChangeReviewStubHook:
             capture_output=True, text=True, timeout=5,
         )
         assert result.returncode == 0
+
+    def test_handles_directory_at_destination_gracefully(self, tmp_path):
+        """
+        When dst path is pre-created as a directory (not a file),
+        the hook should not crash when trying to read it.
+        It should exit 0 (fail-open).
+        """
+        make_project(tmp_path)
+        # Pre-create the destination as a directory instead of a file
+        review_dir = tmp_path / "openspec" / "changes" / "add-widget" / "review.html"
+        review_dir.mkdir(parents=True)
+        payload = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "openspec new change add-widget"},
+            "cwd": str(tmp_path),
+        }
+        result = run_hook(payload, tmp_path)
+        assert result.returncode == 0
+
+    def test_handles_invalid_utf8_in_existing_file(self, tmp_path):
+        """
+        When the destination file contains invalid UTF-8 bytes,
+        the hook should not crash. It should treat it as "no existing file",
+        write the fresh content (overwriting the broken file), and exit 0.
+        """
+        make_project(tmp_path)
+        # Pre-create the destination with invalid UTF-8 bytes
+        review_file = tmp_path / "openspec" / "changes" / "add-widget" / "review.html"
+        review_file.parent.mkdir(parents=True, exist_ok=True)
+        review_file.write_bytes(b"\xff\xfe invalid utf-8")
+        payload = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "openspec new change add-widget"},
+            "cwd": str(tmp_path),
+        }
+        result = run_hook(payload, tmp_path)
+        assert result.returncode == 0
+        # Verify the file now contains valid content
+        content = review_file.read_text(encoding="utf-8")
+        assert 'window.__OPENSPEC_REVIEW_SCOPE__ = "changes/add-widget/";' in content
