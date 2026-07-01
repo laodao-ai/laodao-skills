@@ -67,6 +67,18 @@ echo '{
   目录名，找不到再退化到当前 git branch 名（去掉 `feat/`/`fix/` 等前缀）；**多个 change 并行时脚本
   探测不到，这时模型应结合当前 session 上下文判断这个 TODO 是在哪个 change 里冒出来的，显式传
   `change` 字段覆盖**。轻量项（不建块）也照样记这两个字段——它们进总览表，不进块。
+- **关联文档**（`doc` 字段，可选，string 或 list[string]）：记录时如果这个改进想法关联某个 openspec
+  文档（design/proposal/rule 等），尽量把该文档路径填进 `doc` 字段——填对格式后在 review 工具里能直接
+  点开。路径不带 `openspec/` 前缀也会被自动补上；写进详细块的 **关联文档** 行（多个路径用「、」分隔）。
+  `doc` 非空会强制建块（哪怕没写动机/思路/备注），否则这行没地方放。路径不存在只警告不阻断。
+  不传时，若能从 `change` 探测到 `design.md`/`proposal.md`（含已归档的 `changes/archive/*-{change}/`），
+  会自动带上。
+
+```bash
+# 带关联文档：即使没写动机/思路，也会建块只为承载 doc 行
+echo '{"module":"meter_collect.c","summary":"温度采样改 DMA 批量读取","type":"性能优化",
+       "doc":"changes/dma-sampling/design.md"}' | python scripts/todolist.py add
+```
 
 ### 2. 回写状态（set-status）
 

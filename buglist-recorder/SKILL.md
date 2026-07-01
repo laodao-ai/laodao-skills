@@ -49,7 +49,8 @@ echo '{
   "fix": ["发送前用 ctx->msg_type 填充 envelope.type", "加单测覆盖三种 type"],
   "impact": "所有 DATA/LOG 上行；server 侧无法路由",
   "source": "0628 烧板日志",
-  "change": "add-envelope-type"
+  "change": "add-envelope-type",
+  "doc": ["changes/add-envelope-type/design.md", "rules/envelope-format.md"]
 }' | python scripts/buglist.py add
 ```
 
@@ -61,6 +62,11 @@ echo '{
 - **关联Change**（`change` 字段，可选）：不传时脚本自动探测——优先取 `openspec/changes/` 下唯一未归档目录名，
   找不到再退化到当前 git branch 名（去掉 `feat/`/`fix/` 等前缀）；**多个 change 并行时脚本探测不到，
   这时模型应结合当前 session 上下文判断在哪个 change 里发现的 bug，显式传 `change` 字段覆盖**。
+- **关联文档**（`doc` 字段，可选，string 或 list[string]）：记录时如果这个 bug 关联某个 openspec 文档
+  （design/proposal/rule 等），尽量把该文档路径填进 `doc` 字段——填对格式后在 review 工具里能直接点开。
+  路径不带 `openspec/` 前缀也会被自动补上；写进详细块的 **关联文档** 行（多个路径用「、」分隔），
+  不会出现在总览表里。路径不存在只警告不阻断。不传时，若能从 `change` 探测到
+  `design.md`/`proposal.md`（含已归档的 `changes/archive/*-{change}/`），会自动带上。
 - 脚本回 `{"id","file","status","time","change"}`——把分到的 ID 告诉用户。
 
 **摘要 vs 标题**：表里 `summary` 一句话讲现象（不是根因）；详细块标题默认取 summary，

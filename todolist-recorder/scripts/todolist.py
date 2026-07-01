@@ -18,6 +18,7 @@ skill `todolist-recorder` 的执行核心。收集优化想法/技术债/改进�
 
 import argparse
 import datetime
+import glob
 import json
 import os
 import re
@@ -71,6 +72,59 @@ def detect_change(root):
     if candidate and (not dirs or candidate in dirs):
         return candidate
     return ""
+
+
+# ── 关联文档 doc ─────────────────────────────────────────────────────────────
+
+def normalize_doc_paths(doc):
+    """把 add 时传入的 doc 字段（str / list[str] / 空）归一化为 list[str]，
+    每项保证以 'openspec/' 开头（缺前缀则补）。不强制要求 .md 结尾——
+    非 .md 路径仍会被记录，只是不会被 review 工具的 linkify 正则识别为可点击链接
+    （该正则只认 `openspec/...同.md` 结尾的反引号内联代码）。"""
+    if not doc:
+        return []
+    items = [doc] if isinstance(doc, str) else list(doc)
+    out = []
+    for item in items:
+        item = (item or "").strip()
+        if not item:
+            continue
+        if not item.startswith("openspec/"):
+            item = "openspec/" + item.lstrip("/")
+        out.append(item)
+    return out
+
+
+def validate_doc_paths(root, docs):
+    """软校验：文档路径（相对 root）不存在只打 stderr 警告，不阻断记录——
+    这个功能的目的是鼓励关联文档，不是做门禁。"""
+    for d in docs:
+        if not os.path.isfile(os.path.join(root, d)):
+            print(f"WARNING: 关联文档路径不存在：{d}", file=sys.stderr)
+
+
+def auto_default_doc(root, change):
+    """change 已知但显式 doc 为空时，尽力探测关联文档，按优先级：
+    1) openspec/changes/{change}/design.md
+    2) openspec/changes/{change}/proposal.md
+    3) openspec/changes/archive/*-{change}/design.md（glob，归档目录名前缀是不可预测的日期）
+    4) 同上但 proposal.md
+    每一步只在“唯一匹配”时采用；glob 命中多个时不猜，直接跳过该步。
+    全部落空则返回 []（best-effort，不是必须项）。仅在调用方没有显式传 doc 时才应调用本函数，
+    不覆盖显式值。"""
+    if not change:
+        return []
+    for name in ("design.md", "proposal.md"):
+        candidate = os.path.join("openspec", "changes", change, name)
+        if os.path.isfile(os.path.join(root, candidate)):
+            return [candidate.replace(os.sep, "/")]
+    for name in ("design.md", "proposal.md"):
+        pattern = os.path.join(root, "openspec", "changes", "archive", f"*-{change}", name)
+        matches = glob.glob(pattern)
+        if len(matches) == 1:
+            rel = os.path.relpath(matches[0], root)
+            return [rel.replace(os.sep, "/")]
+    return []
 
 
 def todolists_dir(root):
@@ -196,6 +250,11 @@ def cmd_add(args):
     time_str = args.time or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     change = data.get("change") or detect_change(root)
 
+    docs = normalize_doc_paths(data.get("doc"))
+    if not docs:
+        docs = auto_default_doc(root, change)  # 显式 doc 优先；仅在为空时才尝试自动关联
+    validate_doc_paths(root, docs)
+
     with open(path, encoding="utf-8") as f:
         lines = f.readlines()
     sec = split_sections(lines)
@@ -206,8 +265,8 @@ def cmd_add(args):
            f"{status} | {time_str} | {change or '-'} |\n")
     lines.insert(sec["rows_end"], row)
 
-    # 详细块可选：只有给了 动机/思路/备注 才写（轻量优先）
-    block = _build_block(tid, data, status)
+    # 详细块可选：给了 动机/思路/备注，或有关联文档，才写（轻量优先）
+    block = _build_block(tid, data, status, docs)
     if block:
         lines.append(block)
 
@@ -218,14 +277,17 @@ def cmd_add(args):
                      ensure_ascii=False))
 
 
-def _build_block(tid, data, status):
+def _build_block(tid, data, status, docs=None):
+    docs = docs or []
     parts = {k: data.get(k, "").strip() for k in ("motivation", "approach", "note")}
-    if not any(parts.values()):
+    if not any(parts.values()) and not docs:
         return ""  # 简单项：不建块
     title = data.get("title") or data["summary"]
     b = f"\n---\n\n## {tid}: {title}\n\n"
     b += "| 属性 | 值 |\n|------|------|\n"
     b += f"| 模块 | `{data['module']}` |\n| 类型 | {data['type']} |\n| 状态 | {status} |\n"
+    if docs:
+        b += "\n**关联文档**：" + "、".join(f"`{d}`" for d in docs) + "\n"
     if parts["motivation"]:
         b += f"\n**动机**：{parts['motivation']}\n"
     if parts["approach"]:

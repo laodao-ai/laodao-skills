@@ -18,6 +18,7 @@ skill `buglist-recorder` 的执行核心。把"判断"留给模型（现象 vs �
 
 import argparse
 import datetime
+import glob
 import json
 import os
 import re
@@ -71,6 +72,66 @@ def detect_change(root):
     if candidate and (not dirs or candidate in dirs):
         return candidate
     return ""
+
+
+# ── 关联文档 doc ─────────────────────────────────────────────────────────────
+
+def normalize_doc_paths(doc):
+    """把 add 时传入的 doc 字段（str / list[str] / 空）归一化为 list[str]，
+    每项保证以 'openspec/' 开头（缺前缀则补）。不强制要求 .md 结尾——
+    非 .md 路径仍会被记录，只是不会被 review 工具的 linkify 正则识别为可点击链接
+    （该正则只认 `openspec/...同.md` 结尾的反引号内联代码）。"""
+    if not doc:
+        return []
+    items = [doc] if isinstance(doc, str) else list(doc)
+    out = []
+    for item in items:
+        item = (item or "").strip()
+        if not item:
+            continue
+        if not item.startswith("openspec/"):
+            item = "openspec/" + item.lstrip("/")
+        out.append(item)
+    return out
+
+
+def validate_doc_paths(root, docs):
+    """软校验：文档路径（相对 root）不存在只打 stderr 警告，不阻断记录——
+    这个功能的目的是鼓励关联文档，不是做门禁。"""
+    for d in docs:
+        if not os.path.isfile(os.path.join(root, d)):
+            print(f"WARNING: 关联文档路径不存在：{d}", file=sys.stderr)
+
+
+def auto_default_doc(root, change):
+    """change 已知但显式 doc 为空时，尽力探测关联文档，按优先级：
+    1) openspec/changes/{change}/design.md
+    2) openspec/changes/{change}/proposal.md
+    3) openspec/changes/archive/*-{change}/design.md（glob，归档目录名前缀是不可预测的日期）
+    4) 同上但 proposal.md
+    每一步只在“唯一匹配”时采用；glob 命中多个时不猜，直接跳过该步。
+    全部落空则返回 []（best-effort，不是必须项）。仅在调用方没有显式传 doc 时才应调用本函数，
+    不覆盖显式值。"""
+    if not change:
+        return []
+    for name in ("design.md", "proposal.md"):
+        candidate = os.path.join("openspec", "changes", change, name)
+        if os.path.isfile(os.path.join(root, candidate)):
+            return [candidate.replace(os.sep, "/")]
+    for name in ("design.md", "proposal.md"):
+        pattern = os.path.join(root, "openspec", "changes", "archive", f"*-{change}", name)
+        matches = glob.glob(pattern)
+        if len(matches) == 1:
+            rel = os.path.relpath(matches[0], root)
+            return [rel.replace(os.sep, "/")]
+    return []
+
+
+def render_doc_block(docs):
+    """渲染详细块里的『关联文档』行；docs 为空则返回空串（不插入该行）。"""
+    if not docs:
+        return ""
+    return "\n**关联文档**：" + "、".join(f"`{d}`" for d in docs) + "\n"
 
 
 def buglists_dir(root):
@@ -199,7 +260,7 @@ BLOCK_TMPL = """
 | 模块 | `{module}` |
 | 优先级 | {priority} |
 | 状态 | {status} |
-
+{doc_block}
 **现象**：{phenomenon}
 
 **根因**：{rootcause}
@@ -229,6 +290,11 @@ def cmd_add(args):
     time_str = args.time or datetime.datetime.now().strftime("%H:%M")
     change = data.get("change") or detect_change(root)
 
+    docs = normalize_doc_paths(data.get("doc"))
+    if not docs:
+        docs = auto_default_doc(root, change)  # 显式 doc 优先；仅在为空时才尝试自动关联
+    validate_doc_paths(root, docs)
+
     with open(path, encoding="utf-8") as f:
         lines = f.readlines()
     sec = split_sections(lines)
@@ -242,6 +308,7 @@ def cmd_add(args):
     block = BLOCK_TMPL.format(
         id=bid, title=data.get("title") or data["summary"],
         module=data["module"], priority=data["priority"], status=status,
+        doc_block=render_doc_block(docs),
         phenomenon=data["phenomenon"],
         rootcause=data.get("rootcause", "").strip() or "<待分析>",
         fix=_as_list(data.get("fix")), impact=data.get("impact", "<待评估>"),
