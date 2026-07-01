@@ -11,25 +11,29 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 from gen_review_stub import gen_review_stub
 
 
+# Placeholder template content used by the fixture below. gen_review_stub no longer does
+# any scope-token substitution — it's a plain copy — so this can be any fixed string; tests
+# assert the written stub equals this exact content.
+STUB_TEMPLATE = '<script>window.location.pathname; /* review stub fixture */</script>'
+
+
 def make_project(tmp_path, with_review_tool=True, with_roadmap_dir=True):
     osroot = tmp_path / "openspec"
     if with_roadmap_dir:
         (osroot / "roadmaps" / "my-feature").mkdir(parents=True)
     if with_review_tool:
         (osroot / "tools").mkdir(parents=True, exist_ok=True)
-        (osroot / "tools" / "review-stub.html").write_text(
-            '<script>window.__OPENSPEC_REVIEW_SCOPE__ = "__SCOPE__";</script>', encoding="utf-8"
-        )
+        (osroot / "tools" / "review-stub.html").write_text(STUB_TEMPLATE, encoding="utf-8")
         (osroot / "review.html").write_text("root", encoding="utf-8")
     return tmp_path
 
 
 class TestGenReviewStub:
-    def test_writes_stub_with_correct_scope(self, tmp_path):
+    def test_writes_stub_matching_template(self, tmp_path):
         make_project(tmp_path)
         dst = gen_review_stub(str(tmp_path), "my-feature")
         content = Path(dst).read_text(encoding="utf-8")
-        assert 'window.__OPENSPEC_REVIEW_SCOPE__ = "roadmaps/my-feature/";' in content
+        assert content == STUB_TEMPLATE
 
     def test_raises_when_review_tool_missing(self, tmp_path):
         make_project(tmp_path, with_review_tool=False)

@@ -9,6 +9,11 @@ from pathlib import Path
 
 HOOK = str(Path(__file__).parent.parent / "assets" / "hooks" / "change-review-stub.py")
 
+# Placeholder template content used by the fixture below. The hook no longer does any
+# scope-token substitution — it's a plain copy — so this can be any fixed string; tests
+# assert the written stub equals this exact content.
+STUB_TEMPLATE = '<script>window.location.pathname; /* review stub fixture */</script>'
+
 
 def run_hook(payload, cwd):
     return subprocess.run(
@@ -26,9 +31,7 @@ def make_project(tmp_path, with_review_tool=True):
     (osroot / "changes" / "add-widget").mkdir(parents=True)
     if with_review_tool:
         (osroot / "tools").mkdir(parents=True, exist_ok=True)
-        (osroot / "tools" / "review-stub.html").write_text(
-            '<script>window.__OPENSPEC_REVIEW_SCOPE__ = "__SCOPE__";</script>', encoding="utf-8"
-        )
+        (osroot / "tools" / "review-stub.html").write_text(STUB_TEMPLATE, encoding="utf-8")
         (osroot / "review.html").write_text("root", encoding="utf-8")
     return tmp_path
 
@@ -45,7 +48,7 @@ class TestChangeReviewStubHook:
         assert result.returncode == 0
         stub = tmp_path / "openspec" / "changes" / "add-widget" / "review.html"
         assert stub.is_file()
-        assert 'window.__OPENSPEC_REVIEW_SCOPE__ = "changes/add-widget/";' in stub.read_text(encoding="utf-8")
+        assert stub.read_text(encoding="utf-8") == STUB_TEMPLATE
 
     def test_skips_silently_when_review_tool_not_installed(self, tmp_path):
         make_project(tmp_path, with_review_tool=False)
@@ -136,6 +139,6 @@ class TestChangeReviewStubHook:
         }
         result = run_hook(payload, tmp_path)
         assert result.returncode == 0
-        # Verify the file now contains valid content
+        # Verify the file now contains valid content (fresh copy of the template)
         content = review_file.read_text(encoding="utf-8")
-        assert 'window.__OPENSPEC_REVIEW_SCOPE__ = "changes/add-widget/";' in content
+        assert content == STUB_TEMPLATE

@@ -27,11 +27,12 @@ class TestCopyReviewTool:
         assert (osroot / "review.html").is_file()
         assert n > 0
 
-    def test_root_review_html_has_empty_scope(self, tmp_path):
+    def test_root_review_html_matches_template(self, tmp_path):
         copy_review_tool(str(tmp_path))
-        content = (tmp_path / "openspec" / "review.html").read_text(encoding="utf-8")
-        assert 'window.__OPENSPEC_REVIEW_SCOPE__ = "";' in content
-        assert "__SCOPE__" not in content
+        osroot = tmp_path / "openspec"
+        content = (osroot / "review.html").read_text(encoding="utf-8")
+        template = (osroot / "tools" / "review-stub.html").read_text(encoding="utf-8")
+        assert content == template
 
     def test_serve_sh_is_executable(self, tmp_path):
         copy_review_tool(str(tmp_path))
@@ -44,7 +45,8 @@ class TestCopyReviewTool:
         osroot = tmp_path / "openspec"
         assert (osroot / "review.html").is_file()
         content = (osroot / "review.html").read_text(encoding="utf-8")
-        assert content.count("__OPENSPEC_REVIEW_SCOPE__") == 1  # not duplicated/appended
+        template = (osroot / "tools" / "review-stub.html").read_text(encoding="utf-8")
+        assert content == template  # still a clean copy, not duplicated/appended
 
 
 class TestEnsureGlobalHooks:

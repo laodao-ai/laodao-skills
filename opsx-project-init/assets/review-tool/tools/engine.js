@@ -46,8 +46,8 @@ if (typeof module !== 'undefined' && module.exports) {
 
 if (typeof document !== 'undefined') {
   (function () {
-    const SCOPE = window.__OPENSPEC_REVIEW_SCOPE__ || '';
-    const initialDir = SCOPE ? `/${SCOPE}` : '/';
+    const initialDir = window.location.pathname.replace(/[^/]*$/, '');
+    const isRootEntry = initialDir === '/';
 
     const app = document.getElementById('app');
     const sidebar = document.createElement('div');
@@ -75,7 +75,7 @@ if (typeof document !== 'undefined') {
         .filter((e) => e.isDir || isMarkdownPath(e.name))
         .sort((a, b) => (a.isDir === b.isDir ? a.name.localeCompare(b.name) : a.isDir ? -1 : 1));
       sidebar.innerHTML = '';
-      if (SCOPE !== '') {
+      if (!isRootEntry) {
         const back = document.createElement('a');
         back.href = '/review.html';
         back.className = 'back-link';

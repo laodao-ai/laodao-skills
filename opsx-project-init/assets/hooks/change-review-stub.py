@@ -11,8 +11,9 @@
   · 解析出 <name>；若 openspec/changes/<name>/ 不存在（如被 FF-0 拦下、或命令本身失败）→ 静默放行。
   · 若项目根 openspec/review.html 或 openspec/tools/review-stub.html 不存在（还没跑过
     opsx-project-init）→ 静默放行，不强迫铺设顺序。
-  · 否则读模板、替换 __SCOPE__ 为 "changes/<name>/"，写入
-    openspec/changes/<name>/review.html（幂等：内容已一致则跳过写入）。
+  · 否则读模板、原样写入 openspec/changes/<name>/review.html（幂等：内容已一致则跳过写入）。
+    目录 scope 不再靠模板占位符固化，而由 engine.js 在加载时从 window.location.pathname 推导，
+    故本 hook 只需保证目录里有一份与模板字节一致的 review.html。
   · 任何异常 → 静默放行（fail-open，绝不因本 hook 故障阻断正常工作）。
 
 铺设/注册：全局装于 ~/.claude/hooks/ + 注册进 ~/.claude/settings.json 的 PostToolUse.Bash
@@ -57,7 +58,6 @@ def main() -> None:
     except OSError:
         sys.exit(0)
 
-    stub_content = template.replace("__SCOPE__", f"changes/{name}/")
     dst = os.path.join(change_dir, "review.html")
     existing = None
     if os.path.exists(dst):
@@ -65,10 +65,10 @@ def main() -> None:
             existing = open(dst, encoding="utf-8").read()
         except (OSError, UnicodeDecodeError):
             existing = None
-    if existing != stub_content:
+    if existing != template:
         try:
             with open(dst, "w", encoding="utf-8") as f:
-                f.write(stub_content)
+                f.write(template)
         except OSError:
             sys.exit(0)
 
