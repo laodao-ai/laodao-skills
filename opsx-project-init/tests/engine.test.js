@@ -5,6 +5,7 @@ const {
   linkifyBacktickPaths,
   resolveLink,
   isMarkdownPath,
+  parentOf,
 } = require('../assets/review-tool/tools/engine.js');
 
 test('parseDirectoryListing: files and subdirectories', () => {
@@ -73,4 +74,16 @@ test('isMarkdownPath: recognizes .md case-insensitively, rejects directories/oth
   assert.equal(isMarkdownPath('/foo/bar.MD'), true);
   assert.equal(isMarkdownPath('/foo/bar/'), false);
   assert.equal(isMarkdownPath('/foo/bar.yaml'), false);
+});
+
+test('parentOf: nested change directory goes up one level', () => {
+  assert.equal(parentOf('/changes/archive/2026-07-01-foo/'), '/changes/archive/');
+});
+
+test('parentOf: top-level directory goes up to root', () => {
+  assert.equal(parentOf('/changes/'), '/');
+});
+
+test('parentOf: root has no parent', () => {
+  assert.equal(parentOf('/'), null);
 });

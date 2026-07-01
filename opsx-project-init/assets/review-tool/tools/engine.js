@@ -38,8 +38,23 @@ function isMarkdownPath(path) {
   return /\.md$/i.test(path);
 }
 
+function parentOf(dirPath) {
+  // dirPath always ends with '/' (this codebase's convention for directory paths),
+  // e.g. '/changes/archive/foo/' -> '/changes/archive/'; '/changes/' -> '/'; '/' -> null.
+  if (dirPath === '/') return null;
+  const trimmed = dirPath.slice(0, -1);
+  const idx = trimmed.lastIndexOf('/');
+  return trimmed.slice(0, idx + 1);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { parseDirectoryListing, linkifyBacktickPaths, resolveLink, isMarkdownPath };
+  module.exports = {
+    parseDirectoryListing,
+    linkifyBacktickPaths,
+    resolveLink,
+    isMarkdownPath,
+    parentOf,
+  };
 }
 
 // ---- DOM glue (browser-only; the `typeof document` guard keeps this inert under Node) ----
@@ -47,7 +62,6 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof document !== 'undefined') {
   (function () {
     const initialDir = window.location.pathname.replace(/[^/]*$/, '');
-    const isRootEntry = initialDir === '/';
     // The shell page itself never navigates (history is hash-based, see `navigate`
     // below), so `window.location.pathname` always stays at the shell's own path.
     // Relative markdown links must instead be resolved against whatever doc/dir is
@@ -81,12 +95,26 @@ if (typeof document !== 'undefined') {
         .filter((e) => e.isDir || isMarkdownPath(e.name))
         .sort((a, b) => (a.isDir === b.isDir ? a.name.localeCompare(b.name) : a.isDir ? -1 : 1));
       sidebar.innerHTML = '';
-      if (!isRootEntry) {
-        const back = document.createElement('a');
-        back.href = '/review.html';
-        back.className = 'back-link';
-        back.textContent = '← 全部文档'; // ← 全部文档
-        sidebar.appendChild(back);
+      if (dirPath !== '/') {
+        const toolbar = document.createElement('div');
+        toolbar.className = 'sidebar-toolbar';
+
+        const home = document.createElement('a');
+        home.href = '/';
+        home.className = 'nav-link home-link';
+        home.textContent = '🏠 首页';
+        toolbar.appendChild(home);
+
+        const parent = parentOf(dirPath);
+        if (parent) {
+          const up = document.createElement('a');
+          up.href = parent;
+          up.className = 'nav-link up-link';
+          up.textContent = '↑ 上级目录';
+          toolbar.appendChild(up);
+        }
+
+        sidebar.appendChild(toolbar);
       }
       const list = document.createElement('ul');
       entries.forEach((e) => {
