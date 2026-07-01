@@ -48,6 +48,12 @@ if (typeof document !== 'undefined') {
   (function () {
     const initialDir = window.location.pathname.replace(/[^/]*$/, '');
     const isRootEntry = initialDir === '/';
+    // The shell page itself never navigates (history is hash-based, see `navigate`
+    // below), so `window.location.pathname` always stays at the shell's own path.
+    // Relative markdown links must instead be resolved against whatever doc/dir is
+    // CURRENTLY DISPLAYED — track that explicitly here, updated on every successful
+    // navigation.
+    let currentPath = initialDir;
 
     const app = document.getElementById('app');
     const sidebar = document.createElement('div');
@@ -116,6 +122,7 @@ if (typeof document !== 'undefined') {
         } else {
           await loadDoc(path);
         }
+        currentPath = path;
         if (push) history.pushState({ path }, '', `#${path}`);
       } catch (err) {
         content.innerHTML = `<p class="error">加载失败：${escapeHtml(path)}</p>`;
@@ -127,7 +134,18 @@ if (typeof document !== 'undefined') {
       if (!a) return;
       const href = a.getAttribute('href');
       if (!href) return;
-      const resolved = resolveLink(href, window.location.href);
+      // Only intercept links to markdown docs or directory listings — everything
+      // else (images, `/tools/engine.js`, same-page `#fragment` anchors, etc.)
+      // should fall through to native browser handling. Checking the raw href
+      // (not the resolved URL) means a bare `#foo` fragment is correctly excluded
+      // here too, since it's neither a `.md` path nor directory-shaped.
+      if (!isMarkdownPath(href) && !href.endsWith('/')) return;
+      // Resolve against the CURRENTLY DISPLAYED doc/dir, not `window.location.href`
+      // — the shell's own location never changes (hash-based history), so resolving
+      // against it would break every relative link in a doc that isn't sitting next
+      // to the shell file.
+      const base = new URL(currentPath, window.location.origin).toString();
+      const resolved = resolveLink(href, base);
       const url = new URL(resolved);
       // resolveLink always returns an absolute URL (even for same-origin sidebar
       // links), so a naive `startsWith('http://')` check can't distinguish "real"
