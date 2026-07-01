@@ -64,6 +64,25 @@ body {
 #content {
   flex: 1;
   overflow-y: auto;
+  /* Padding moved onto #path-bar / #content-body individually (instead of
+     living here directly) so #path-bar can stick to the very top edge of
+     this scroll container — see #path-bar below. */
+  display: flex;
+  flex-direction: column;
+}
+
+#path-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+  padding: 8px 40px;
+  font-size: 12px;
+  color: #666;
+  border-bottom: 1px solid #ddd;
+}
+
+#content-body {
   padding: 24px 40px;
 }
 

@@ -74,6 +74,16 @@ if (typeof document !== 'undefined') {
     sidebar.id = 'sidebar';
     const content = document.createElement('div');
     content.id = 'content';
+    // `pathBar` is a persistent, always-visible "you are here" indicator —
+    // separate from `contentBody` (where loadDir/loadDoc write their rendered
+    // output) so re-rendering a doc/dir never wipes it out. Appended before
+    // `contentBody` so it sits at the top of #content (sticky, via CSS).
+    const pathBar = document.createElement('div');
+    pathBar.id = 'path-bar';
+    const contentBody = document.createElement('div');
+    contentBody.id = 'content-body';
+    content.appendChild(pathBar);
+    content.appendChild(contentBody);
     app.appendChild(sidebar);
     app.appendChild(content);
 
@@ -99,6 +109,10 @@ if (typeof document !== 'undefined') {
     }
 
     async function loadSidebar(dirPath) {
+      // Same directory-path value the sidebar itself draws from — surface it
+      // in the persistent path bar too, so "where am I" is visible without
+      // relying on the sidebar's home/up toolbar (which is hidden at root).
+      pathBar.textContent = `📂 ${dirPath}`;
       const html = await fetchText(dirPath);
       const entries = parseDirectoryListing(html)
         .filter((e) => e.isDir || isMarkdownPath(e.name))
@@ -139,14 +153,14 @@ if (typeof document !== 'undefined') {
 
     async function loadDir(path) {
       await loadSidebar(path);
-      content.innerHTML = `<p class="hint">目录：${escapeHtml(path)}<br>请选择左侧的文档。</p>`;
+      contentBody.innerHTML = `<p class="hint">目录：${escapeHtml(path)}<br>请选择左侧的文档。</p>`;
       document.title = path;
     }
 
     async function loadDoc(path) {
       const md = await fetchText(path);
       const rendered = window.marked ? window.marked.parse(md) : `<pre>${escapeHtml(md)}</pre>`;
-      content.innerHTML = linkifyBacktickPaths(rendered);
+      contentBody.innerHTML = linkifyBacktickPaths(rendered);
       document.title = path;
       const dir = path.replace(/[^/]*$/, '');
       await loadSidebar(dir);
@@ -162,7 +176,7 @@ if (typeof document !== 'undefined') {
         currentPath = path;
         if (push) history.pushState({ path }, '', `#${path}`);
       } catch (err) {
-        content.innerHTML = `<p class="error">加载失败：${escapeHtml(path)}</p>`;
+        contentBody.innerHTML = `<p class="error">加载失败：${escapeHtml(path)}</p>`;
       }
     }
 
@@ -198,6 +212,29 @@ if (typeof document !== 'undefined') {
       navigate(path, false);
     });
 
-    navigate(initialDir, false);
+    // Root entry (this shell's own directory, not a roadmap/change sub-directory
+    // entry): greet the visitor with openspec/INDEX.md's rendered content instead
+    // of the generic "选择左侧文档" hint. `loadDoc` already populates the sidebar
+    // with the containing directory's listing as a side effect (via its own
+    // `loadSidebar(dir)` call), so the root directory listing still shows up
+    // exactly as it does today — this is additive, not a replacement.
+    // If INDEX.md is missing or fails to fetch (e.g. the project hasn't run
+    // opsx-project-init recently enough to have one, or it was deleted), that
+    // must not surface as a scary "加载失败" error on first load — fall back to
+    // the plain directory-listing view instead.
+    async function bootstrap() {
+      if (initialDir === '/') {
+        try {
+          await loadDoc('/INDEX.md');
+          currentPath = '/INDEX.md';
+          return;
+        } catch (err) {
+          // fall through to the plain root directory listing below
+        }
+      }
+      await navigate(initialDir, false);
+    }
+
+    bootstrap();
   })();
 }
