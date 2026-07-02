@@ -1,20 +1,24 @@
 ---
 name: opsx-done
 description: >
-  Finalize an OpenSpec change: reconcile tasks → verify → archive (openspec CLI, with
+  Finalize an OpenSpec change: reconcile tasks → verify (evidence-anchored, anti-false-green) →
+  hand-off.md → archive (openspec CLI, with
   delta-spec sync into openspec/specs/) → git commit → merge to the repo's default branch
   BY DEFAULT (opt out by saying so at invocation). Steps are fixed + each runs in its own
   subagent, so model choice is per-step (no coupling): verify/archive → Sonnet (gate /
   judgment), commit → Haiku (mechanical). The archive subagent verifies each delta against
   actual code so the synced spec reflects post-review reality, not a stale delta; merge
   runs by default (ff) in the main session unless opted out (one-way git kept visible).
-  verify writes a verify-report.md into the change dir. Use when implementation is complete
-  and reviewed. Trigger with /opsx-done.
+  verify writes verify-report.md (every ✅ needs a machine-verifiable anchor — test name / commit /
+  file:line; no-anchor ✅ → gap); a hand-off.md (done/not-done + deferred items + next-stage advice)
+  is produced after verify and before archive, and travels with the archive. As the final gate after
+  stage-3 drops the human gate, verify runs on a strong model with a Do-Not-Trust cold start. Use when
+  implementation is complete and reviewed. Trigger with /opsx-done.
 ---
 
 # opsx-done — OpenSpec 变更收尾
 
-将 reconcile → verify → archive → git commit → merge 串成一条收尾流水线。各步独立子代理、按本步性质选 model（见「模型选择」）：**verify / archive → Sonnet**（门禁/判断），**commit → Haiku**（机械）；**merge** 留主 session（单向 git，缺省执行、调用时可 opt-out）。
+将 reconcile → verify → **hand-off** → archive → git commit → merge 串成一条收尾流水线。各步独立子代理、按本步性质选 model（见「模型选择」）：**verify / archive → Sonnet**（门禁/判断），**commit → Haiku**（机械）；**merge** 留主 session（单向 git，缺省执行、调用时可 opt-out）。
 
 > **核心改进（v3，基于实战）**：① 归档**必须**走 `openspec archive` CLI 以**同步 delta 到主 specs**（旧版手动 `mv` 漏了这步，新能力永远进不了 `openspec/specs/`），遇中文遗留 spec 用 `--skip-specs` + 手动同步；② 默认分支自动检测（勿假设 main）；③ **merge 缺省执行**（ff），不想合并就在调用时明说；④ verify 必产 `verify-report.md` 存 change 目录（随归档留档）；⑤ 步骤固定 + 各步独立子代理 → 按本步性质选 model（verify/archive=Sonnet、commit=Haiku）。
 
@@ -26,7 +30,7 @@ description: >
 
 若未指定 change 名称，`openspec list` 展示 active changes，请用户确认。记为 `{change_name}`，路径 `openspec/changes/{change_name}/`。
 
-**merge 缺省执行**：除非用户在调用本 skill 时**明确说不合并**（如「不要 merge」「don't merge」「只归档别合」「skip merge」「先不合」），否则第四步**默认 ff 合并到 `{base_branch}`**。在此记下 `{merge_intent}` = `merge`（默认）或 `skip`（用户 opt-out）。
+**merge 缺省执行**：除非用户在调用本 skill 时**明确说不合并**（如「不要 merge」「don't merge」「只归档别合」「skip merge」「先不合」），否则第五步**默认 ff 合并到 `{base_branch}`**。在此记下 `{merge_intent}` = `merge`（默认）或 `skip`（用户 opt-out）。
 
 ### 0.2 检测默认分支（勿假设 main）
 
@@ -51,6 +55,8 @@ git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/orig
 ## 第一步：Verify（Sonnet 子 agent）
 
 > 用 Sonnet 而非 Haiku：verify 是**质量门**且要 grep 代码判 PASS/FAIL、辨核心 vs Minor 缺口，judgment 活，弱模型易误判 PASS 放不完整的活进归档。opsx-done 低频，省那点 token 不值。
+>
+> **P3h 禁弱模型（阶段三去人类门后 verify = 唯一终门）**：铁律"带门禁 / 无人逐条复核的步别用弱模型——假绿会放不完整的活过关"。verify 用强模型 + 下方 prompt 的 **"Do Not Trust the Report" 冷启**，靠证据锚点硬约束堵假✅，不靠人盯。见 design §7.3.1 / adr/0001。
 
 派发 Agent（model: sonnet），prompt：
 
@@ -58,7 +64,7 @@ git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/orig
 你是 OpenSpec 验证助手。工作目录：{项目根目录}。
 任务：verify change `{change_name}`。
 
-**重要**：核对的是**代码是否真的实现了 tasks.md/specs 的每条要求**，不要只看复选框状态（实现可能经外部计划执行、复选框可能 stale）。
+**重要（Do Not Trust the Report，P3h 防假✅）**：核对的是**代码是否真的实现了 tasks.md/specs 的每条要求**，不要只看复选框状态、也不要信任任何已有报告的措辞（实现可能经外部计划执行；复选框/报告可能 stale 或乐观）。**每条判 ✅ 的需求必须附一个可机验证据锚点（测试名 / commit hash / 文件:行）；找不到锚点的一律判 gap，绝不凭复选框或"看起来做了"判 ✅**。真实事故：曾有 verify 把两条根本没落实的需求（无 benchmark 实现）标 ✅ 静默放过，靠事后人肉才揪出（见 design §7.3.1 / adr/0001）。
 
 步骤：
 1. Read openspec/changes/{change_name}/tasks.md（看要求什么）
@@ -70,7 +76,7 @@ git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/orig
    - **结论**：PASS / FAIL
    - **逐需求核对表**：| 需求/任务 | 代码出处(文件:行/迁移/测试) | 状态(✅实现/⚠️Minor缺口/❌核心缺失) |
    - **缺口清单**：核心缺口（FAIL 项）+ Minor 缺口（注明可接受/deferred）
-   - 此文件会随第二步归档一起进 `openspec/changes/archive/`，作为本 change 的验证留档
+   - 此文件会随第三步归档一起进 `openspec/changes/archive/`，作为本 change 的验证留档
 6. 末行输出：PASS 或 FAIL（附原因）
 
 先 Read 再 Edit。报告**不可省**——没有 verify-report.md 视为 verify 未完成。
@@ -81,7 +87,23 @@ git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/orig
 
 ---
 
-## 第二步：Archive + Spec 同步（Sonnet 子 agent）
+## 第二步：产出 hand-off.md（P3g，verify 之后 / archive 之前）
+
+verify 判定完（它才权威定完整性）后、归档前，产出 `{change_dir}/hand-off.md`——**异步人类再入口 + 下个 change 种子**，随归档一起进 `archive/`。主 session 直接写（它有本 change 的 why 与 defer 上下文）或派 Sonnet 子代理。
+
+**三段内容**：
+
+1. **✅ 完成了什么**：引 verify-report 的 done 项。**P3h-c：不直接搬运 verify 的 ✅**——每条至少复核锚点存在性（测试名 / commit / 文件:行 真的在），再写进"完成"；无锚点的不写成完成。
+2. **⏳ 未完成 / 延后**：本 change 新增的 buglist/todolist（impl-review defer 的）+ 被延后的 ≥2 方案决策（附当时自动选了什么 / 为何拿不准）+ verify 的 Minor 缺口。
+3. **▶ 下一阶段建议**：建议开哪个清理 change、优先级；哪些 defer 项该一起清。
+
+> **为何独立成步、不并进 verify 或 archive**：verify 判"完整性"、hand-off 是"给人的高层交接 + 下阶段种子"，altitude 不同；时机必须在 verify **之后**（引其权威结论）、archive **之前**（随归档留档）。opsx-done 是自制 skill，加此步无碍。
+
+> 〔Phase B 补〕正式 **issues sweep 步**（`scan --status OPEN --源 {本change}` → 逐项分诊入批次 → 写 `batches.md`(PLANNED) → hand-off 引用批次）属 Phase B（I5/I6）。Phase A 的 hand-off 只**列 defer 项 + 建议开清理 change**，不做正式分诊入批次。
+
+---
+
+## 第三步：Archive + Spec 同步（Sonnet 子 agent）
 
 整步交一个 **Sonnet** 子 agent 执行（隔离主 session 上下文）。它**不能假设知道本次实现细节**（fresh 上下文），所以 prompt 要求它**读真实代码核对每条 delta**——这样同步出的 spec 反映**终审后实况**而非可能过时的 delta，无需控制者口头传递偏差。
 
@@ -138,7 +160,7 @@ MUST 段之后或行内。
 
 ---
 
-## 第三步：Git Commit（Haiku 子 agent）
+## 第四步：Git Commit（Haiku 子 agent）
 
 > 用 Haiku：本步纯机械（git add + 从 diff 生成 message），独立子代理无干扰、失败也就重生成 message。verify/archive 用 sonnet 是因它们是门禁/判断步（凭本步性质，非"统一"）。详见「模型选择」。
 
@@ -168,9 +190,9 @@ MUST 段之后或行内。
 
 ---
 
-## 第四步：Merge 到默认分支（缺省执行，主 session）
+## 第五步：Merge 到默认分支（缺省执行，主 session）
 
-**缺省合并**：除非第 0.1 步记下 `{merge_intent}=skip`（用户调用时明确不合并），否则前三步成功后**直接 ff 合并**，不再逐次询问。
+**缺省合并**：除非第 0.1 步记下 `{merge_intent}=skip`（用户调用时明确不合并），否则前四步成功后**直接 ff 合并**，不再逐次询问。
 
 - `{merge_intent}=skip` → 跳过本步，摘要里标「⏭ 按调用意图跳过 merge（分支留待手动处理）」。**不自动 push**。
 - `{merge_intent}=merge`（默认）→ 主 session 直接执行（单向 git，留主 session 可见，不丢子代理）：
@@ -189,14 +211,15 @@ git merge --ff-only {feat_branch}
 
 ---
 
-## 第五步：输出最终摘要
+## 第六步：输出最终摘要
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 opsx-done 完成
 
   Change:  {change_name}
-  Verify:  ✅ PASS（+ Minor 缺口 N 项，见 verify-report）
+  Verify:  ✅ PASS（+ Minor 缺口 N 项，见 verify-report；每 ✅ 附锚点）
+  Hand-off:✅ hand-off.md（done/not-done + 延后项 + 下阶段建议，随归档）
   Archive: openspec/changes/archive/{date}-{change_name}/
   Specs:   ✅ 同步主 specs（新建 / 追加 / INDEX）｜或 ⚠️ --skip-specs 手动同步
   Commit:  {hash} — {message}
@@ -217,6 +240,8 @@ opsx-done 完成
 - **默认分支检测**：勿假设 main。
 - **merge 缺省执行**（ff-only）；仅当调用时明确 opt-out 才跳过；ff 不可行/冲突则停下交用户；**不自动 push**。
 - **verify 必产 `verify-report.md`** 存 change 目录（随归档留档）。
+- **verify 防假✅（P3h）**：每条 ✅ 必附机验锚点（测试名/commit/文件:行），无锚点 ✅ 降级 gap；强模型 + Do-Not-Trust 冷启（阶段三去人类门后 verify 是唯一终门，禁弱模型）。见 design §7.3.1 / adr/0001。
+- **hand-off.md（P3g）**：verify 之后 / archive 之前产出（done/not-done + 延后项 + 下阶段建议），随归档留档，作异步人类再入口 + 下个 change 种子；**不直接搬运 verify 的 ✅**（复核锚点存在性）。
 
 ## 模型选择（按本步性质，逐步定）
 
