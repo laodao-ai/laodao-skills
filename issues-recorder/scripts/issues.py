@@ -13,15 +13,23 @@ per-type 脚本。
     join 成一份跨两池的 item 列表（每项打 `pool` 标记），join 后立即用
     `cross_pool_id_conflicts` 做 D9 防护网校验。
   - `cross_pool_id_conflicts(items)`（Task 8）：纯函数，检测同一 ID 是否跨池撞号。
-  - `reindex`（Task 9，本任务）：`read_pool` → `generate_index_md` 纯函数重建
+  - `reindex`（Task 9）：`read_pool` → `generate_index_md` 纯函数重建
     `issues/INDEX.md`（首行 GENERATED banner + open item×批次物化板 + 已闭合摘要）
     → `atomic_write` 原子落盘。**禁读旧 INDEX**（D3，全量确定性重建）、**幂等**（D7）。
-    批次状态同步（tasks.md §3.2）留 Task 11；`issues/batches.md` 注册表留 Task 10——
-    两者落地前 `reindex` 只做 INDEX 这一半。
-  - `batch`：argparse 占位（真逻辑见 tasks.md §3.3 / Task 11），当前只报"未实现"
-    并以非零退出。
+    批次状态同步（tasks.md §3.2，拿 item 池校验/回写 `batches.md` 的 `状态:` 生成行）
+    留 Task 11——本命令只做 INDEX 这一半，不碰 `issues/batches.md`。
+  - `batch`（Task 10，本任务）：`issues/batches.md` 注册表 + `add`/`set-status`/`rename`
+    三个子命令（Q2 grill-amendment）。`batches.md` 是**半手维护**注册表（Q3 字段级
+    grammar）——`状态:`/`成员:` 是生成行（reindex/`batch set-status` 维护），
+    `优先级:`/`计划:` 及其它是人写行，**解析/写入绝不覆写人写行**，只精确 patch
+    目标生成行。`成员:` 行的内容同步（拿 item 池当 ground truth 填充）留 Task 11 的
+    reindex 负责，本任务的 `add` 只把它建成空占位、`set-status`/`rename` 都不碰它。
+    `rename` 额外要把 item 池（bug+todo 两池）里所有 `批次==old` 的项同步改成
+    `new`——直接精确 patch 对应 dated 文件的批次列（表末列 `cells[7]`），不经由
+    per-type 脚本的 `triage` 子命令，因为 `triage` 有"未分诊开放态→PROPOSED"的状态
+    推进副作用，rename 只该改标签本身、不该顺带推状态。
   - `atomic_write`：与 buglist.py/todolist.py 同款原子写 helper，供落盘
-    `issues/INDEX.md`/`issues/batches.md` 用。
+    `issues/INDEX.md`/`issues/batches.md`/dated 文件（rename 同步）用。
 
 **并发假设边界（D8）**：本脚本假定单机单进程串行调用，不加锁、不做文件锁/乐观锁/CAS。
 umbrella 设计认定"并发/共享可变状态"属 TG-26，但 TG-26 要 Phase C 才落地；Phase B（本
@@ -35,6 +43,7 @@ buglist.py/todolist.py 的写操作并发交叉。
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -280,28 +289,264 @@ def cmd_reindex(args):
     print(f"reindex：已重建 {index_path}（open {open_n} 项，已闭合 {closed_n} 项）")
 
 
-def cmd_batch(args):
-    """占位：真逻辑（`issues/batches.md` 注册表 + add/set-status）见 tasks.md §3.3。"""
-    print(
-        "batch：Task 8 只搭骨架，尚未实现——真逻辑见 tasks.md §3.3（Task 11）",
-        file=sys.stderr,
-    )
-    sys.exit(1)
+# ── issues/batches.md 注册表 + batch 命令（Task 10，Q2 rename / Q3 字段级 grammar） ──
+#
+# batches.md 每批一条，字段级 grammar（Q3 spec-review-amendment 裁决）：
+#
+#   ### {key} — {title}
+#   状态: PLANNED            ← 生成行（reindex / `batch set-status` 维护）
+#   成员: (生成) B1, T2      ← 生成行（reindex 维护，本任务只建空占位，填充留 Task 11）
+#   优先级: P1               ← 人写行（reindex/batch 绝不覆写）
+#   计划: 一句范围           ← 人写行（同上）
+#
+# 「生成行」= `状态:`/`成员:` 这两个固定前缀；「人写行」= 其它任意行（`优先级:`/`计划:`
+# 只是本任务默认写入的两个人写字段，条目里额外追加的其它人写行同样原样保留——本节所有
+# 解析/写入函数都按"整条 entry = 一段连续行"处理，只精确定位要 patch 的那一行，不touch
+# 该 entry 范围内除目标行以外的任何字符。
+
+BATCH_STATUSES = ["PLANNED", "IN_PROGRESS", "DONE"]
+BATCH_PLACEHOLDER = "<待填>"  # 与 buglist.py `_has_rootcause` 的 <待分析> 同款占位符风格
+
+# entry 头：`### {key} — {title}`（key/title 间用 em dash " — " 分隔，字面量，非正则元字符）
+_BATCH_HEADER_RE = re.compile(r"^### (?P<key>.+?) — (?P<title>.+?)\s*$")
+_BATCH_STATUS_LINE_RE = re.compile(r"^状态:\s*(.*)$")
+
+BATCHES_MD_HEADER = (
+    "# Issues 批次注册表\n"
+    "\n"
+    "> 半手维护：`状态:`/`成员:` 由 `issues.py`（reindex / `batch set-status`）维护，"
+    "其余字段（`优先级:`/`计划:` 等）人工填写——reindex/batch 只精确 patch 生成行，"
+    "绝不覆写人写行（Q3）。\n"
+    "\n"
+)
+
+
+def batches_md_path(root):
+    return os.path.join(root, "openspec", "issues", "batches.md")
+
+
+def _read_batches_lines(path):
+    """batches.md 不存在时视为空注册表（`[]`），供 add 首次建文件时走同一套逻辑。"""
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        return f.readlines()
+
+
+def _find_batch_entry_range(lines, key):
+    """在 `lines`（batches.md 全文按行切片）里定位 `key` 对应 entry 的行范围。
+
+    返回 `(header_idx, end_idx)`：entry 占 `lines[header_idx:end_idx]`（含 header 行，
+    不含下一个 entry 的 header 行/EOF）。`key` 未找到返回 `None`。
+
+    纯定位、不修改 `lines`——所有写操作都在调用方按需精确替换/插入某一行，其余行
+    （含同一 entry 内的人写行、以及其它 entry 的全部内容）原样保留在 `lines` 里。
+    """
+    header_idx = None
+    for i, line in enumerate(lines):
+        m = _BATCH_HEADER_RE.match(line.rstrip("\n"))
+        if m and m.group("key") == key:
+            header_idx = i
+            break
+    if header_idx is None:
+        return None
+    end_idx = len(lines)
+    for j in range(header_idx + 1, len(lines)):
+        if _BATCH_HEADER_RE.match(lines[j].rstrip("\n")):
+            end_idx = j
+            break
+    return header_idx, end_idx
+
+
+def _batch_entry_exists(lines, key):
+    return _find_batch_entry_range(lines, key) is not None
+
+
+def cmd_batch_add(args):
+    """`batch add {key}`：新建 PLANNED 条目，成员空；人写字段按参数写，缺省留占位
+    （`BATCH_PLACEHOLDER`，不是空字符串——占位和"确实填了空值"要能区分）。
+
+    已存在同 key → 报错（非 no-op）：add 是"新建"语义，撞号多半是误操作，报错比静默
+    跳过更安全——静默 no-op 会让调用方以为参数（title/优先级/计划）已生效，实际全被
+    忽略，是更隐蔽的坑。
+    """
+    root = args.root
+    path = batches_md_path(root)
+    lines = _read_batches_lines(path)
+    if _batch_entry_exists(lines, args.key):
+        _die(f"批次 key 已存在：{args.key}（add 不覆写已有条目；改状态用 set-status，改名用 rename）")
+
+    title = args.title or args.key
+    priority = getattr(args, "优先级") or BATCH_PLACEHOLDER
+    plan = getattr(args, "计划") or BATCH_PLACEHOLDER
+
+    entry_lines = [
+        f"### {args.key} — {title}\n",
+        "状态: PLANNED\n",
+        "成员: (生成)\n",
+        f"优先级: {priority}\n",
+        f"计划: {plan}\n",
+    ]
+
+    if not lines:
+        lines = [BATCHES_MD_HEADER]
+    elif lines[-1].strip() != "":
+        lines.append("\n")
+    lines.extend(entry_lines)
+    lines.append("\n")
+
+    atomic_write(path, "".join(lines))
+    print(json.dumps({"key": args.key, "title": title, "status": "PLANNED"}, ensure_ascii=False))
+
+
+def cmd_batch_set_status(args):
+    """`batch set-status {key} {S}`：只改该条目的 `状态:` 生成行，绝不动人写行（Q3）
+    或 `成员:` 生成行（那是 reindex/Task 11 的职责，本命令不碰）。
+    """
+    root = args.root
+    if args.status not in BATCH_STATUSES:
+        _die(f"批次状态非法：{args.status}（应为 {'/'.join(BATCH_STATUSES)}）")
+
+    path = batches_md_path(root)
+    lines = _read_batches_lines(path)
+    rng = _find_batch_entry_range(lines, args.key)
+    if rng is None:
+        _die(f"未找到批次 key：{args.key}")
+    header_idx, end_idx = rng
+
+    status_idx = None
+    for i in range(header_idx + 1, end_idx):
+        if _BATCH_STATUS_LINE_RE.match(lines[i].rstrip("\n")):
+            status_idx = i
+            break
+
+    old_status = None
+    if status_idx is not None:
+        old_status = _BATCH_STATUS_LINE_RE.match(lines[status_idx].rstrip("\n")).group(1).strip()
+        lines[status_idx] = f"状态: {args.status}\n"
+    else:
+        # 防御式兜底：条目缺 `状态:` 生成行（理论上 add 必写，这里只防手造/损坏的 batches.md）。
+        # 只在 header 后插一行，不碰任何既有人写行的位置。
+        lines.insert(header_idx + 1, f"状态: {args.status}\n")
+
+    atomic_write(path, "".join(lines))
+    print(json.dumps(
+        {"key": args.key, "old_status": old_status, "new_status": args.status}, ensure_ascii=False
+    ))
+
+
+def _retag_items_in_dated_files(root, items, old_key, new_key):
+    """rename 的跨池同步半：把 `items`（`read_pool` 结果）里所有 `批次==old_key` 的项，
+    在其各自 dated 文件里的批次列（表末列 `cells[7]`）精确改成 `new_key`。
+
+    刻意不走 per-type 脚本的 `triage` 子命令：`triage` 除了写批次列，还会把「未分诊
+    开放态」item 的状态顺带推进到 PROPOSED（见 buglist.py/todolist.py `cmd_triage`）——
+    这是 rename 意料外的副作用（rename 只该改标签本身）。所以这里直接对 dated 文件的
+    批次列做精确 patch（design §五允许的"直接改 dated 文件的批次列"路径），只改这一列，
+    该行其它列 + 文件其它内容原样保留。
+
+    每个受影响文件只读一次、原地改完全部命中行、写一次（`atomic_write`）——不会对同一
+    文件重复打开写入。返回 `[{"pool", "id", "file"}, ...]`（改动了哪些项，供调用方汇报/测试）。
+    """
+    targets = [it for it in items if it.get("batch") == old_key]
+    by_file = {}
+    for it in targets:
+        rel_file = it.get("file")
+        if not rel_file:
+            continue  # 理论上 scan --json 每项都带 file；防御式跳过缺失的
+        by_file.setdefault(rel_file, []).append(it)
+
+    changed = []
+    for rel_file, its in by_file.items():
+        full_path = os.path.join(root, rel_file)
+        with open(full_path, encoding="utf-8") as f:
+            file_lines = f.readlines()
+        wanted = {it["id"]: it for it in its}
+        for i, line in enumerate(file_lines):
+            m = re.match(r"\|\s*([A-Z]\d+)\s*\|", line)
+            if not m or m.group(1) not in wanted:
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            while len(cells) < 8:  # 旧格式（无批次列）行防御式补齐，不越界写 cells[7]
+                cells.append("")
+            cells[7] = new_key
+            file_lines[i] = "| " + " | ".join(cells) + " |\n"
+            changed.append({"pool": wanted[m.group(1)]["pool"], "id": m.group(1), "file": rel_file})
+        atomic_write(full_path, "".join(file_lines))
+    return changed
+
+
+def cmd_batch_rename(args):
+    """`batch rename {old} {new}`：改条目 key（`old`→`new`，标题文本不变）+ 同步 item 池
+    （bug+todo 两池）里所有 `批次==old` 的 tag 一并改成 `new`（Q2：人真开 cleanup change
+    用不同名时用这个命令，不做跨 change 主题聚类合并）。
+
+    执行顺序（刻意）：先校验 batches.md 里 old 存在、new 不与既有条目撞号（不做静默合并）
+    → 再 `read_pool`（这一步可能因跨池 ID 冲突/子进程失败抛错）→ 只有 `read_pool` 成功后
+    才开始真正写盘：先改 dated 文件（item 池），最后才改 `batches.md` 的 key。这样任何一步
+    失败都不会把 `batches.md` 改成指向一个内容对不上的新 key；`read_pool` 失败时更是连一个
+    字节都不落盘。多文件写入本身无跨文件事务（D6 已知边界，靠"重跑收敛"），但至少不会因为
+    校验类失败留下半吊子状态。
+    """
+    root = args.root
+    old_key, new_key = args.old, args.new
+
+    path = batches_md_path(root)
+    lines = _read_batches_lines(path)
+    rng = _find_batch_entry_range(lines, old_key)
+    if rng is None:
+        _die(f"未找到批次 key：{old_key}")
+    if old_key != new_key and _batch_entry_exists(lines, new_key):
+        _die(f"批次 key 已存在，rename 不做合并：{new_key}")
+
+    try:
+        items = read_pool(root)
+    except RuntimeError as e:
+        _die(str(e))
+        return  # pragma: no cover（_die 已 sys.exit(1)，此行只安抚静态分析）
+
+    changed = _retag_items_in_dated_files(root, items, old_key, new_key)
+
+    header_idx, _end_idx = rng
+    header_line = lines[header_idx].rstrip("\n")
+    title = _BATCH_HEADER_RE.match(header_line).group("title")
+    lines[header_idx] = f"### {new_key} — {title}\n"
+    atomic_write(path, "".join(lines))
+
+    print(json.dumps(
+        {"old_key": old_key, "new_key": new_key, "items_changed": len(changed)}, ensure_ascii=False
+    ))
 
 
 def main():
     p = argparse.ArgumentParser(
-        description="共享 issues 层：跨 bug+todo 的 reindex / batch（骨架，Task 8）"
+        description="共享 issues 层：跨 bug+todo 的 reindex / batch"
     )
     p.add_argument("--root", default=".", help="目标项目根（存 openspec/issues/... 的仓库）")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    s = sub.add_parser("reindex", help="重建 issues/INDEX.md（open×批次板；批次状态同步/batches.md 见 Task 10-11）")
+    s = sub.add_parser("reindex", help="重建 issues/INDEX.md（open×批次板；批次状态同步见 Task 11）")
     s.set_defaults(func=cmd_reindex)
 
-    s = sub.add_parser("batch", help="issues/batches.md 注册表操作（占位，真逻辑见 Task 11）")
-    s.add_argument("action", nargs="?", choices=["add", "set-status"], help="子操作（占位）")
-    s.set_defaults(func=cmd_batch)
+    batch_p = sub.add_parser("batch", help="issues/batches.md 注册表操作（add/set-status/rename）")
+    batch_sub = batch_p.add_subparsers(dest="batch_action", required=True)
+
+    sa = batch_sub.add_parser("add", help="新建批次条目（状态=PLANNED，成员空，人写字段按参数写/缺省留占位）")
+    sa.add_argument("key")
+    sa.add_argument("--title", help="批次标题（缺省=key）")
+    sa.add_argument("--优先级", dest="优先级", help="人写字段，缺省留占位")
+    sa.add_argument("--计划", dest="计划", help="人写字段（一句范围），缺省留占位")
+    sa.set_defaults(func=cmd_batch_add)
+
+    ss = batch_sub.add_parser("set-status", help="改批次状态（只精确 patch `状态:` 生成行，不动人写行）")
+    ss.add_argument("key")
+    ss.add_argument("status", choices=BATCH_STATUSES)
+    ss.set_defaults(func=cmd_batch_set_status)
+
+    sr = batch_sub.add_parser("rename", help="改批次 key + 同步 item 池（bug+todo 两池）批次 tag")
+    sr.add_argument("old")
+    sr.add_argument("new")
+    sr.set_defaults(func=cmd_batch_rename)
 
     args = p.parse_args()
     args.func(args)

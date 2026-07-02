@@ -297,7 +297,8 @@ class TestReindexGeneratesIndexMd:
 
 
 class TestArgparseSkeleton:
-    """argparse 骨架含 reindex/batch 两子命令（占位，真逻辑 Task 9-11）。"""
+    """argparse 骨架含 reindex/batch 两子命令（reindex 真实现见 Task 9；batch 真实现见 Task 10——
+    仅 `batch` 不带任何子操作时仍应非静默报错，见 test_batch_subcommand_without_action_errors_non_silently）。"""
 
     def test_help_lists_reindex_and_batch(self):
         proc = subprocess.run(
@@ -318,7 +319,9 @@ class TestArgparseSkeleton:
         assert proc.returncode == 0, proc.stderr
         assert (tmp_path / "openspec" / "issues" / "INDEX.md").exists()
 
-    def test_batch_subcommand_placeholder_errors_non_silently(self, tmp_path):
+    def test_batch_subcommand_without_action_errors_non_silently(self, tmp_path):
+        """`batch` 缺子操作（add/set-status/rename 三选一，Task 10 起为必填的嵌套 subparser）
+        仍要非静默报错——不是 Task 8 那种"整条 batch 都占位"了，而是 argparse 层面的必填校验。"""
         proc = subprocess.run(
             [sys.executable, SCRIPT, "--root", str(tmp_path), "batch"],
             capture_output=True, text=True,
@@ -331,6 +334,228 @@ class TestArgparseSkeleton:
             [sys.executable, SCRIPT], capture_output=True, text=True,
         )
         assert proc.returncode != 0
+
+
+class TestBatchAdd:
+    """Task 10：`batch add {key}` 新建 PLANNED 条目，成员空；人写字段按参数写，缺省留占位。"""
+
+    def test_add_creates_planned_entry_with_empty_members_and_given_fields(self, tmp_path):
+        _run_batch(tmp_path, ["add", "batch-1", "--title", "清理项",
+                               "--优先级", "P1", "--计划", "先清 P0/P1"])
+        content = _read_batches(tmp_path)
+        assert "### batch-1 — 清理项" in content
+        assert "状态: PLANNED" in content
+        assert "成员: (生成)" in content
+        assert "优先级: P1" in content
+        assert "计划: 先清 P0/P1" in content
+
+    def test_add_without_optional_fields_uses_placeholder_and_key_as_title(self, tmp_path):
+        _run_batch(tmp_path, ["add", "batch-2"])
+        content = _read_batches(tmp_path)
+        assert "### batch-2 — batch-2" in content
+        assert "状态: PLANNED" in content
+        assert "优先级: <待填>" in content
+        assert "计划: <待填>" in content
+
+    def test_add_duplicate_key_errors_non_silently(self, tmp_path):
+        _run_batch(tmp_path, ["add", "batch-1"])
+        proc = _run_batch_raw(tmp_path, ["add", "batch-1"])
+        assert proc.returncode != 0
+        assert proc.stderr.strip() != ""
+        # 不覆写——原条目仍在、只出现一次
+        content = _read_batches(tmp_path)
+        assert content.count("### batch-1") == 1
+
+    def test_add_two_entries_both_present(self, tmp_path):
+        _run_batch(tmp_path, ["add", "batch-1"])
+        _run_batch(tmp_path, ["add", "batch-2"])
+        content = _read_batches(tmp_path)
+        assert "### batch-1 — batch-1" in content
+        assert "### batch-2 — batch-2" in content
+
+
+class TestBatchSetStatus:
+    """Task 10：`batch set-status {key} {S}` 只改该条目的 `状态:` 生成行，不动人写行/成员行。"""
+
+    def test_set_status_changes_status_line(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n",
+            "状态: PLANNED\n",
+            "成员: (生成) B1, T2\n",
+            "优先级: P1\n",
+            "计划: 先清 P0/P1\n",
+        ])
+        _run_batch(tmp_path, ["set-status", "batch-1", "IN_PROGRESS"])
+        content = _read_batches(tmp_path)
+        assert "状态: IN_PROGRESS" in content
+        assert "状态: PLANNED" not in content
+
+    def test_set_status_does_not_touch_members_generated_line(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n",
+            "状态: PLANNED\n",
+            "成员: (生成) B1, T2\n",
+            "优先级: P1\n",
+            "计划: 先清 P0/P1\n",
+        ])
+        _run_batch(tmp_path, ["set-status", "batch-1", "DONE"])
+        content = _read_batches(tmp_path)
+        # 成员行是另一条生成行，set-status（Task 10）不该碰它——那是 reindex（Task 11）的职责
+        assert "成员: (生成) B1, T2" in content
+
+    def test_set_status_unknown_key_errors(self, tmp_path):
+        _write_batches_md(tmp_path, ["### batch-1 — x\n", "状态: PLANNED\n"])
+        proc = _run_batch_raw(tmp_path, ["set-status", "nope", "DONE"])
+        assert proc.returncode != 0
+        assert proc.stderr.strip() != ""
+
+    def test_set_status_invalid_status_code_errors(self, tmp_path):
+        _write_batches_md(tmp_path, ["### batch-1 — x\n", "状态: PLANNED\n"])
+        proc = _run_batch_raw(tmp_path, ["set-status", "batch-1", "WEIRD"])
+        assert proc.returncode != 0
+
+
+class TestBatchSetStatusPreservesHandwrittenLines:
+    """Step 4（Q3 载重约束核心）：预置含 `优先级:`/`计划:` 的 batches.md，跑 `batch set-status`，
+    断言人写行逐字保留——包括含中文标点、括号、# 等"看起来像会被误解析"的内容。"""
+
+    def test_handwritten_lines_survive_set_status_verbatim(self, tmp_path):
+        handwritten_priority = "优先级: P0（阻断发布，本周必须清）\n"
+        handwritten_plan = "计划: 只清 B/T 里 P0/P1，其它挪到下个批次；备注见 #123，含冒号: 不能被拆坏\n"
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 紧急清理\n",
+            "状态: PLANNED\n",
+            "成员: (生成) B1\n",
+            handwritten_priority,
+            handwritten_plan,
+        ])
+        _run_batch(tmp_path, ["set-status", "batch-1", "DONE"])
+        content = _read_batches(tmp_path)
+        assert handwritten_priority in content
+        assert handwritten_plan in content
+        assert "状态: DONE" in content
+
+    def test_handwritten_lines_survive_two_consecutive_set_status_calls(self, tmp_path):
+        """连续两次 set-status（PLANNED→IN_PROGRESS→DONE），人写行全程逐字未变。"""
+        handwritten_priority = "优先级: P2\n"
+        handwritten_plan = "计划: 一句范围，别改我\n"
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 常规清理\n",
+            "状态: PLANNED\n",
+            "成员: (生成)\n",
+            handwritten_priority,
+            handwritten_plan,
+        ])
+        _run_batch(tmp_path, ["set-status", "batch-1", "IN_PROGRESS"])
+        _run_batch(tmp_path, ["set-status", "batch-1", "DONE"])
+        content = _read_batches(tmp_path)
+        assert handwritten_priority in content
+        assert handwritten_plan in content
+        assert "状态: DONE" in content
+
+
+class TestBatchRename:
+    """Task 10：`batch rename {old} {new}` 改条目 key + 同步 item 池里所有 批次==old 的 tag（跨两池）。"""
+
+    def test_rename_changes_key_and_preserves_handwritten_lines(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### old-batch — 清理项\n",
+            "状态: PLANNED\n",
+            "成员: (生成) B1\n",
+            "优先级: P1\n",
+            "计划: 一句范围\n",
+        ])
+        _run_batch(tmp_path, ["rename", "old-batch", "new-batch"])
+        content = _read_batches(tmp_path)
+        assert "### new-batch — 清理项" in content
+        assert "old-batch" not in content
+        assert "优先级: P1" in content
+        assert "计划: 一句范围" in content
+
+    def test_rename_syncs_item_batch_tag_in_bug_pool_only_matching_items(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### old-batch — 清理项\n", "状态: PLANNED\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "old-batch"},
+            {"id": "B2", "status": "OPEN", "change": "x", "batch": "other-batch"},
+        ])
+        _run_batch(tmp_path, ["rename", "old-batch", "new-batch"])
+        text = (tmp_path / "openspec" / "issues" / "buglist" / "2026-01-01-buglist.md").read_text(
+            encoding="utf-8")
+        b1_line = next(l for l in text.splitlines() if l.strip().startswith("| B1"))
+        b2_line = next(l for l in text.splitlines() if l.strip().startswith("| B2"))
+        assert "new-batch" in b1_line
+        assert "old-batch" not in b1_line
+        assert "other-batch" in b2_line  # 不同批次的项不受影响
+
+    def test_rename_syncs_item_batch_tag_in_todo_pool(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### old-batch — 清理项\n", "状态: PLANNED\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        _write_todo_file(tmp_path, "2026-01", [
+            {"id": "T1", "status": "OPEN", "change": "x", "batch": "old-batch"},
+        ])
+        _run_batch(tmp_path, ["rename", "old-batch", "new-batch"])
+        text = (tmp_path / "openspec" / "issues" / "todolist" / "2026-01-todolist.md").read_text(
+            encoding="utf-8")
+        t1_line = next(l for l in text.splitlines() if l.strip().startswith("| T1"))
+        assert "new-batch" in t1_line
+
+    def test_rename_syncs_across_both_pools_in_one_call(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### old-batch — 清理项\n", "状态: PLANNED\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "old-batch"},
+        ])
+        _write_todo_file(tmp_path, "2026-01", [
+            {"id": "T1", "status": "OPEN", "change": "x", "batch": "old-batch"},
+        ])
+        _run_batch(tmp_path, ["rename", "old-batch", "new-batch"])
+        bug_text = (tmp_path / "openspec" / "issues" / "buglist" / "2026-01-01-buglist.md").read_text(
+            encoding="utf-8")
+        todo_text = (tmp_path / "openspec" / "issues" / "todolist" / "2026-01-todolist.md").read_text(
+            encoding="utf-8")
+        assert "new-batch" in next(l for l in bug_text.splitlines() if l.strip().startswith("| B1"))
+        assert "new-batch" in next(l for l in todo_text.splitlines() if l.strip().startswith("| T1"))
+
+    def test_rename_does_not_flip_item_status(self, tmp_path):
+        """rename 只改批次 tag，不该像 triage 那样顺带把未分诊开放态推成 PROPOSED——
+        这是 rename 不复用 triage 子命令的原因（区别于其状态推进副作用）。"""
+        _write_batches_md(tmp_path, [
+            "### old-batch — 清理项\n", "状态: PLANNED\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "old-batch"},
+        ])
+        _run_batch(tmp_path, ["rename", "old-batch", "new-batch"])
+        text = (tmp_path / "openspec" / "issues" / "buglist" / "2026-01-01-buglist.md").read_text(
+            encoding="utf-8")
+        b1_line = next(l for l in text.splitlines() if l.strip().startswith("| B1"))
+        assert "| OPEN |" in b1_line
+
+    def test_rename_unknown_old_key_errors_non_silently(self, tmp_path):
+        _write_batches_md(tmp_path, ["### batch-1 — x\n", "状态: PLANNED\n"])
+        proc = _run_batch_raw(tmp_path, ["rename", "nope", "new"])
+        assert proc.returncode != 0
+        assert proc.stderr.strip() != ""
+
+    def test_rename_to_already_existing_key_errors_does_not_merge(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### a — A\n", "状态: PLANNED\n", "成员: (生成)\n", "优先级: P1\n", "计划: x\n",
+            "### b — B\n", "状态: PLANNED\n", "成员: (生成)\n", "优先级: P1\n", "计划: x\n",
+        ])
+        proc = _run_batch_raw(tmp_path, ["rename", "a", "b"])
+        assert proc.returncode != 0
+        content = _read_batches(tmp_path)
+        # 两条目都还在，未被合并
+        assert "### a — A" in content
+        assert "### b — B" in content
 
 
 # ── fixtures ─────────────────────────────────────────────────────────────────
@@ -395,3 +620,30 @@ def _write_todo_file(root, month, rows):
             f"2026-01-01 10:00 | {r.get('change') or '-'} | {r.get('batch', '')} |\n"
         )
     (dir_path / f"{month}-todolist.md").write_text("".join(lines), encoding="utf-8")
+
+
+def _run_batch_raw(root, extra_args):
+    return subprocess.run(
+        [sys.executable, SCRIPT, "--root", str(root), "batch"] + extra_args,
+        capture_output=True, text=True,
+    )
+
+
+def _run_batch(root, extra_args):
+    proc = _run_batch_raw(root, extra_args)
+    assert proc.returncode == 0, proc.stderr
+    return proc
+
+
+def _batches_path(root):
+    return Path(root) / "openspec" / "issues" / "batches.md"
+
+
+def _read_batches(root):
+    return _batches_path(root).read_text(encoding="utf-8")
+
+
+def _write_batches_md(root, lines):
+    path = _batches_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(lines), encoding="utf-8")

@@ -23,7 +23,7 @@
 - [ ] 3.0 新建共享 issues 层脚本 `issues.py`（读 `issues/buglist/` + `issues/todolist/` 两池；owns `issues/INDEX.md` + `issues/batches.md`）；写文件用 **temp + `os.replace` 原子写**〔D6〕；`INDEX.md` 首行加 `<!-- GENERATED ... DO NOT EDIT -->` banner〔D3〕；join 时**跨池 ID 前缀冲突检测**（B/T 撞号报错不静默）〔D9〕；失败模式按 design §8.1 处理（解析失败/orphan 批次 tag 报警不静默）〔D5〕
 - [x] 3.1 `reindex` 命令 → 从各 dated 文件重建 `issues/INDEX.md`（**禁手改**；摊清 open item × 批次 + 标出已闭合〔终态〕项）〔I2，原 §5.4〕（Task 9：banner+原子写+open×批次板+已闭合摘要+幂等，已实现；批次状态同步见 3.2/Task 11）
 - [ ] 3.2 reindex **顺带同步批次状态**：拿 item 池当 ground truth——成员**全部进入各自终态集**（bug: `FIXED`/`WONTFIX`；todo: `DONE`/`WONTDO`）→ 批次判/标 `DONE`；状态与成员不一致 → 标出纠正（不静默信手写状态）。**不做逾期主动催办**〔I2/I12/B-Q1·grill-amendment，原 §5.4〕
-- [ ] 3.3 `issues/batches.md` 注册表 + `batch` 命令（add / set-status，跨 bug+todo，`PLANNED→IN_PROGRESS→DONE`，条目薄：名/状态/成员(生成)/优先级/一句范围/完成记录）〔I11，原 §5.5〕
+- [x] 3.3 `issues/batches.md` 注册表 + `batch` 命令（add / set-status，跨 bug+todo，`PLANNED→IN_PROGRESS→DONE`，条目薄：名/状态/成员(生成)/优先级/一句范围/完成记录）〔I11，原 §5.5〕（Task 10：add/set-status/rename 三命令 + Q3 字段级 grammar 已实现；`成员:` 生成行的内容填充/orphan 报警留 Task 11 reindex）
 
 ## 4. sweep 接入 opsx-done + workflow.md
 
@@ -46,6 +46,6 @@
 ## 7. Q1–Q3 裁决落地〔spec-review-amendment · provisional，待设计门确认〕
 
 - [ ] 7.1 **Q1 迁移加固**：`next_id`/`scan` 过渡期 **dual-read**（新 `issues/` + 旧 `buglists|todolists/` 都扫再取 max）；跨路径 **ID 撞号检测**（同 ID 报错）；proposal 记硬切风险〔Q1〕
-- [ ] 7.2 **Q2 批次命名保守化**：sweep 永远新建 1 批次 key=本change、禁跨 change 合并；`batch` 加 `rename`；reindex 对 orphan 批次 tag 显式报警不静默生成 ghost〔Q2〕
-- [ ] 7.3 **Q3 batches.md grammar**：定字段级 grammar（生成行〔状态/成员〕vs 人写行〔计划/优先级/范围〕+ 分隔）；reindex 只 patch 生成行、绝不覆写人写行；"纠正"只追加警告标注、不越权改人写状态值〔Q3〕
+- [ ] 7.2 **Q2 批次命名保守化**：sweep 永远新建 1 批次 key=本change、禁跨 change 合并；`batch` 加 `rename`；reindex 对 orphan 批次 tag 显式报警不静默生成 ghost〔Q2〕（Task 10 已交付 `batch rename`——改 batches.md key + 同步 item 池两池的批次 tag；sweep 新建规则〔4.1〕与 reindex orphan 报警〔Task 11〕仍待）
+- [ ] 7.3 **Q3 batches.md grammar**：定字段级 grammar（生成行〔状态/成员〕vs 人写行〔计划/优先级/范围〕+ 分隔）；reindex 只 patch 生成行、绝不覆写人写行；"纠正"只追加警告标注、不越权改人写状态值〔Q3〕（Task 10 已定字段级 grammar 并在 `batch set-status`/`rename` 落实"只精确 patch 生成行、绝不覆写人写行"；reindex 对 `成员:` 的 patch + 纠正标注留 Task 11）
 - [ ] 7.4 三条若设计门被改选项，同步 design §8.2 + 本节任务
