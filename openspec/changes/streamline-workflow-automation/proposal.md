@@ -1,6 +1,10 @@
 # Proposal: streamline-workflow-automation
 
 > 详细设计见同目录 [design.md](./design.md)（决策速查表 G/P/I/C 系列为真相源）。本文只给动机、范围、影响、合规。
+>
+> **〔交付范围·Phase A〕本 change 只交付 Phase A（连续化三阶段 + 提交自动化 + bundle 骨架）**。OQ1 定案拆 3 相串行，
+> Phase B（issues 池）/ Phase C（跨模型 voice）的任务与 spec Requirement 已移出、见 [ROADMAP.md](./ROADMAP.md)，
+> A merge 后各开新 change。proposal 与 design 是三相**共享 umbrella**（描述全貌），tasks.md 与 spec delta 则**只含 Phase A**。
 
 ## Why
 
@@ -13,7 +17,7 @@
 
 ## What Changes
 
-四大块（均**只改 laodao-skills 权威源〔bundle assets + 自制 skill〕，绝不改 superpowers/openspec/gstack 插件**；消费仓走 `update` 采纳）：
+四大块（均**只改 laodao-skills 权威源〔bundle assets + 自制 skill〕，绝不改 superpowers/openspec/gstack 插件**；消费仓走 `update` 采纳）。**按相交付：块 1+2 + 块 7 骨架 = 本 change（Phase A，已交付）；块 3 = Phase B、块 4 = Phase C（已移出 → ROADMAP）**：
 
 1. **连续化三阶段**（G1/G2 + P1–P3g）：`/clear` 由 fresh 子代理独立性替代；中途 `AskUserQuestion` 改报告决策登记；阶段二合并成 `spec-review` 编排器（autoplan→spec-review→一份报告），阶段三 `writing-plans→subagent-dev→impl-review→opsx-done` 连续跑到 merge；去旧 step 14 人类门 + 弃用官方 `/code-review` step；新增 `hand-off.md` 替代 `code-review-verify.md`。
 2. **提交自动化**（G4/G5）：不用 hook 驱动提交；显式收尾动作 + 共享 `checkpoint-commit.sh` 兜底；可选 SessionEnd 警告 hook。
@@ -69,4 +73,4 @@
 - 遵守"绝不改插件"（升级安全）：定制只在 laodao-skills 权威源 + 消费仓 `config.yaml`。
 - 新增 `openspec/workflow/` 触发（TG-26）后**同步 `openspec/INDEX.md`**（CLAUDE.md workflow 硬性要求）。
 - 无 DB schema / API 合约 / Auth 边界改动（纯 process/tooling 变更）。
-- **Spec delta**：本 change 把工作流规范性行为固化为新能力 `specs/spec-workflow/spec.md`（ADDED，12 条 Requirement 各带 Scenario），归档时并入 `openspec/specs/`；`workflow.md` / 各 skill 为其详细实现，design.md 为详细设计。`openspec validate --strict` 通过。
+- **Spec delta**：本 change 把工作流规范性行为固化为新能力 `specs/spec-workflow/spec.md`（ADDED）——**Phase A 交付 9 条 Requirement**（连续化 + 提交自动化 + bundle 权威源），归档时并入 `openspec/specs/`；Phase B（issues 结构 / 批次注册表）与 Phase C（跨模型 voice / HR-TG）各 2 条 Requirement **已移出至 [ROADMAP.md](./ROADMAP.md)**，并入各自 change 的 spec delta。`workflow.md` / 各 skill 为其详细实现，design.md 为详细设计。`openspec validate --strict` 通过。

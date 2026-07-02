@@ -2,6 +2,9 @@
 
 > 本 delta 把 `openspec/workflow/` 端到端流程的**规范性行为**固化为可验证 Requirement。
 > 详细设计与决策追溯见 change 的 design.md（G/P/I/C 系列）。
+> **〔Phase A 范围〕本 delta 仅含 Phase A 的 9 条 Requirement**（连续化 + 提交自动化 + bundle 权威源）。
+> Phase B（债务池 issues 结构 / 批次注册表）与 Phase C（跨模型 outside voice / HR-TG 判定）的 Requirement
+> 已随 § 移出本 change，见 [../../ROADMAP.md](../../ROADMAP.md)「Phase B/C 待迁」，待各自 change 开工时并入其 spec delta。
 
 ## ADDED Requirements
 
@@ -51,11 +54,15 @@
 
 ### Requirement: verify 为收尾最终门，位于所有修复之后
 
-`opsx-done` 的 verify MUST 在本 change 全部修复之后运行作为最终完整性门，SHALL NOT 前移进 impl-review（否则修复后 verify 结果 stale）。
+`opsx-done` 的 verify MUST 在本 change 全部修复之后运行作为最终完整性门，SHALL NOT 前移进 impl-review（否则修复后 verify 结果 stale）；verify 判 ✅ 的每条需求 MUST 附一个可机验证据锚点（测试名/commit/文件:行），无锚点的 ✅ MUST 降级为 gap。
 
 #### Scenario: 修复后才 verify
 - **WHEN** impl-review 及其修复循环全部完成
 - **THEN** opsx-done 先跑 verify（产 verify-report.md）再 archive
+
+#### Scenario: 无证据锚点的 ✅ 降级为 gap
+- **WHEN** verify 核对某条需求但找不到测试名/commit/文件:行等机验锚点
+- **THEN** 该需求判为 gap（不得凭复选框或报告措辞判 ✅）
 
 ### Requirement: hand-off 交接产物替代人工核对清单
 
@@ -73,34 +80,6 @@
 - **WHEN** grill 多轮对话进行中
 - **THEN** 不产生 checkpoint 提交；仅在 grill 收敛后一次性提交 design/ADR 更新
 
-### Requirement: 债务池统一 issues 结构且 INDEX 只生成
-
-buglist/todolist SHALL 统一到 `issues/{buglist,todolist}/` 结构，并由 `reindex` 生成 `issues/INDEX.md`（全池 open 项 × 批次状态的物化板）；`INDEX.md` MUST NOT 手工维护（避免第三漂移源）。
-
-#### Scenario: INDEX 由脚本重建
-- **WHEN** 债务池条目或批次状态变化
-- **THEN** `reindex` 从 dated 文件 + batches.md 重建 INDEX.md，与两者保持一致
-
-### Requirement: 批次注册表与逾期主动催办
-
-工作流 SHALL 以 `issues/batches.md` 给清理批次第一类身份（PLANNED→IN_PROGRESS→DONE，成员生成、条目薄），并在 INDEX 生成时 MUST 主动标记逾期 PLANNED 批次，堵住"分诊到清理"时间差的遗忘。
-
-#### Scenario: 每 change 完成分诊入批
-- **WHEN** 一个 change 经 opsx-done 收尾
-- **THEN** sweep 把本 change 新增的 OPEN 项分诊入批次并登记 batches.md(PLANNED)，INDEX 后续重建会催逾期批次
-
-### Requirement: 跨模型 outside voice 默认开且可 fallback
-
-spec-review 与 impl-review SHALL 默认运行跨模型 outside voice（复用 autoplan 的或自带），机制自包含、MUST NOT 引用 gstack，且 MUST NOT 改动 gstack 自身（autoplan / gstack review）的原生 outside voice——spec-review 的"复用"指读取 autoplan 已产出的 outside-voice findings，不重实现；任一失败（未装/未认证/超时/报错）MUST 非阻塞地回落到 fresh Claude 子代理。
-
-#### Scenario: codex 不可用时回落
-- **WHEN** codex CLI 未安装、未认证或运行超时
-- **THEN** outside voice 回落到 fresh Claude 子代理（保独立性、丢跨模型），审查不中断
-
-#### Scenario: gstack 边界不越界
-- **WHEN** spec-review 复用 autoplan 的 outside voice
-- **THEN** 它读取 autoplan 产出的 gstack-review.md 里的 outside-voice findings，MUST NOT 改动或接管 gstack 原生机制
-
 ### Requirement: workflow bundle 改在权威源、经部署下发
 
 workflow bundle（workflow.md / trigger-catalog.md / quality-layering.md / review UI / hooks / checkpoint 脚本）与自制 skill 的改动 MUST 在权威源（laodao-skills 的 `opsx-project-init/assets/` 与 skill 目录）进行；消费仓的 `openspec/workflow/` 等 SHALL 经 `opsx-project-init update` 重拉刷新，MUST NOT 只改消费仓副本。
@@ -108,11 +87,3 @@ workflow bundle（workflow.md / trigger-catalog.md / quality-layering.md / revie
 #### Scenario: 修改 workflow 规则
 - **WHEN** 需要修改 workflow.md
 - **THEN** 改 laodao-skills 权威源 `assets/workflow/workflow.md`，消费仓走 `update` 采纳，不直接编辑消费仓的部署副本
-
-### Requirement: 高风险由 HR-TG 子集判定
-
-工作流 MUST 以命中 HR-TG 子集 `{TG-04, TG-06, TG-07, TG-08, TG-09, TG-16, TG-17, TG-26}` 作为"高风险"的判据，命中即在复用/自带 outside voice 之上单开领域专属 cross-model；SHALL NOT 新造独立风险分级代号。
-
-#### Scenario: 命中 DB schema 变更
-- **WHEN** 变更命中 TG-04（DB schema 迁移）
-- **THEN** 评审的规划镜头步判为高风险，额外 dispatch 领域专属 cross-model，并在报告留痕
