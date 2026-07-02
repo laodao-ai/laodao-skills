@@ -30,6 +30,7 @@
    - 依据：`reference/quality-layering.md` L20-22 自认 `/clear` 在子代理独立性之上**只剩边际收益**。
    - 决策：**去掉两个 `/clear`**，评审以 fresh 子代理 dispatch 保独立，管线连续跑。
    - 接受的代价：评审末尾"对抗裁决+拍板"留在热主 session（它看过生成过程），有一丝合成层偏置。按文档"边际"判断接受之。
+   - **〔grill-amendment〕反静默压制（消解与 §7.2 的矛盾）**：§7.2 把"热 controller 说服放过真问题"当严重失效来防（故要冷 impl-review 兜底）——同一偏置在合成层不能只判"边际"了事。真正的危险不是抽象偏置，是**热合成层在 finding 到达人眼/报告前把它静默丢掉**（spec 侧尤甚：spec-review 就是设计审本身，后面无冷 backstop；被合并阶段裁掉的 finding 永远进不了设计门）。故焊死规则：**热主 session 的对抗裁决只能降级 / 批注、不得静默丢弃 reviewer 子代理的 finding**；每条子代理 finding MUST 进报告——即便判不成立，也落成"〔主 session 已裁掉〕F-x：原始发现 + 裁掉理由"。人类/审计因此看得见**被裁了什么、凭什么裁**。spec-review 与 impl-review 两侧同此规则。与 Q1 假✅、Q2 反静默守卫、G2 决策摊进报告同一元原则：**任何一层评审覆盖不得无声蒸发。**
 
 3. **中途 AskUserQuestion → 决策全登记进报告**（连续性的开关）：
    - 评审 skill 原本撞到"≥2 方案 / 核验不了的事实"会**中途停下 AskUserQuestion**——这是交互断点，让 skill 没法一口气跑完。
@@ -94,8 +95,11 @@
   │ [自动决策] D1  autoplan/裁决已定,附理由,默认接受可覆盖  │  高置信 → 默认采纳
   │ [需拍板]  Q1  ≥2 方案: 选项A/B + 推荐 + 各自后果       │  人工 review 时勾
   │ [需拍板]  Q2  核验不了的事实(函数名/字段/API 路径)     │  人工确认
+  │ [已裁掉]  X1  reviewer 原始发现 + 主 session 裁掉理由   │  反静默压制,可审计(不静默丢)
   └─────────────────────────────────────────────────────┘
 ```
+
+> **〔grill-amendment〕"已裁掉"区（反静默压制）**：热主 session 对抗裁决时判为"不成立"的 reviewer finding **不得静默丢弃**，须落入本区（原始发现 + 裁掉理由）。人类设计门可复核"被裁得对不对"。impl-review 的 `code-review-report.md` 同设此区。
 
 ### 4.4 阶段二的 buglist / todolist：次要产物，语义要拎清
 
@@ -165,7 +169,7 @@
 
 | # | 决策 | 取值 | 状态 |
 |---|------|------|------|
-| G1 | `/clear` 处理 | 去掉，子代理 fresh-context 替代独立性 | ✅ 定 |
+| G1 | `/clear` 处理 | 去掉，子代理 fresh-context 替代独立性。〔grill-amendment〕补**反静默压制**：热合成层裁决只能降级/批注、禁静默丢 reviewer finding，被裁项连理由进报告"已裁掉"区（spec/impl 两侧，消解与 §7.2 矛盾） | ✅ 定 |
 | G2 | 中途 AskUserQuestion | 删，改报告决策登记 + 末尾单次人工 review | ✅ 定 |
 | G3 | 升级安全 | 定制只在 laodao-skills 权威源 + 消费仓 config，绝不改插件 | ✅ 定 |
 | G4 | 提交驱动 | 不用 hook；显式收尾动作 + 共享脚本；hook 仅做警告安全网 | ✅ 定 |
@@ -181,8 +185,9 @@
 | P3e | 阶段三人类门（旧 step14） | 去掉 —— 过设计门后自动跑到 merge；能修的自动修，修不了的进 buglist/todolist → 另开 change 清理 | ✅ 定 |
 | P3f | verify 位置 | 留在 opsx-done（所有修复之后，避免 stale） | ✅ 定 |
 | P3g | hand-off.md | **新增**，替代 code-review-verify.md；opsx-done 内 verify 后 archive 前产出；异步人类再入口 + 下个 change 种子 | ✅ 定 |
+| P3h | verify 防假✅〔grill-amendment〕 | 去人类门的**前置条件**：(a) 每条 Requirement 的 ✅ 必附机验锚点(测试名/commit/文件行)，无锚点✅降级 gap；(b) verify 子代理强模型+"Do Not Trust"冷启、**禁弱模型**；(c) hand-off 不继承 verify✅、引用项须独立复核。据真实事故 zhws T45/T46 假✅。见 adr/0001 | ✅ 定 |
 | I1 | issues 目录结构 | `issues/{buglist,todolist}/*.md` + `issues/INDEX.md` + `issues/batches.md`（子目录版，near 原地重命名） | ✅ 定 |
-| I2 | INDEX.md | **只生成·禁手改**，加 `reindex` 命令从 dated 文件重建（脚本一致性哲学，杜绝第三漂移源） | ✅ 定 |
+| I2 | INDEX.md | **只生成·禁手改**，加 `reindex` 命令从 dated 文件重建（脚本一致性哲学，杜绝第三漂移源）。〔grill-amendment〕reindex **顺带同步批次状态**（拿 item 池当 ground truth，焊死 batches.md 状态漂移） | ✅ 定 |
 | I3 | 批次维度 | 独立 `批次` 列 —— 源(provenance,不可变) / 批次(triage,可变) / status(生命周期,回归干净) 三分家 | ✅ 定 |
 | I4 | 批次 key | 用**清理 change 名**（灵活；roadmap 阶段也可当批次容器） | ✅ 定 |
 | I5 | sweep 时机 | 挂进 opsx-done 生成 hand-off 那步，每 change 完成自动分诊本 change 新增 OPEN 项 | ✅ 定 |
@@ -192,9 +197,9 @@
 | I9 | 生效范围 | 定为 laodao-skills **toolkit 新标准**（改共享 recorder 默认路径+命名） | ✅ 定 |
 | I10 | 连带改动 | 两 recorder 脚本 + review UI(engine.js/review.html) + CLAUDE.md 路径 + 一次性迁移历史文件 | ✅ 定 |
 | I11 | 批次注册表 | `issues/batches.md` **单文件**；计划+完成日志合一；`PLANNED→IN_PROGRESS→DONE`；条目薄（成员生成、详细方案归真 change） | ✅ 定 |
-| I12 | 防遗忘机制 | INDEX 生成时 join item 池 + batches.md，**主动标记逾期 PLANNED 批次**（被动列表→主动催办） | ✅ 定 |
+| I12 | 债务闭环〔grill-amendment〕 | ~~主动标记逾期~~ **不做逾期催办**（判据难定、投机）；改**被动**：INDEX 摊清 open×批次 + 标 DONE，open 项下次清理自然纳入；reindex **同步批次状态**（成员全 DONE→批次 DONE、不一致标出） | ✅ 定 |
 | C1 | 跨模型 outside voice 机制 | 参考 gstack plan-eng-review 的 outside-voice（default-on / 框定"找漏"/ cross-model tension / user sovereignty / 非阻塞+超时），**自包含重写、不引用 gstack** | ✅ 定 |
-| C2 | spec-review 接入 | **复用 autoplan 的设计 outside voice**（always，autoplan 每次跑）+ 命中 HR-TG 单开领域专属 cross-model | ✅ 定 |
+| C2 | spec-review 接入 | **复用 autoplan 的设计 outside voice**（always，autoplan 每次跑）+ 命中 HR-TG 单开领域专属 cross-model。〔grill-amendment〕读产出物合法（非内部依赖）；补**反静默守卫**（缺失/0 条→显式降级+回落自带 voice）；**依赖 P2b**，回退条件触发时须自跑（见 §9.2、adr/0002） | ✅ 定 |
 | C3 | impl-review 接入 | **自带 code outside voice**（always，无 autoplan 重叠）+ 命中 HR-TG 单开领域专属 cross-model | ✅ 定 |
 | C4 | 高风险判据 | 命中 **HR-TG 子集** = {TG-04 DB schema, TG-06 跨模块共享数据模型, TG-07 API合约, TG-08 外部依赖, TG-09 状态机, TG-16 性能/可用性 NFR, TG-17 信任边界/敏感数据, **TG-26 并发/共享可变状态（新增）**}；由 review 规划镜头步顺带判 | ✅ 定 |
 | C5 | tension 适配 | spec→报告决策登记(设计门人裁) / impl→有把握自动裁决·拿不准 defer；两者守 user sovereignty（不静默自动改） | ✅ 定 |
@@ -254,6 +259,16 @@
 - **修不了的 / 需拍板拿不准的** → 进 buglist/todolist(defer) —— **本 change 不处理**，由 hand-off.md 引导**另开清理 change**处理。
 - **≥2 方案决策**：阶段三无人类门，故编排器对有把握的**自动选推荐项**（记理由），genuinely 拿不准的**延后**（非当场问人）。与阶段二"记录待人拍板"不同 —— 阶段二决策高杠杆(错设计→白做)值一个门；阶段三已实现、残差可追踪可另修，自动决策+延后可接受。
 - **人类再入口 = hand-off.md**（异步，非阻塞）：事后读归档里的 hand-off 决定要不要开清理 change。
+
+#### 7.3.1 防假✅：去人类门的前置条件〔grill-amendment〕
+
+> **背景（真实事故）**：zhws `2026-07-todolist.md` T45/T46 记录过一次 **假✅**——`spec-review-verify.md` 把两条**根本没落实**的需求（V-20 性能基线 benchmark、V-43 估时重算）标成 ✅，靠事后人肉订正才揪出。阶段三一旦去人类门（P3e），verify（P3f）成**唯一终门**；若 verify 再吐假✅，不完整的活会**静默 merge**，且 hand-off 会把假✅当"已完成"写进异步再入口，错误固化两层。故"去人类门"**不是无条件**的——必须先给 verify 焊死防伪绿约束：
+>
+> - **(a) 证据锚点硬约束**：verify 报告里每条 Requirement 的 ✅ **必附一个可机验锚点**（测试名 / commit hash / 文件行号）；**无锚点的 ✅ 一律降级为 gap**。T45/T46 正是"标✅但无 benchmark 实现"——有此约束当场变红。
+> - **(b) verify 禁弱模型**：verify 子代理用**强模型 + "Do Not Trust the Report" 冷启**（对齐 quality-layering 的 task-reviewer 范式）。呼应铁律"带门禁/无人逐条复核的步别用弱模型——假绿会放不完整的活过关"。
+> - **(c) hand-off 不继承 verify 的 ✅**：hand-off 的"已完成"清单里，凡引 verify ✅ 的项**须独立复核**（至少复核锚点存在性），不得直接搬运 verify 结论。
+>
+> 一句话：**门不是靠人盯，是靠 verify 的假✅被机验锚点堵死。** 见 `adr/0001-phase3-no-gate-verify-anchors.md`。
 
 ### 7.4 产物集（三份不同 altitude，各有职责；删一份）
 
@@ -330,27 +345,29 @@ item 池只跟踪**条目**生命周期，不跟踪**批次**生命周期；批�
 
 > ⚠️ 注册表条目要**薄**：名/状态/成员(生成)/优先级/一句范围/完成记录。**详细方案属于真开的 cleanup change 的 proposal/design**，别在注册表预写第二套真相源。批次本质="一个还没出生的 change"。batches.md 跨 bug+todo，坐 `issues/` 根、两子目录之上。
 
-### 8.5 防遗忘闭环（I12）—— 被动列表变主动催办
+### 8.5 债务闭环（I12）—— 被动可见 + reindex 同步状态〔grill-amendment〕
+
+> **〔grill-amendment〕不做"逾期主动催办"**：早前 I12 想让 INDEX"主动标记逾期 PLANNED 批次"，但"逾期"判据难定、且属投机机器。改**被动**：INDEX 只把 open 项 × 批次**摊清楚、把 DONE 标出来**，剩下的 open 项在**下次清 bug/todo 时自然纳入考虑**，不设逾期计算、不主动喊。
 
 ```
   sweep(opsx-done/hand-off 内)  分诊本 change 新增 OPEN 项 → 新批次写 batches.md(PLANNED) + hand-off 引用
        │
        ▼
   INDEX reindex(join item池 + batches.md):
-     "批次 clear-vpd: PLANNED 已挂 4 个 change 未起 · 6 项 P1 · ⚠️逾期,建议起 change"   ← 主动喊
+     摊清 open 项 × 所属批次 · 标出已 DONE · 顺带【同步批次状态】(见下)     ← 被动板,不催
        │
        ▼
-  开 cleanup change → 批次 IN_PROGRESS → 清 item(set-status DONE) → 批次 DONE + 留日志
+  开 cleanup change → 批次 IN_PROGRESS → 清 item(set-status DONE) → reindex 同步批次 DONE + 留日志
 ```
 
-- INDEX 每次重建把**逾期未起的 PLANNED 批次**顶出来喊 → 主动提醒堵时间差遗忘。
+- **reindex 同步批次状态（焊洞一：batches.md 状态不再自由漂移）**：reindex 填成员时，**拿 item 池当 ground truth 校验/同步批次 `状态`**——成员全部 DONE/FIXED → 批次判/标 DONE；仍有成员 OPEN/PROPOSED 却手标了 DONE → reindex **标不一致纠正**（不静默信自由手写的状态字段）。`PLANNED→IN_PROGRESS` 仍由人起 cleanup change 时设。
 - item 清完从 INDEX 消失，但批次条目留 batches.md 作历史 → "债务确实在还"有据可查。
-- 全链：hand-off(每 change 提议) → batches.md(登记 PLANNED) → INDEX(逾期主动催) → cleanup change(清) → batches.md(DONE 日志)。
+- 全链：hand-off(每 change 提议) → batches.md(登记 PLANNED) → INDEX(被动摊清 + reindex 同步状态) → cleanup change(清) → batches.md(reindex 同步 DONE 日志)。
 
 ### 8.6 脚本/工具增强（laodao-skills toolkit 级，I9/I10）
 
 - 两 recorder：路径默认 `openspec/issues/{buglist,todolist}/`；表加 `批次` 列（旧文件无列时兼容留空）；scan 加维度 `--源/--批次/--open-ungrouped`；加 `triage` 命令（给 OPEN 项赋批次+转 PROPOSED）。
-- 新增 `reindex`（重建 INDEX.md，join item+batches）、`batch`（批次 add/set-status）命令，跨 bug+todo。
+- 新增 `reindex`（重建 INDEX.md，join item+batches；**顺带同步批次状态**：成员全 DONE→批次 DONE、状态与成员不一致则标出纠正，见 §8.5〔grill-amendment〕）、`batch`（批次 add/set-status）命令，跨 bug+todo。
 - 连带：review UI 读 issues 新路径（bundle 改，见 7.3/B1）；各消费仓迁移自己的 buglist/todolist 数据 + `CLAUDE.md` 引用属**下游**（§9，非本 change 内）。
 
 ### 8.7 与设计原则一致
@@ -377,6 +394,11 @@ item 池只跟踪**条目**生命周期，不跟踪**批次**生命周期；批�
 - 我们自包含重写的机制**只驱动**：spec-review 高风险的领域 cross-model + impl-review 的 code outside voice（+ 其高风险领域 cross-model）。
 - 即：**autoplan/gstack review 保原生；自制 skill 走自制机制**——各自维护，零耦合。
 
+> **〔grill-amendment〕边界再校准（区分"复用产出物" vs "依赖内部"）**：
+> - **gstack 自家 skill（autoplan / gstack review）的能力原样不动、照常使用**——包括**读它们的产出物**（如 `gstack-review.md`）。"复用 gstack 产出物（output artifact）"**合法**，它不是内部依赖。
+> - "**不引用 / 不依赖 gstack·superpowers 内部工具**"这条铁律**只约束我们自制的 skill**（spec-review 自跑的 cross-model、impl-review 的 code outside voice、codex 共享 helper）：这些**不得**调用 gstack 内部 bin / 探针 / config，须**自包含重写**（C1）。
+> - 一句话：**读产出物 ✓，依赖内部实现 ✗**。C2 的"复用"落在前者，合规。
+
 ### 9.1 机制要点（自 gstack 提炼）
 
 ```
@@ -401,6 +423,10 @@ item 池只跟踪**条目**生命周期，不跟踪**批次**生命周期；批�
   impl-review(代码):  无 autoplan、无前置 outside voice → 【自带】一个 code outside voice(always,零重叠)(C3)
                       + 命中 HR-TG → 【单开】领域专属 cross-model
 ```
+
+> **〔grill-amendment〕复用的两道焊缝（防静默失效）**：
+> - **(1) 反静默守卫**：spec-review 读 `gstack-review.md` 时，若**文件缺失 / 解析不出 codex 段 / codex findings 为 0** → **打印显式降级日志**（"autoplan outside voice 未找到/为空 → 降级"）并**回落 spec-review 自带的 codex 设计 outside voice**（自制 helper 本为 HR-TG 而存在，顺手复用），**绝不静默当"本次无 voice"跑过**。理由：gstack 产出格式（文件名 / `codex#N` 标签约定 / 表结构）可能漂移，捞到 0 条 ≠ 本次真的没 outside voice，静默丢一整层评审覆盖是"假绿"同构。
+> - **(2) C2 依赖 P2b，须显式登记**：C2"复用"成立**仅当 autoplan 每次都跑（P2b）→ gstack-review.md 每次都在**。若 OQ2 日后把 P2b 回退成条件触发，**autoplan 未跑的变更 spec-review MUST 自跑设计 outside voice**（走守卫(1) 的 fallback 路径），不得因"复用了一个没产生的东西"而漏掉整层。落地时 C2 与 P2b 两条 MUST 交叉引用。
 
 ### 9.3 高风险判据 = 命中 HR-TG 子集（C4）
 
@@ -451,6 +477,8 @@ gstack 是中途 AskUserQuestion；我们不这么做：
 ---
 
 ## 十、待议 / 落地清单
+
+> **〔grill-amendment〕落地按 ROADMAP 拆 3 相串行（OQ1 定案）**：本设计不一次性落地，拆成 **Phase A 流水线骨架**（块1 连续化 + 块2 提交 + 块7 bundle 骨架）→ **Phase B issues 池**（块5 + sweep）/ **Phase C 跨模型 voice**（块6 + TG-26）。B/C 依赖 A 造出的 opsx-done/编排器地基，A merge 后各开新 change dir。**本 design.md 是三相共享真相源**（G/P/I/C/B 全量决策 + adr/0001·0002 + CONTEXT.md 术语，三相反向引用不复制）。下述"落地时"三组正对应三相；拆法、相划分、依赖序、`workflow.md` 增量改 3 次等 3 条必守约束见 [ROADMAP.md](./ROADMAP.md)。
 
 - **阶段三落地时**：改写 `reference/quality-layering.md` §五（见 7.2）；`impl-review` skill 描述从"高风险才跑·冷独立抽查"改为"每次全跑·独立强制主审"；`opsx-done` skill 加 hand-off.md 产出步 + sweep 步。
 - **issues 管理落地时**：迁移 `buglists/todolists/` → `issues/{buglist,todolist}/`；两 recorder 脚本增强（批次列/scan 维度/triage/reindex/batch 命令）；新增 `INDEX.md`(生成) + `batches.md`；改 review UI + CLAUDE.md 路径。属 laodao-skills toolkit 级变更。

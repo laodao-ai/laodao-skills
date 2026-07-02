@@ -17,14 +17,14 @@
 
 1. **连续化三阶段**（G1/G2 + P1–P3g）：`/clear` 由 fresh 子代理独立性替代；中途 `AskUserQuestion` 改报告决策登记；阶段二合并成 `spec-review` 编排器（autoplan→spec-review→一份报告），阶段三 `writing-plans→subagent-dev→impl-review→opsx-done` 连续跑到 merge；去旧 step 14 人类门 + 弃用官方 `/code-review` step；新增 `hand-off.md` 替代 `code-review-verify.md`。
 2. **提交自动化**（G4/G5）：不用 hook 驱动提交；显式收尾动作 + 共享 `checkpoint-commit.sh` 兜底；可选 SessionEnd 警告 hook。
-3. **issues 池与批次管理**（I1–I12）：`buglists/todolists/` 合并为 `issues/{buglist,todolist}/` + 生成的 `INDEX.md` + `batches.md` 批次注册表；每 change 完成 sweep 分诊、INDEX 主动催逾期批次、批次走 cleanup change 清。
+3. **issues 池与批次管理**（I1–I12）：`buglists/todolists/` 合并为 `issues/{buglist,todolist}/` + 生成的 `INDEX.md` + `batches.md` 批次注册表；每 change 完成 sweep 分诊、INDEX 被动摊清 open×批次并标 DONE（reindex 同步批次状态，不做逾期催办）、批次走 cleanup change 清。
 4. **跨模型 outside voice**（C1–C6）：参考 gstack 机制**自包含重写**（不引用 gstack）；spec-review 复用 autoplan 的 outside voice、impl-review 自带；命中 HR-TG 子集时单开领域专属 cross-model；fallback 到 Claude 子代理。
 
 ## Success Metrics
 
 - 单个变更全流程的**人类介入点从"15 次粘贴 + 2 clear + 2 门"降到 3 处**（grill 对话 / 设计门 / hand-off 异步再入口）。
 - 阶段二/三**各产出一份合并报告**（spec-review-report.md / code-review-report.md），无需人工手动合并。
-- 债务池**零无声堆积**：每 change 完成后本 change 新增 OPEN 项 100% 被分诊入批次；INDEX 主动标记逾期 PLANNED 批次。
+- 债务池**零无声堆积**：每 change 完成后本 change 新增 OPEN 项 100% 被分诊入批次；INDEX 被动摊清 open 项 × 批次并标出 DONE（reindex 同步批次状态，不做逾期催办）〔grill-amendment〕。
 - outside voice **默认开且永不阻塞**：codex 不可用时自动回落 Claude 子代理，审查不中断。
 
 ## Non-Goals
@@ -59,7 +59,7 @@
 
 ## Open Questions（TG-21）
 
-- **OQ1**：本 change 跨 4 大块、~30 任务，是否**拆成多个 phased change**（如：先连续化+提交自动化，再 issues 管理，再跨模型）更稳？（负责人：用户；本 proposal 暂按单 change 组织，任务已按块分组便于拆分。）
+- ~~**OQ1**：本 change 跨 4 大块、~30 任务，是否**拆成多个 phased change** 更稳？~~ **〔grill-amendment〕已定案：拆成 3 相串行**（Phase A 流水线骨架 → B issues 池 / C 跨模型 voice；B/C 依赖 A 落地后各开新 change dir）。拆法、相划分、依赖序、必守的 3 条约束见 [ROADMAP.md](./ROADMAP.md)。`design.md` 为三相共享真相源。
 - **OQ2**：autoplan"每次都跑"（P2b）为 provisional——上线后观察普通变更空跑四镜的成本，决定是否回退条件触发。
 - **OQ3**：issues 结构定为 toolkit 新标准 vs 仅 zhws 本地（I9 暂定新标准）——需确认其它项目迁移窗口。
 
