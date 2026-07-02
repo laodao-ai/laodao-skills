@@ -334,10 +334,15 @@ class TestDualRead:
         assert any("openspec/issues/todolist/" in f for f in files)
 
     def test_list_files_new_dir_sorts_before_old_dir_even_if_dated_later(self, tmp_path):
-        """回归（同 buglist Task 4-fix）：list_files 若对拼接后的全路径整体 sorted，会导致旧目录
-        `openspec/todolists/`（字符串 't'）排在新目录 `openspec/issues/todolist/`（'i'）之前——
-        即使旧目录里的文件月份更早、新目录月份更晚，也不能让字符串序压过『新在前』。
-        必须按 _dated_dirs 的目录顺序（新在前）分别收集、目录内部再按文件名排序，不整体 sorted。"""
+        """正向断言（非 Task 4-fix 那个 whole-path-sort bug 的判别测试）：验证当前实现下，
+        即使旧目录 `openspec/todolists/` 里的文件月份更早、新目录 `openspec/issues/todolist/`
+        月份更晚，list_files 仍输出新目录在前。
+
+        注意：对 todolist 这组目录名，`'i'`（issues）< `'t'`（todolists），所以『按 _dated_dirs
+        目录序分别收集』与『对拼接后全路径整体 sorted()』这两种实现在本场景下输出完全相同
+        （都是新目录在前）——本测试无法区分二者，起不到 buglist 侧 Task 4-fix 那个回归守卫的
+        作用（buglist 侧才真实存在该 bug：旧路径 'b'（buglists）< 新路径 'i'（issues），整体
+        sorted 会让旧目录排到新目录前面）。保留本测试是因为它对当前实现仍是有效的正向断言。"""
         _write_dated_file(tmp_path / "openspec" / "todolists", "2026-01", ["T1"])
         _write_dated_file(tmp_path / "openspec" / "issues" / "todolist", "2026-02", ["T2"])
         files = [f.replace(os.sep, "/") for f in list_files(str(tmp_path))]
