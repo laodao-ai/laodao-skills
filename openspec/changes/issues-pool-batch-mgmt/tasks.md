@@ -2,11 +2,12 @@
 
 > 从归档 [ROADMAP.md](../archive/2026-07-02-streamline-workflow-automation/ROADMAP.md)「Phase B 待迁任务」迁入（原 tasks 编号 §5.\* + §3.3 + §8.2 + §8.5 括注在条目内）。
 > 决策真相源 = umbrella design §8 / I1–I13。当前全部未勾（本 change 处 propose 阶段，实现在阶段三）。
+> **spec-review 补强**：自动决策 D1–D9 已并入下列任务（标〔D\*〕，见 design §八）；**需拍板 Q1（迁移/ID 撞号）· Q2（批次命名/对账）· Q3（batches.md 格式契约+纠正语义）待设计门裁后再补对应任务**（见 [spec-review-report.md](./spec-review-report.md)）。
 
 ## 1. issues 结构标准（写进 recorder 约定段，I13 单一真相源）
 
 - [ ] 1.1 把 issues 结构标准写进 `buglist-recorder` / `todolist-recorder` 各自"约定速查"段（唯一真相源，不另起 rules 文件）〔I1/I13，原 §5.1〕
-- [ ] 1.2 标准内容含：目录结构 `issues/{buglist,todolist}/` + `INDEX.md` + `batches.md`；三维度 schema（源/批次/status）；状态词表；批次生命周期；sweep 协议；INDEX 生成规则；batches.md 格式〔I1/I3/I11〕
+- [ ] 1.2 标准内容含：目录结构 `issues/{buglist,todolist}/` + `INDEX.md` + `batches.md`；三维度 schema（源/批次/status）；状态词表；批次生命周期；sweep 协议；INDEX 生成规则；batches.md 格式；**B(bug)/T(todo) 前缀跨池互斥**为显式规范条款〔D9〕〔I1/I3/I11〕
 
 ## 2. recorder 脚本增强（buglist.py / todolist.py）
 
@@ -19,14 +20,14 @@
 
 > B-Q2：`reindex`/`batch` 是**跨类型**命令（join 两池 + 维护 `INDEX.md`/`batches.md`），归**新增的共享 issues 层脚本**（`issues.py`，或薄 skill `issues-recorder`），不塞进 per-type 的 buglist.py/todolist.py（见 design §五）。物理落点（全局 vs 随 recorder）随 `minimize-repo-footprint` 一并定。
 
-- [ ] 3.0 新建共享 issues 层脚本 `issues.py`（读 `issues/buglist/` + `issues/todolist/` 两池；owns `issues/INDEX.md` + `issues/batches.md`）
+- [ ] 3.0 新建共享 issues 层脚本 `issues.py`（读 `issues/buglist/` + `issues/todolist/` 两池；owns `issues/INDEX.md` + `issues/batches.md`）；写文件用 **temp + `os.replace` 原子写**〔D6〕；`INDEX.md` 首行加 `<!-- GENERATED ... DO NOT EDIT -->` banner〔D3〕；join 时**跨池 ID 前缀冲突检测**（B/T 撞号报错不静默）〔D9〕；失败模式按 design §8.1 处理（解析失败/orphan 批次 tag 报警不静默）〔D5〕
 - [ ] 3.1 `reindex` 命令 → 从各 dated 文件重建 `issues/INDEX.md`（**禁手改**；摊清 open item × 批次 + 标出已闭合〔终态〕项）〔I2，原 §5.4〕
 - [ ] 3.2 reindex **顺带同步批次状态**：拿 item 池当 ground truth——成员**全部进入各自终态集**（bug: `FIXED`/`WONTFIX`；todo: `DONE`/`WONTDO`）→ 批次判/标 `DONE`；状态与成员不一致 → 标出纠正（不静默信手写状态）。**不做逾期主动催办**〔I2/I12/B-Q1·grill-amendment，原 §5.4〕
 - [ ] 3.3 `issues/batches.md` 注册表 + `batch` 命令（add / set-status，跨 bug+todo，`PLANNED→IN_PROGRESS→DONE`，条目薄：名/状态/成员(生成)/优先级/一句范围/完成记录）〔I11，原 §5.5〕
 
 ## 4. sweep 接入 opsx-done + workflow.md
 
-- [ ] 4.1 `opsx-done` 加 **issues sweep 步**（`scan --status OPEN --源 {本change}` → 分诊入批次 → `batches.md`(PLANNED) → hand-off 引用）；**以 `源==本change` 为界只诊本 change 新增项**，源为空孤儿不归本次 sweep（交通用 `--open-ungrouped` 清理流程，见 design §4.2）〔I5/I6/B-Q3，原 §3.3〕
+- [ ] 4.1 `opsx-done` 加 **issues sweep 步**（`scan --status OPEN --change {本change}`〔D4：显式传 --change，不靠 detect_change 猜〕 → 分诊入批次 → `batches.md`(PLANNED) → **末尾运行 `reindex` 刷新 INDEX**〔D3〕 → hand-off 引用）；**以 `源==本change` 为界只诊本 change 新增项**，源为空孤儿不归本次 sweep（交通用 `--open-ungrouped` 清理流程，见 design §4.2）〔I5/I6/B-Q3/D3/D4，原 §3.3〕
 - [ ] 4.2 去掉 `opsx-done` SKILL 里 Phase A 留的〔Phase B 补〕占位，落地正式 sweep 步
 - [ ] 4.3 `workflow.md` **追加 sweep 步引用**（ROADMAP 约束1：B 增量改 workflow.md 一次，不碰 A 骨架/不预写 C）
 
