@@ -49,7 +49,10 @@
 > 旧 step 11 独立 `gstack/review`（并入 impl-review）、旧 step 12 "impl-review 高风险才跑"（升级为每次全跑）、
 > 旧 step 13 官方 `/code-review` 独立 step（P3d 弃用，插件能力仅内部借用）、旧 step 14 人类门（阶段三无人类门）。
 >
-> 〔Phase B 补〕opsx-done 内加 **issues sweep 步**（分诊本 change 新增 OPEN 项入批次，I5/I6）。
+> **opsx-done 已含 issues sweep 子步**（§2.1，I5/I6）：verify 判完、写 hand-off 正文前，分诊**本 change**新增的
+> OPEN 项入**单一批次**（key=本 change 名）→ 末尾跑 `issues.py reindex` 刷新 INDEX/批次状态 → hand-off 第 2 段引用该批次号
+> （不再逐条罗列裸 ID）。脚本分工：`buglist-recorder`/`todolist-recorder` 的 `scan`/`triage` 分诊 + `issues-recorder` 的
+> `batch add`/`reindex` 管批次与索引。细则见 `opsx-done` skill 的 SKILL.md §2.1（配套 skill，不在本 bundle 内，随 laodao-skills `setup.sh` 安装）。
 > 〔Phase C 补〕spec-review / impl-review 加**跨模型 outside voice** + 命中 **HR-TG** 单开领域 cross-model（C2/C3/C4）。
 
 ## 二、逐步 prompt（可直接复制）
@@ -69,7 +72,7 @@
 | 三 | 6 | /writing-plans | `/writing-plans 按 {change dir} 的 design.md 与评审结论生成原子任务清单 superpowers-plan.md，每任务 TDD，参考 tasks.md 分组；有测试计划则附测试覆盖图。把 design 的领域约束逐字写进 plan 的 Global Constraints。生成后自动以 subagent-driven-development 执行，自动完成全部任务，每任务完成跑测试套件确认无 warning、逐任务 checkpoint-commit。final whole-branch 终审 dispatch 时把 @openspec/workflow/code-checklists/domains/<命中栈> 作为额外 review lens 附给 reviewer。无法自动解决的记入 buglists 或 todolists` | superpowers-plan.md + 代码 | superpowers + quality-layering 注入点 A；**必跑（计划→实现自动化）** |
 | 三 | 7 | /subagent-driven-development | （由步骤 6 自动触发）每任务完成跑测试套件、逐任务 checkpoint；final whole-branch 终审 dispatch 时把 `code-checklists/domains/<命中栈>` 作额外 review lens 附给 reviewer | 代码 | quality-layering 注入点 B（领域审前移进生成循环，即时 fix+re-review 闭环） |
 | 三 | 8 | /impl-review | `/impl-review 每次全跑独立审查 {change dir} 的代码变更（并入 gstack/review 的 scope-drift+完成度审计；能修的自动修标 [impl-review-fix]、修不了/拿不准的记 buglists/todolists；汇总一份 code-review-report.md）。完成后 checkpoint-commit impl-review。` | code-review-report.md | 编排器：**每次全跑·独立冷·强制主审**（P3c，非高风险才跑）；清单逐条+对抗+历史镜+置信过滤；阶段三无人类门（自动修/裁/defer，不 AskUserQuestion） |
-| 三 | 9 | /opsx-done | `/opsx-done` | verify-report + hand-off + 归档 + 提交 + 合并 | opsx-done skill；verify(防假✅证据锚点)→hand-off.md→archive(+delta 同步)→commit→merge；**必跑（闭环）** |
+| 三 | 9 | /opsx-done | `/opsx-done` | verify-report + hand-off + 归档 + 提交 + 合并 | opsx-done skill；verify(防假✅证据锚点)→**issues sweep 子步(§2.1,已就位：分诊本change OPEN项入批次→reindex)**→hand-off.md→archive(+delta 同步)→commit→merge；**必跑（闭环）** |
 
 ## 三、关键设计决策
 
