@@ -13,7 +13,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 import buglist as buglist_mod
-from buglist import normalize_doc_paths, auto_default_doc, validate_doc_paths, atomic_write
+from buglist import (
+    normalize_doc_paths, auto_default_doc, validate_doc_paths, atomic_write,
+    list_files, next_id, id_conflicts,
+)
 
 SCRIPT = str(Path(__file__).parent.parent / "scripts" / "buglist.py")
 
@@ -281,6 +284,85 @@ class TestAtomicWrite:
         assert target.read_text(encoding="utf-8") == "original content"
         leftovers = [p for p in tmp_path.iterdir() if p.name != "file.md"]
         assert leftovers == []
+
+
+class TestDualRead:
+    """过渡期加固（Phase B Q1）：list_files/all_ids/next_id 同时扫新 `openspec/issues/buglist/`
+    + 旧 `openspec/buglists/` 两目录（新在前=写落新，旧只读兼容），避免下游只 update 未迁移
+    旧数据时 ID 从新目录重数、撞旧目录已有的号。"""
+
+    def test_next_id_takes_max_across_old_and_new(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "buglists", "2026-01-01", ["B1"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-02", ["B2"])
+        assert next_id(str(tmp_path)) == "B3"
+
+    def test_list_files_includes_both_paths(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "buglists", "2026-01-01", ["B1"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-02", ["B2"])
+        files = [f.replace(os.sep, "/") for f in list_files(str(tmp_path))]
+        assert len(files) == 2
+        assert any("openspec/buglists/" in f for f in files)
+        assert any("openspec/issues/buglist/" in f for f in files)
+
+    def test_list_files_new_dir_only_unchanged_behavior(self, tmp_path):
+        """旧目录不存在时行为与现状一致（不破坏现有行为）。"""
+        _write_dated_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-02", ["B2"])
+        files = list_files(str(tmp_path))
+        assert len(files) == 1
+        assert "issues" in files[0].replace(os.sep, "/")
+
+    def test_id_conflicts_detects_same_id_across_paths(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "buglists", "2026-01-01", ["B1", "B2"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-02", ["B2", "B3"])
+        assert id_conflicts(str(tmp_path)) == ["B2"]
+
+    def test_id_conflicts_empty_when_no_overlap(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "buglists", "2026-01-01", ["B1"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-02", ["B2"])
+        assert id_conflicts(str(tmp_path)) == []
+
+    def test_id_conflicts_empty_when_only_one_path_exists(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-02", ["B1"])
+        assert id_conflicts(str(tmp_path)) == []
+
+    def test_next_id_cli_warns_stderr_on_conflict_but_does_not_block(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "buglists", "2026-01-01", ["B1"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-02", ["B1"])
+        proc = subprocess.run(
+            [sys.executable, SCRIPT, "--root", str(tmp_path), "next-id"],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert proc.stdout.strip() == "B2"
+        assert "WARNING" in proc.stderr
+        assert "B1" in proc.stderr
+
+    def test_next_id_cli_silent_when_no_conflict(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-02", ["B1"])
+        proc = subprocess.run(
+            [sys.executable, SCRIPT, "--root", str(tmp_path), "next-id"],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert proc.stdout.strip() == "B2"
+        assert proc.stderr == ""
+
+
+def _write_dated_file(dir_path, date, ids):
+    """写一个最小合法的 dated buglist 文件（只含状态总览表，够 list_files/all_ids/id_conflicts
+    解析），用于 dual-read 测试在指定目录（新或旧）铸出 fixture 数据。"""
+    dir_path.mkdir(parents=True, exist_ok=True)
+    lines = [
+        f"# {date} Buglist\n\n",
+        "> 来源：test\n",
+        f"> 创建日期：{date}\n\n",
+        "## 状态总览\n\n",
+        "| ID | 模块 | 问题摘要 | 优先级 | 状态 | 时间 | 关联Change | 批次 |\n",
+        "|----|------|----------|--------|------|------|------------|------|\n",
+    ]
+    for bid in ids:
+        lines.append(f"| {bid} | `foo.c:1` | fixture | P2 | OPEN | 10:00 | - |  |\n")
+    (dir_path / f"{date}-buglist.md").write_text("".join(lines), encoding="utf-8")
 
 
 def _buglist_content(root):

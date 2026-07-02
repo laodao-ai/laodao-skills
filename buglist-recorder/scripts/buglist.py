@@ -172,14 +172,26 @@ def buglists_dir(root):
     return os.path.join(root, "openspec", "issues", "buglist")
 
 
+def legacy_buglists_dir(root):
+    return os.path.join(root, "openspec", "buglists")
+
+
+def _dated_dirs(root):
+    """新在前（写落新），旧只读兼容——过渡期 dual-read 两目录（Phase B Q1 加固）。
+    下游只 update 未迁移旧数据时，若 next_id 只看新目录会从 B1 重数、撞旧目录已有的号；
+    扫两目录取并集 max+1 规避这个撞号风险。"""
+    return [buglists_dir(root), legacy_buglists_dir(root)]
+
+
 def list_files(root):
-    d = buglists_dir(root)
-    if not os.path.isdir(d):
-        return []
-    return sorted(
-        os.path.join(d, f) for f in os.listdir(d)
-        if re.match(r"\d{4}-\d{2}-\d{2}-buglist\.md$", f)
-    )
+    out = []
+    for d in _dated_dirs(root):
+        if os.path.isdir(d):
+            out += [
+                os.path.join(d, f) for f in os.listdir(d)
+                if re.match(r"\d{4}-\d{2}-\d{2}-buglist\.md$", f)
+            ]
+    return sorted(out)
 
 
 def today_str(override=None):
@@ -213,9 +225,9 @@ def ensure_file(root, date, source):
 
 # ── ID 扫描 ──────────────────────────────────────────────────────────────────
 
-def all_ids(root, prefix=None):
+def _ids_in_files(paths, prefix=None):
     ids = []
-    for path in list_files(root):
+    for path in paths:
         with open(path, encoding="utf-8") as f:
             for line in f:
                 # 只认状态总览表里的行（以 | 开头且第二列是 ID）
@@ -227,10 +239,31 @@ def all_ids(root, prefix=None):
     return ids
 
 
+def all_ids(root, prefix=None):
+    return _ids_in_files(list_files(root), prefix)
+
+
 def next_id(root, prefix=DEFAULT_PREFIX):
     nums = [int(ID_RE.match(i).group(2)) for i in all_ids(root) if ID_RE.match(i)]
     n = (max(nums) + 1) if nums else 1
     return f"{prefix}{n}"
+
+
+def _id_sort_key(pid):
+    m = ID_RE.match(pid)
+    return (m.group(1), int(m.group(2))) if m else (pid, 0)
+
+
+def id_conflicts(root):
+    """跨路径 ID 冲突检测（Phase B Q1 加固）：同一 ID 若同时出现在新 `openspec/issues/buglist/`
+    和旧 `openspec/buglists/` 两处，说明过渡期内新旧数据可能已经手工/脚本各自分配过号，存在
+    撞号风险。只读、不阻断——调用方（CLI）自行决定打印警告还是忽略。"""
+    new_dir, old_dir = buglists_dir(root), legacy_buglists_dir(root)
+    new_files = [p for p in list_files(root) if os.path.dirname(p) == new_dir]
+    old_files = [p for p in list_files(root) if os.path.dirname(p) == old_dir]
+    new_ids = set(_ids_in_files(new_files))
+    old_ids = set(_ids_in_files(old_files))
+    return sorted(new_ids & old_ids, key=_id_sort_key)
 
 
 # ── 表 / 块 解析 ─────────────────────────────────────────────────────────────
@@ -278,6 +311,18 @@ def block_ranges(lines):
                 break
         out[bid] = (i, end)
     return out
+
+
+def cmd_next_id(args):
+    root = repo_root(args.root)
+    conflicts = id_conflicts(root)
+    if conflicts:
+        print(
+            f"WARNING: 检测到跨路径 ID 冲突（新 openspec/issues/buglist/ 与旧 openspec/buglists/ "
+            f"都存在）：{', '.join(conflicts)}——建议尽快把旧路径数据迁移到新路径",
+            file=sys.stderr,
+        )
+    print(next_id(root, args.prefix))
 
 
 # ── add ──────────────────────────────────────────────────────────────────────
@@ -514,7 +559,7 @@ def main():
 
     s = sub.add_parser("next-id", help="打印下一个全局 ID")
     s.add_argument("--prefix", default=DEFAULT_PREFIX)
-    s.set_defaults(func=lambda a: print(next_id(repo_root(a.root), a.prefix)))
+    s.set_defaults(func=cmd_next_id)
 
     s = sub.add_parser("add", help="新增 bug（JSON 输入，stdin 或 --json 文件）")
     s.add_argument("--json", help="JSON 文件路径；缺省读 stdin")
