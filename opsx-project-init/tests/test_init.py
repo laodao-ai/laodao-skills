@@ -80,6 +80,22 @@ class TestReviewToolDeployment:
         assert content == template.replace("__PROJECT_NAME__", "another-project")
 
 
+class TestCopyHack:
+    """copy_hack 把 assets/hack/*.sh 部署到消费仓 repo 根 hack/，保留可执行位。"""
+
+    def test_deploys_scripts_to_repo_root_hack_with_exec_bit(self, tmp_path):
+        n = init_mod.copy_hack(str(tmp_path))
+        script = tmp_path / "hack" / "checkpoint-commit.sh"
+        assert script.is_file()
+        assert n >= 1
+        assert script.stat().st_mode & stat.S_IXUSR  # 源 chmod +x，copymode 须保留
+
+    def test_idempotent_rerun_overwrites_cleanly(self, tmp_path):
+        init_mod.copy_hack(str(tmp_path))
+        init_mod.copy_hack(str(tmp_path))  # update-mode 重跑
+        assert (tmp_path / "hack" / "checkpoint-commit.sh").is_file()
+
+
 class TestEnsureGlobalHooks:
     def _settings_path(self, home):
         return home / "settings.json"

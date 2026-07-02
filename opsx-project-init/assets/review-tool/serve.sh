@@ -1,6 +1,6 @@
 #!/bin/sh
 # Starts/stops a background static file server rooted at openspec/, regardless of the
-# caller's cwd — review.html's root-relative asset paths (/tools/engine.js etc.) depend
+# caller's cwd — review.html's root-relative asset paths (/workflow/tools/engine.js etc.) depend
 # on the server root being exactly openspec/, so this always cd's to its own directory
 # first. Runs the server detached (background) and prints a clickable link.
 #

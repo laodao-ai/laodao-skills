@@ -31,7 +31,7 @@ desc="${2:-}"
 
 # 必须在 git 仓库内
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  echo "checkpoint($step): 非 git 仓库，跳过" >&2
+  echo "checkpoint($step): 非 git 仓库，中止" >&2
   exit 2
 fi
 
