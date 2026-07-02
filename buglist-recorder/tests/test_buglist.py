@@ -159,6 +159,78 @@ class TestAutoDefaultDoc:
         assert "changes/foo/design.md" not in content
 
 
+class TestBatchColumn:
+    def test_add_writes_批次_column_at_end(self, tmp_path):
+        payload = base_payload()
+        proc = run_add(tmp_path, payload)
+        assert proc.returncode == 0, proc.stderr
+        content = _buglist_content(tmp_path)
+        header = [l for l in content.splitlines() if l.startswith("| ID |")][0]
+        assert header.rstrip().endswith("| 批次 |")
+        row = [l for l in content.splitlines() if l.startswith("| B1 ")][0]
+        cells = [c.strip() for c in row.strip().strip("|").split("|")]
+        assert len(cells) == 8 and cells[7] == ""
+
+    def test_scan_old_7col_file_batch_none(self, tmp_path):
+        """旧格式（无批次列，7 列）文件 scan 不报错，batch 读为 None（I8 向后兼容）。"""
+        buglists_dir = tmp_path / "openspec" / "buglists"
+        buglists_dir.mkdir(parents=True)
+        old_content = (
+            "# 2026-01-01 Buglist\n\n"
+            "> 来源：<未注明>\n"
+            "> 创建日期：2026-01-01\n\n"
+            "## 状态总览\n\n"
+            "| ID | 模块 | 问题摘要 | 优先级 | 状态 | 时间 | 关联Change |\n"
+            "|----|------|----------|--------|------|------|------------|\n"
+            "| B1 | `foo.c:10` | 旧数据 | P1 | OPEN | 10:00 | - |\n\n"
+            "---\n\n"
+            "## B1: 旧数据\n\n"
+            "| 属性 | 值 |\n"
+            "|------|------|\n"
+            "| 模块 | `foo.c:10` |\n"
+            "| 优先级 | P1 |\n"
+            "| 状态 | OPEN |\n\n"
+            "**现象**：占位\n\n"
+            "**根因**：<待分析>\n\n"
+            "**修复方案**：\n- <待补充>\n\n"
+            "**影响范围**：<待评估>\n"
+        )
+        (buglists_dir / "2026-01-01-buglist.md").write_text(old_content, encoding="utf-8")
+        proc = subprocess.run(
+            [sys.executable, SCRIPT, "--root", str(tmp_path), "scan", "--json"],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+        result = json.loads(proc.stdout)
+        b1 = [b for b in result["bugs"] if b["id"] == "B1"][0]
+        assert b1["batch"] is None
+        assert result["problems"] == []
+
+    def test_scan_reads_batch_when_present(self, tmp_path):
+        payload = base_payload()
+        proc = run_add(tmp_path, payload)
+        assert proc.returncode == 0, proc.stderr
+        # 手动把批次列写入刚新增的行（cmd_add 默认留空）
+        path = tmp_path / "openspec" / "buglists"
+        files = list(path.glob("*-buglist.md"))
+        content = files[0].read_text(encoding="utf-8")
+        lines = content.splitlines(keepends=True)
+        for i, ln in enumerate(lines):
+            if ln.startswith("| B1 "):
+                cells = [c.strip() for c in ln.strip().strip("|").split("|")]
+                cells[7] = "batch-1"
+                lines[i] = "| " + " | ".join(cells) + " |\n"
+        files[0].write_text("".join(lines), encoding="utf-8")
+        scan_proc = subprocess.run(
+            [sys.executable, SCRIPT, "--root", str(tmp_path), "scan", "--json"],
+            capture_output=True, text=True,
+        )
+        assert scan_proc.returncode == 0, scan_proc.stderr
+        result = json.loads(scan_proc.stdout)
+        b1 = [b for b in result["bugs"] if b["id"] == "B1"][0]
+        assert b1["batch"] == "batch-1"
+
+
 def _buglist_content(root):
     d = root / "openspec" / "buglists"
     files = list(d.glob("*-buglist.md"))

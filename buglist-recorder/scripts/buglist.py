@@ -171,8 +171,8 @@ HEADER_TMPL = """# {date} Buglist
 
 ## 状态总览
 
-| ID | 模块 | 问题摘要 | 优先级 | 状态 | 时间 | 关联Change |
-|----|------|----------|--------|------|------|------------|
+| ID | 模块 | 问题摘要 | 优先级 | 状态 | 时间 | 关联Change | 批次 |
+|----|------|----------|--------|------|------|------------|------|
 """
 
 
@@ -308,7 +308,7 @@ def cmd_add(args):
         _die("文件结构异常：找不到状态总览表")
 
     row = (f"| {bid} | `{data['module']}` | {data['summary']} | {data['priority']} | "
-           f"{status} | {time_str} | {change or '-'} |\n")
+           f"{status} | {time_str} | {change or '-'} | {data.get('batch', '')} |\n")
     lines.insert(sec["rows_end"], row)
 
     block = BLOCK_TMPL.format(
@@ -441,6 +441,7 @@ def cmd_scan(args):
                          "priority": c[3], "status": c[4],
                          "time": c[5] if len(c) > 5 else None,
                          "change": c[6] if len(c) > 6 and c[6] != "-" else None,
+                         "batch": c[7] if len(c) > 7 and c[7] else None,
                          "file": rel})
 
     if args.status:
