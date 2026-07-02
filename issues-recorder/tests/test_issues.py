@@ -558,6 +558,174 @@ class TestBatchRename:
         assert "### b — B" in content
 
 
+class TestReindexSyncBatchesMembers:
+    """Task 11 载重约束 1（成员填充）：reindex 按 item 的批次 tag 聚合成员，
+    填 batches.md 每批的 `成员:` 生成行，成员 id 排序确定。"""
+
+    def test_reindex_fills_members_line_sorted_by_id_across_both_pools(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n", "状态: PLANNED\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "batch-1"},
+        ])
+        _write_todo_file(tmp_path, "2026-01", [
+            {"id": "T2", "status": "OPEN", "change": "x", "batch": "batch-1"},
+        ])
+        _run_reindex(tmp_path)
+        content = _read_batches(tmp_path)
+        assert "成员: (生成) B1, T2" in content
+
+
+class TestReindexBatchDoneCriterion:
+    """Task 11 载重约束 2（D1 关键判据）：成员数 ≥1 且全部进入各自 pool 终态集
+    （bug: FIXED/WONTFIX；todo: DONE/WONTDO）→ `状态:` 生成行同步为 DONE。"""
+
+    def test_all_members_fixed_or_done_marks_batch_done(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n", "状态: PLANNED\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "FIXED", "change": "x", "batch": "batch-1"},
+        ])
+        _write_todo_file(tmp_path, "2026-01", [
+            {"id": "T1", "status": "DONE", "change": "x", "batch": "batch-1"},
+        ])
+        _run_reindex(tmp_path)
+        content = _read_batches(tmp_path)
+        assert "状态: DONE" in content
+        assert "状态: PLANNED" not in content
+
+
+class TestReindexBatchDoneCriterionIncludesWontVariants:
+    """Task 11 载重约束 3：成员全是 FIXED/WONTFIX/DONE/WONTDO（含 WONT*）也算
+    完成 → DONE（WONT* 是合法闭合）。"""
+
+    def test_all_members_terminal_via_wont_variants_marks_done(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n", "状态: PLANNED\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "WONTFIX", "change": "x", "batch": "batch-1"},
+        ])
+        _write_todo_file(tmp_path, "2026-01", [
+            {"id": "T1", "status": "WONTDO", "change": "x", "batch": "batch-1"},
+        ])
+        _run_reindex(tmp_path)
+        content = _read_batches(tmp_path)
+        assert "状态: DONE" in content
+
+
+class TestReindexZeroMemberBatchStaysPlanned:
+    """Task 11 载重约束 2（D1 反例）：0 成员批次 MUST 保持 PLANNED——防 vacuous-truth
+    假 DONE（全称量词对空集永真，必须显式排除成员数=0）。"""
+
+    def test_zero_member_batch_not_marked_done(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n", "状态: PLANNED\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        # 无任何 item 引用 batch-1（两池都不写 dated 文件）
+        _run_reindex(tmp_path)
+        content = _read_batches(tmp_path)
+        assert "状态: PLANNED" in content
+        assert "状态: DONE" not in content
+        assert "成员: (生成)" in content
+
+
+class TestReindexDoesNotOverrideHumanDoneStatus:
+    """Task 11 载重约束 4（Q3 不越权纠正）：批次 batches.md 里标了 DONE 但成员未全进
+    终态（有 OPEN 等）→ reindex 只追加 `⚠️ 不一致` 警告，绝不改人写的 `状态:` 值。"""
+
+    def test_appends_warning_but_keeps_human_done_value_unchanged(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n", "状态: DONE\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "batch-1"},
+        ])
+        _run_reindex(tmp_path)
+        content = _read_batches(tmp_path)
+        assert "状态: DONE" in content  # 人写值不被改回 PLANNED/其它
+        assert "⚠️ 不一致" in content
+
+
+class TestReindexOrphanBatchTag:
+    """Task 11 载重约束 5（Q2/D5 orphan）：item 有批次 tag 但 batches.md 无此 key →
+    reindex stderr 显式报警、不静默生成 ghost 批次条目。"""
+
+    def test_orphan_batch_tag_warns_on_stderr_without_creating_ghost_entry(self, tmp_path):
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "ghost-batch"},
+        ])
+        proc = _run_reindex(tmp_path)
+        assert "ghost-batch" in proc.stderr
+        assert "orphan" in proc.stderr
+        # 不静默生成 ghost 条目：batches.md 压根不该被凭空建出来
+        assert not (tmp_path / "openspec" / "issues" / "batches.md").exists()
+
+    def test_orphan_batch_tag_when_batches_md_has_other_entries_does_not_add_ghost_key(
+        self, tmp_path
+    ):
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n", "状态: PLANNED\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "ghost-batch"},
+        ])
+        proc = _run_reindex(tmp_path)
+        assert "ghost-batch" in proc.stderr
+        content = _read_batches(tmp_path)
+        assert "ghost-batch" not in content
+        assert "### batch-1" in content
+
+
+class TestReindexBatchesSyncIdempotent:
+    """Task 11 载重约束 6：整体 reindex 幂等——连跑两次 batches.md 逐字节稳定，
+    ⚠️ 不一致 行不累积重复。"""
+
+    def test_warning_line_not_duplicated_and_batches_md_byte_stable_on_rerun(self, tmp_path):
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n", "状态: DONE\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "batch-1"},
+        ])
+        _run_reindex(tmp_path)
+        first = _read_batches(tmp_path)
+        _run_reindex(tmp_path)
+        second = _read_batches(tmp_path)
+        assert first == second
+        assert first.count("⚠️ 不一致") == 1
+
+
+class TestReindexStatusLineFullwidthColonCarry:
+    """Task 11 载重约束 7（Task 10 carry）：`状态：`（全角冒号）人手误按也要被解析
+    识别（放宽正则兼容全/半角），不静默留僵尸行（不会额外插入第二条状态行）。"""
+
+    def test_fullwidth_colon_status_line_recognized_and_normalized_no_duplicate(
+        self, tmp_path
+    ):
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n", "状态： PLANNED\n", "成员: (生成)\n",
+            "优先级: P1\n", "计划: x\n",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "FIXED", "change": "x", "batch": "batch-1"},
+        ])
+        _run_reindex(tmp_path)
+        content = _read_batches(tmp_path)
+        status_lines = [l for l in content.splitlines() if l.startswith("状态")]
+        assert len(status_lines) == 1
+        assert status_lines[0] == "状态: DONE"
+
+
 # ── fixtures ─────────────────────────────────────────────────────────────────
 
 def _run_reindex(root):
