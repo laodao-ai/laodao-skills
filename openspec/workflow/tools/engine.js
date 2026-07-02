@@ -226,7 +226,7 @@ if (typeof document !== 'undefined') {
       const href = a.getAttribute('href');
       if (!href) return;
       // Only intercept links to markdown docs or directory listings — everything
-      // else (images, `/tools/engine.js`, same-page `#fragment` anchors, etc.)
+      // else (images, `/workflow/tools/engine.js`, same-page `#fragment` anchors, etc.)
       // should fall through to native browser handling. Checking the raw href
       // (not the resolved URL) means a bare `#foo` fragment is correctly excluded
       // here too, since it's neither a `.md` path nor directory-shaped.
