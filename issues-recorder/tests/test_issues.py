@@ -3,6 +3,7 @@ Tests for issues.py's Task 8 skeleton: cross-pool `read_pool` join (bug + todo)
 and D9 cross-pool ID conflict detection.
 Run with: python3 -m pytest issues-recorder/tests/ -v
 """
+import json
 import os
 import subprocess
 import sys
@@ -17,6 +18,12 @@ from issues import (
 )
 
 SCRIPT = str(Path(__file__).parent.parent / "scripts" / "issues.py")
+
+# Task 16：端到端一致性自检要用真实 buglist.py/todolist.py CLI 子进程（不借道 issues.py
+# 内部函数）造数据，定位方式镜像 issues.py 自身的 SKILLS_ROOT 探测（tests 目录上三级
+# 是 laodao-skills 根，buglist-recorder/todolist-recorder 与本 skill 是同级 sibling）。
+BUGLIST_SCRIPT = str(Path(__file__).parent.parent.parent / "buglist-recorder" / "scripts" / "buglist.py")
+TODOLIST_SCRIPT = str(Path(__file__).parent.parent.parent / "todolist-recorder" / "scripts" / "todolist.py")
 
 
 class TestReadPoolJoin:
@@ -869,7 +876,218 @@ class TestReindexBatchesMdMissingTrailingNewline:
         assert first.count("⚠️ 不一致") == 1  # 不累积
 
 
+class TestEndToEndConsistency:
+    """Task 16（§8.2）：端到端一致性自检——真实 buglist.py add / todolist.py add /
+    triage → issues.py batch add → issues.py reindex 全流程串起来（不借道任何
+    issues.py 内部函数造数据，只走三脚本各自的 CLI），断言三处物化视图互相一致：
+      1) INDEX.md 的 open×批次板 == 直接拿 buglist.py/todolist.py `scan --json`
+         现场扫出的 open 项（按批次分组正确）；
+      2) batches.md 该批次的 `成员:` 生成行 == 直接拿 `scan --批次 {key} --json`
+         现场扫出的、实际打了该批次 tag 的 item id 集合；
+      3) 把该批次成员全部 set-status 到各自 pool 的终态后再 reindex → batches.md
+         该批次 `状态:` 生成行同步为 DONE、INDEX open 板不再含这些项，且末尾重跑
+         reindex 逐字节幂等（INDEX.md + batches.md 两个文件都稳定）。
+    """
+
+    BATCH_KEY = "e2e-batch"
+
+    def _seed_and_first_reindex(self, tmp_path):
+        """造 3 bug + 3 todo（各含 open 与终态），把各池一个 open 项 triage 进
+        BATCH_KEY，注册该批次（PLANNED）后跑首次 reindex。返回 {逻辑名: id} 供
+        各测试断言用——B1/T1 落批次，B2/T2 保持未分组，B3/T3 从一开始就是终态。"""
+        ids = {}
+        ids["B1"] = _buglist_add(
+            tmp_path, module="a.c", summary="crash on startup", priority="P1",
+            phenomenon="启动即崩", rootcause="init() 空指针",
+        )
+        ids["B2"] = _buglist_add(
+            tmp_path, module="b.c", summary="off by one", priority="P2",
+            phenomenon="循环多算一次",
+        )
+        ids["B3"] = _buglist_add(
+            tmp_path, module="c.c", summary="already-fixed bug", priority="P3",
+            phenomenon="旧问题", status="FIXED",
+        )
+        ids["T1"] = _todolist_add(tmp_path, module="a.c", summary="refactor init", type="代码质量")
+        ids["T2"] = _todolist_add(tmp_path, module="b.c", summary="add caching", type="性能优化")
+        ids["T3"] = _todolist_add(
+            tmp_path, module="c.c", summary="old idea", type="代码质量", status="DONE",
+        )
+
+        _buglist_triage(tmp_path, ids["B1"], self.BATCH_KEY)
+        _todolist_triage(tmp_path, ids["T1"], self.BATCH_KEY)
+
+        _run_batch(tmp_path, ["add", self.BATCH_KEY, "--title", "端到端清理批次"])
+        _run_reindex(tmp_path)
+        return ids
+
+    def test_index_open_board_matches_live_scan_grouped_by_batch(self, tmp_path):
+        ids = self._seed_and_first_reindex(tmp_path)
+
+        # 地面真值：不借道 issues.py，直接现场 scan 两个 recorder 自己的 dated 文件。
+        bugs = _buglist_scan_json(tmp_path)
+        todos = _todolist_scan_json(tmp_path)
+        open_bugs = [b for b in bugs if b["status"] not in ("FIXED", "WONTFIX")]
+        open_todos = [t for t in todos if t["status"] not in ("DONE", "WONTDO")]
+
+        assert {b["id"] for b in open_bugs} == {ids["B1"], ids["B2"]}
+        assert {t["id"] for t in open_todos} == {ids["T1"], ids["T2"]}
+        assert next(b for b in open_bugs if b["id"] == ids["B1"])["batch"] == self.BATCH_KEY
+        assert next(t for t in open_todos if t["id"] == ids["T1"])["batch"] == self.BATCH_KEY
+        assert next(b for b in open_bugs if b["id"] == ids["B2"])["batch"] is None
+        assert next(t for t in open_todos if t["id"] == ids["T2"])["batch"] is None
+
+        content = _read_index(tmp_path)
+        open_section, _, closed_section = content.partition("已闭合")
+
+        batch_header = f"批次：{self.BATCH_KEY}"
+        assert batch_header in open_section
+        assert f"| {ids['B1']} |" in open_section
+        assert f"| {ids['T1']} |" in open_section
+        assert f"| {ids['B2']} |" in open_section
+        assert f"| {ids['T2']} |" in open_section
+        # 批次分组段落排在未分组段落之前（generate_index_md 的确定性顺序）
+        assert open_section.index(batch_header) < open_section.index("未分组")
+
+        # 终态项（B3/T3）从不出现在 open 板；已闭合摘要计数与地面真值一致
+        assert f"| {ids['B3']} |" not in open_section
+        assert f"| {ids['T3']} |" not in open_section
+        assert "共 2 项已闭合" in closed_section
+
+    def test_batches_md_members_line_matches_live_scan_by_batch_tag(self, tmp_path):
+        ids = self._seed_and_first_reindex(tmp_path)
+
+        tagged_bugs = _buglist_scan_json(tmp_path, batch=self.BATCH_KEY)
+        tagged_todos = _todolist_scan_json(tmp_path, batch=self.BATCH_KEY)
+        actual_members = {b["id"] for b in tagged_bugs} | {t["id"] for t in tagged_todos}
+        # 只有 B1/T1 被 triage 进该批次；B2/T2 批次列为空，不该被扫出来
+        assert actual_members == {ids["B1"], ids["T1"]}
+
+        content = _read_batches(tmp_path)
+        expected_line = "成员: (生成) " + ", ".join(sorted(actual_members))
+        assert expected_line in content
+        assert f"### {self.BATCH_KEY} —" in content
+        assert "状态: PLANNED" in content  # 成员尚未全部终态，不该被判 DONE
+
+    def test_batch_converges_to_done_and_index_excludes_terminal_members_then_idempotent(
+        self, tmp_path
+    ):
+        ids = self._seed_and_first_reindex(tmp_path)
+
+        # 把该批次仅有的两名成员（B1/T1）全部推进到各自 pool 的终态
+        _buglist_set_status(tmp_path, ids["B1"], "FIXED", evidence="e2e-test-commit")
+        _todolist_set_status(tmp_path, ids["T1"], "DONE", evidence="e2e-test-commit")
+        _run_reindex(tmp_path)
+
+        batches_content = _read_batches(tmp_path)
+        assert f"### {self.BATCH_KEY} —" in batches_content
+        assert "状态: DONE" in batches_content
+        assert "状态: PLANNED" not in batches_content
+        # 真实收敛（成员确已全终态），不是「人写 DONE 但实际没收敛」那种不一致告警场景
+        assert "⚠️ 不一致" not in batches_content
+
+        index_content = _read_index(tmp_path)
+        open_section, _, closed_section = index_content.partition("已闭合")
+        # B1/T1 已终态：该批次已无 open 成员，分组段落整体消失（不留空标题）
+        assert f"批次：{self.BATCH_KEY}" not in open_section
+        assert f"| {ids['B1']} |" not in open_section
+        assert f"| {ids['T1']} |" not in open_section
+        # B2/T2 从未变动过，仍是 open、仍在未分组段落
+        assert f"| {ids['B2']} |" in open_section
+        assert f"| {ids['T2']} |" in open_section
+        # 已闭合摘要：B1/B3（bug）+ T1/T3（todo）共 4 项
+        assert "共 4 项已闭合" in closed_section
+
+        # 幂等：末尾再 reindex 一次，INDEX.md + batches.md 两个文件都逐字节稳定
+        index_first = _read_index_bytes(tmp_path)
+        batches_first = _read_batches(tmp_path)
+        _run_reindex(tmp_path)
+        index_second = _read_index_bytes(tmp_path)
+        batches_second = _read_batches(tmp_path)
+        assert index_first == index_second
+        assert batches_first == batches_second
+
+
 # ── fixtures ─────────────────────────────────────────────────────────────────
+
+def _run_cli(script, root, args, input_json=None):
+    """通过真实 CLI 子进程调 buglist.py/todolist.py（stdin 喂 JSON，镜像
+    buglist-recorder/tests/test_buglist.py 的 run_add 写法：不传 --json，
+    默认走 stdin，`input=None` 时等价于不喂 stdin JSON 的命令，如 triage/scan/set-status）。"""
+    return subprocess.run(
+        [sys.executable, script, "--root", str(root)] + args,
+        input=json.dumps(input_json) if input_json is not None else None,
+        capture_output=True, text=True,
+    )
+
+
+def _buglist_add(root, **fields):
+    data = {"priority": "P2", "phenomenon": "e2e phenomenon"}
+    data.update(fields)
+    proc = _run_cli(BUGLIST_SCRIPT, root, ["add"], input_json=data)
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)["id"]
+
+
+def _todolist_add(root, **fields):
+    data = {"type": "代码质量"}
+    data.update(fields)
+    proc = _run_cli(TODOLIST_SCRIPT, root, ["add"], input_json=data)
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)["id"]
+
+
+def _buglist_triage(root, id_, batch):
+    proc = _run_cli(BUGLIST_SCRIPT, root, ["triage", "--id", id_, "--批次", batch])
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
+def _todolist_triage(root, id_, batch):
+    proc = _run_cli(TODOLIST_SCRIPT, root, ["triage", "--id", id_, "--批次", batch])
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
+def _buglist_set_status(root, id_, to, evidence=None, reason=None):
+    args = ["set-status", "--id", id_, "--to", to]
+    if evidence:
+        args += ["--evidence", evidence]
+    if reason:
+        args += ["--reason", reason]
+    proc = _run_cli(BUGLIST_SCRIPT, root, args)
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
+def _todolist_set_status(root, id_, to, evidence=None, reason=None):
+    args = ["set-status", "--id", id_, "--to", to]
+    if evidence:
+        args += ["--evidence", evidence]
+    if reason:
+        args += ["--reason", reason]
+    proc = _run_cli(TODOLIST_SCRIPT, root, args)
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
+def _buglist_scan_json(root, batch=None):
+    args = ["scan", "--json"]
+    if batch is not None:
+        args += ["--批次", batch]
+    proc = _run_cli(BUGLIST_SCRIPT, root, args)
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)["bugs"]
+
+
+def _todolist_scan_json(root, batch=None):
+    args = ["scan", "--json"]
+    if batch is not None:
+        args += ["--批次", batch]
+    proc = _run_cli(TODOLIST_SCRIPT, root, args)
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)["items"]
+
 
 def _run_reindex(root):
     proc = subprocess.run(
