@@ -163,8 +163,8 @@ HEADER_TMPL = """# {month} TODO
 
 ## 状态总览
 
-| ID | 模块 | 描述 | 类型 | 状态 | 时间 | 关联Change |
-|----|------|------|------|------|------|------------|
+| ID | 模块 | 描述 | 类型 | 状态 | 时间 | 关联Change | 批次 |
+|----|------|------|------|------|------|------------|------|
 """
 
 
@@ -269,7 +269,7 @@ def cmd_add(args):
         _die("文件结构异常：找不到状态总览表")
 
     row = (f"| {tid} | `{data['module']}` | {data['summary']} | {data['type']} | "
-           f"{status} | {time_str} | {change or '-'} |\n")
+           f"{status} | {time_str} | {change or '-'} | {data.get('batch', '')} |\n")
     lines.insert(sec["rows_end"], row)
 
     # 详细块可选：给了 动机/思路/备注，或显式传了关联文档，才写（轻量优先）。
@@ -403,6 +403,7 @@ def cmd_scan(args):
                           "type": c[3], "status": c[4],
                           "time": c[5] if len(c) > 5 else None,
                           "change": c[6] if len(c) > 6 and c[6] != "-" else None,
+                          "batch": c[7] if len(c) > 7 and c[7] else None,
                           "file": rel})
 
     if args.status:
