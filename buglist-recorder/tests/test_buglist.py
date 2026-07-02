@@ -12,7 +12,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 import buglist as buglist_mod
-from buglist import normalize_doc_paths, auto_default_doc, validate_doc_paths
+from buglist import normalize_doc_paths, auto_default_doc, validate_doc_paths, atomic_write
 
 SCRIPT = str(Path(__file__).parent.parent / "scripts" / "buglist.py")
 
@@ -173,7 +173,7 @@ class TestBatchColumn:
 
     def test_scan_old_7col_file_batch_none(self, tmp_path):
         """旧格式（无批次列，7 列）文件 scan 不报错，batch 读为 None（I8 向后兼容）。"""
-        buglists_dir = tmp_path / "openspec" / "buglists"
+        buglists_dir = tmp_path / "openspec" / "issues" / "buglist"
         buglists_dir.mkdir(parents=True)
         old_content = (
             "# 2026-01-01 Buglist\n\n"
@@ -211,7 +211,7 @@ class TestBatchColumn:
         proc = run_add(tmp_path, payload)
         assert proc.returncode == 0, proc.stderr
         # 手动把批次列写入刚新增的行（cmd_add 默认留空）
-        path = tmp_path / "openspec" / "buglists"
+        path = tmp_path / "openspec" / "issues" / "buglist"
         files = list(path.glob("*-buglist.md"))
         content = files[0].read_text(encoding="utf-8")
         lines = content.splitlines(keepends=True)
@@ -231,8 +231,45 @@ class TestBatchColumn:
         assert b1["batch"] == "batch-1"
 
 
+class TestAtomicWrite:
+    def test_writes_content_and_creates_parent_dir(self, tmp_path):
+        target = tmp_path / "sub" / "dir" / "file.md"
+        atomic_write(str(target), "hello\nworld\n")
+        assert target.read_text(encoding="utf-8") == "hello\nworld\n"
+
+    def test_overwrites_existing_file(self, tmp_path):
+        target = tmp_path / "file.md"
+        target.write_text("old", encoding="utf-8")
+        atomic_write(str(target), "new")
+        assert target.read_text(encoding="utf-8") == "new"
+
+    def test_no_leftover_tmp_file_after_success(self, tmp_path):
+        target = tmp_path / "file.md"
+        atomic_write(str(target), "content")
+        leftovers = [p for p in tmp_path.iterdir() if p.name != "file.md"]
+        assert leftovers == []
+
+    def test_original_file_unchanged_when_replace_fails(self, tmp_path, monkeypatch):
+        """中途异常（这里模拟 os.replace 本身失败）：原文件必须原样保留，不能被截断/清空，
+        且不留残留 .tmp 文件（finally 兜底清理）。"""
+        target = tmp_path / "file.md"
+        target.write_text("original content", encoding="utf-8")
+
+        def boom(src, dst):
+            raise OSError("simulated os.replace failure")
+
+        monkeypatch.setattr(buglist_mod.os, "replace", boom)
+
+        with pytest.raises(OSError):
+            atomic_write(str(target), "new content that must not land")
+
+        assert target.read_text(encoding="utf-8") == "original content"
+        leftovers = [p for p in tmp_path.iterdir() if p.name != "file.md"]
+        assert leftovers == []
+
+
 def _buglist_content(root):
-    d = root / "openspec" / "buglists"
+    d = root / "openspec" / "issues" / "buglist"
     files = list(d.glob("*-buglist.md"))
     assert len(files) == 1
     return files[0].read_text(encoding="utf-8")

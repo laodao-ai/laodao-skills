@@ -10,10 +10,11 @@ skill `todolist-recorder` 的执行核心。收集优化想法/技术债/改进�
 （必带 change/commit 证据）、WONTDO 门禁（必带理由）、扫描 + 一致性自检。
 
 文件布局（约定，自包含，不依赖外部 rule）：
-  <root>/openspec/todolists/YYYY-MM-todolist.md
+  <root>/openspec/issues/todolist/YYYY-MM-todolist.md
   结构 = 头部 → ## 状态总览（表）→ 各项的 --- 分隔详细块（可选）
 
-用法见 `python todolist.py --help`。写操作追加式，不删历史。
+用法见 `python todolist.py --help`。写操作追加式，不删历史；落盘经 atomic_write
+（tempfile 同目录 + os.replace），中途异常不会截断原文件。
 """
 
 import argparse
@@ -24,6 +25,23 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
+
+
+def atomic_write(path, text):
+    """原子写：同目录临时文件写完整内容 → os.replace 原子换入。
+    中途任何异常（含 os.replace 本身失败）都不会截断/损坏原文件——旧内容原样保留，
+    临时文件在 finally 里清理，不留残留 .tmp。"""
+    d = os.path.dirname(path) or "."
+    os.makedirs(d, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=d, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
 
 STATUS_CODES = ["OPEN", "PROPOSED", "DONE", "WONTDO"]
 TYPE_TAGS = ["性能优化", "可观测性", "代码质量", "功能增强", "基础设施"]
@@ -134,7 +152,7 @@ def auto_default_doc(root, change):
 
 
 def todolists_dir(root):
-    return os.path.join(root, "openspec", "todolists")
+    return os.path.join(root, "openspec", "issues", "todolist")
 
 
 def list_files(root):
@@ -171,9 +189,7 @@ HEADER_TMPL = """# {month} TODO
 def ensure_file(root, month, project):
     path = file_for_month(root, month)
     if not os.path.exists(path):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(HEADER_TMPL.format(month=month, project=project or "<未注明>"))
+        atomic_write(path, HEADER_TMPL.format(month=month, project=project or "<未注明>"))
     return path
 
 
@@ -278,8 +294,7 @@ def cmd_add(args):
     if block:
         lines.append(block)
 
-    with open(path, "w", encoding="utf-8") as f:
-        f.writelines(lines)
+    atomic_write(path, "".join(lines))
     print(json.dumps({"id": tid, "file": os.path.relpath(path, root), "status": status,
                       "block": bool(block), "time": time_str, "change": change or None},
                      ensure_ascii=False))
@@ -361,8 +376,7 @@ def cmd_set_status(args):
         # 无块但有证据/理由：补一个最小块留痕（DONE/WONTDO 走这条）
         lines.append(_minimal_block(args.id, cells, new, hist))
 
-    with open(path, "w", encoding="utf-8") as f:
-        f.writelines(lines)
+    atomic_write(path, "".join(lines))
     print(json.dumps({"id": args.id, "old": old, "new": new,
                       "file": os.path.relpath(path, root)}, ensure_ascii=False))
 
