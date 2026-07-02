@@ -21,7 +21,7 @@
 > B-Q2：`reindex`/`batch` 是**跨类型**命令（join 两池 + 维护 `INDEX.md`/`batches.md`），归**新增的共享 issues 层脚本**（`issues.py`，或薄 skill `issues-recorder`），不塞进 per-type 的 buglist.py/todolist.py（见 design §五）。物理落点（全局 vs 随 recorder）随 `minimize-repo-footprint` 一并定。
 
 - [ ] 3.0 新建共享 issues 层脚本 `issues.py`（读 `issues/buglist/` + `issues/todolist/` 两池；owns `issues/INDEX.md` + `issues/batches.md`）；写文件用 **temp + `os.replace` 原子写**〔D6〕；`INDEX.md` 首行加 `<!-- GENERATED ... DO NOT EDIT -->` banner〔D3〕；join 时**跨池 ID 前缀冲突检测**（B/T 撞号报错不静默）〔D9〕；失败模式按 design §8.1 处理（解析失败/orphan 批次 tag 报警不静默）〔D5〕
-- [ ] 3.1 `reindex` 命令 → 从各 dated 文件重建 `issues/INDEX.md`（**禁手改**；摊清 open item × 批次 + 标出已闭合〔终态〕项）〔I2，原 §5.4〕
+- [x] 3.1 `reindex` 命令 → 从各 dated 文件重建 `issues/INDEX.md`（**禁手改**；摊清 open item × 批次 + 标出已闭合〔终态〕项）〔I2，原 §5.4〕（Task 9：banner+原子写+open×批次板+已闭合摘要+幂等，已实现；批次状态同步见 3.2/Task 11）
 - [ ] 3.2 reindex **顺带同步批次状态**：拿 item 池当 ground truth——成员**全部进入各自终态集**（bug: `FIXED`/`WONTFIX`；todo: `DONE`/`WONTDO`）→ 批次判/标 `DONE`；状态与成员不一致 → 标出纠正（不静默信手写状态）。**不做逾期主动催办**〔I2/I12/B-Q1·grill-amendment，原 §5.4〕
 - [ ] 3.3 `issues/batches.md` 注册表 + `batch` 命令（add / set-status，跨 bug+todo，`PLANNED→IN_PROGRESS→DONE`，条目薄：名/状态/成员(生成)/优先级/一句范围/完成记录）〔I11，原 §5.5〕
 
