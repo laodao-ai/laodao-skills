@@ -304,6 +304,16 @@ class TestDualRead:
         assert any("openspec/buglists/" in f for f in files)
         assert any("openspec/issues/buglist/" in f for f in files)
 
+    def test_list_files_new_dir_sorts_before_old_dir_even_if_dated_later(self, tmp_path):
+        """回归：list_files 曾对拼接后的全路径整体 sorted，导致旧目录 `openspec/buglists/`
+        （字符串 'b'）永远排在新目录 `openspec/issues/buglist/`（'i'）之前，即使新目录里的
+        文件日期更新，也会被字符串序压到后面——违反『新在前』。修复后应按 _dated_dirs 的
+        目录顺序（新在前）分别收集、目录内部再按文件名排序，不整体 sorted。"""
+        _write_dated_file(tmp_path / "openspec" / "buglists", "2026-01-01", ["B1"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-02", ["B2"])
+        files = [f.replace(os.sep, "/") for f in list_files(str(tmp_path))]
+        assert "openspec/issues/buglist" in files[0]
+
     def test_list_files_new_dir_only_unchanged_behavior(self, tmp_path):
         """旧目录不存在时行为与现状一致（不破坏现有行为）。"""
         _write_dated_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-02", ["B2"])

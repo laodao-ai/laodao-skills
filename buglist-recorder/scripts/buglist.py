@@ -185,13 +185,14 @@ def _dated_dirs(root):
 
 def list_files(root):
     out = []
-    for d in _dated_dirs(root):
+    for d in _dated_dirs(root):  # 新在前（目录序），不可对拼接后的全路径整体 sorted
         if os.path.isdir(d):
-            out += [
+            files = [
                 os.path.join(d, f) for f in os.listdir(d)
                 if re.match(r"\d{4}-\d{2}-\d{2}-buglist\.md$", f)
             ]
-    return sorted(out)
+            out += sorted(files)  # 各目录内部按文件名（=日期）排序
+    return out
 
 
 def today_str(override=None):
