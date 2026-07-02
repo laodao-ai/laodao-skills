@@ -13,7 +13,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 import todolist as todolist_mod
-from todolist import normalize_doc_paths, auto_default_doc, validate_doc_paths, atomic_write
+from todolist import (
+    normalize_doc_paths, auto_default_doc, validate_doc_paths, atomic_write,
+    list_files, next_id, id_conflicts,
+)
 
 SCRIPT = str(Path(__file__).parent.parent / "scripts" / "todolist.py")
 
@@ -310,6 +313,94 @@ class TestAtomicWrite:
         assert target.read_text(encoding="utf-8") == "original content"
         leftovers = [p for p in tmp_path.iterdir() if p.name != "file.md"]
         assert leftovers == []
+
+
+class TestDualRead:
+    """过渡期加固（Phase B Q1，镜像 buglist Task 4）：list_files/all_ids/next_id 同时扫新
+    `openspec/issues/todolist/` + 旧 `openspec/todolists/` 两目录（新在前=写落新，旧只读兼容），
+    避免下游只 update 未迁移旧数据时 ID 从新目录重数、撞旧目录已有的号。"""
+
+    def test_next_id_takes_max_across_old_and_new(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "todolists", "2026-01", ["T1"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "todolist", "2026-02", ["T2"])
+        assert next_id(str(tmp_path)) == "T3"
+
+    def test_list_files_includes_both_paths(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "todolists", "2026-01", ["T1"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "todolist", "2026-02", ["T2"])
+        files = [f.replace(os.sep, "/") for f in list_files(str(tmp_path))]
+        assert len(files) == 2
+        assert any("openspec/todolists/" in f for f in files)
+        assert any("openspec/issues/todolist/" in f for f in files)
+
+    def test_list_files_new_dir_sorts_before_old_dir_even_if_dated_later(self, tmp_path):
+        """回归（同 buglist Task 4-fix）：list_files 若对拼接后的全路径整体 sorted，会导致旧目录
+        `openspec/todolists/`（字符串 't'）排在新目录 `openspec/issues/todolist/`（'i'）之前——
+        即使旧目录里的文件月份更早、新目录月份更晚，也不能让字符串序压过『新在前』。
+        必须按 _dated_dirs 的目录顺序（新在前）分别收集、目录内部再按文件名排序，不整体 sorted。"""
+        _write_dated_file(tmp_path / "openspec" / "todolists", "2026-01", ["T1"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "todolist", "2026-02", ["T2"])
+        files = [f.replace(os.sep, "/") for f in list_files(str(tmp_path))]
+        assert "openspec/issues/todolist" in files[0]
+
+    def test_list_files_new_dir_only_unchanged_behavior(self, tmp_path):
+        """旧目录不存在时行为与现状一致（不破坏现有行为）。"""
+        _write_dated_file(tmp_path / "openspec" / "issues" / "todolist", "2026-02", ["T2"])
+        files = list_files(str(tmp_path))
+        assert len(files) == 1
+        assert "issues" in files[0].replace(os.sep, "/")
+
+    def test_id_conflicts_detects_same_id_across_paths(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "todolists", "2026-01", ["T1", "T2"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "todolist", "2026-02", ["T2", "T3"])
+        assert id_conflicts(str(tmp_path)) == ["T2"]
+
+    def test_id_conflicts_empty_when_no_overlap(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "todolists", "2026-01", ["T1"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "todolist", "2026-02", ["T2"])
+        assert id_conflicts(str(tmp_path)) == []
+
+    def test_id_conflicts_empty_when_only_one_path_exists(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "issues" / "todolist", "2026-02", ["T1"])
+        assert id_conflicts(str(tmp_path)) == []
+
+    def test_next_id_cli_warns_stderr_on_conflict_but_does_not_block(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "todolists", "2026-01", ["T1"])
+        _write_dated_file(tmp_path / "openspec" / "issues" / "todolist", "2026-02", ["T1"])
+        proc = subprocess.run(
+            [sys.executable, SCRIPT, "--root", str(tmp_path), "next-id"],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert proc.stdout.strip() == "T2"
+        assert "WARNING" in proc.stderr
+        assert "T1" in proc.stderr
+
+    def test_next_id_cli_silent_when_no_conflict(self, tmp_path):
+        _write_dated_file(tmp_path / "openspec" / "issues" / "todolist", "2026-02", ["T1"])
+        proc = subprocess.run(
+            [sys.executable, SCRIPT, "--root", str(tmp_path), "next-id"],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert proc.stdout.strip() == "T2"
+        assert proc.stderr == ""
+
+
+def _write_dated_file(dir_path, month, ids):
+    """写一个最小合法的月度 todolist 文件（只含状态总览表，够 list_files/all_ids/id_conflicts
+    解析），用于 dual-read 测试在指定目录（新或旧）铸出 fixture 数据。"""
+    dir_path.mkdir(parents=True, exist_ok=True)
+    lines = [
+        f"# {month} TODO\n\n",
+        "> 项目：test\n\n",
+        "## 状态总览\n\n",
+        "| ID | 模块 | 描述 | 类型 | 状态 | 时间 | 关联Change | 批次 |\n",
+        "|----|------|------|------|------|------|------------|------|\n",
+    ]
+    for tid in ids:
+        lines.append(f"| {tid} | `foo.c` | fixture | 性能优化 | OPEN | 2026-01-01 10:00 | - |  |\n")
+    (dir_path / f"{month}-todolist.md").write_text("".join(lines), encoding="utf-8")
 
 
 def _todolist_content(root):
