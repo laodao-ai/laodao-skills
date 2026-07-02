@@ -28,6 +28,7 @@ SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(SKILL_DIR, "assets")
 BUNDLE_SRC = os.path.join(ASSETS, "workflow")
 REVIEW_TOOL_SRC = os.path.join(ASSETS, "review-tool")
+HACK_SRC = os.path.join(ASSETS, "hack")
 SNIPPETS = os.path.join(ASSETS, "snippets")
 
 MARK_DOC = ("<!-- opsx-init:start —— 由 opsx-project-init 维护，勿手改本区块 -->",
@@ -120,6 +121,28 @@ def copy_review_tool(root):
         f.write(rendered)
 
     return sum(len(fs) for _, _, fs in os.walk(dst_tools)) + 2  # +serve.sh +review.html
+
+
+def copy_hack(root):
+    """铺设 hack/ 工作流脚本（checkpoint-commit.sh 等）到项目 repo 根 hack/。
+    源 = assets/hack/*.sh（工作流「过场提交」等自动化脚本，随 bundle 部署，供 step prompt 调用）。
+    update 模式覆盖刷新（托管内容，与 copy_bundle 同款语义；用户勿手改，要改改 assets/hack/ 再 update）。
+    保留可执行权限。返回铺设的文件数（源目录不存在则 0）。
+    """
+    if not os.path.isdir(HACK_SRC):
+        return 0
+    dst_dir = os.path.join(root, "hack")
+    os.makedirs(dst_dir, exist_ok=True)
+    n = 0
+    for name in sorted(os.listdir(HACK_SRC)):
+        src = os.path.join(HACK_SRC, name)
+        if not os.path.isfile(src):
+            continue
+        dst = os.path.join(dst_dir, name)
+        shutil.copyfile(src, dst)
+        shutil.copymode(src, dst)
+        n += 1
+    return n
 
 
 def ensure_dirs(root):
@@ -229,6 +252,12 @@ def run(root, mode):
         f"铺 review 工具：openspec/review.html + openspec/tools/ + openspec/serve.sh"
         f"（{n_review} 文件，{'覆盖' if mode=='update' else '写入'}）"
     )
+
+    n_hack = copy_hack(root)
+    if n_hack:
+        report.append(
+            f"铺 hack 脚本：hack/（{n_hack} 文件，{'覆盖' if mode=='update' else '写入'}；含 checkpoint-commit.sh）"
+        )
 
     report.append("全局 hooks：\n" + ensure_global_hooks())
 
