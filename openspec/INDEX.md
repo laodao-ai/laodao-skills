@@ -20,3 +20,11 @@
 代码审规则集（`/impl-review` 用）：[workflow/code-checklists/](./workflow/code-checklists/)（base CR-01~09 + domains）。
 说明类（可删不影响执行）：[workflow/reference/](./workflow/reference/)。
 <!-- opsx-init:rules:end -->
+
+## Specs（按主题分组）
+
+### spec-workflow
+
+| 名称 | 文件 | 主题 |
+|---|---|---|
+| `spec-workflow` | [specs/spec-workflow/spec.md](./specs/spec-workflow/spec.md) | spec 工作流三阶段（设计评审/代码评审/收尾归档）连续化的规范性行为：fresh 子代理替代 `/clear`、评审决策登记区、无人类门连续跑到 merge、verify 证据锚点、checkpoint 提交、bundle 权威源改动 |
