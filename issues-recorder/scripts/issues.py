@@ -94,6 +94,28 @@ def atomic_write(path, text):
             os.remove(tmp)
 
 
+# ── 路径与文件 ───────────────────────────────────────────────────────────────
+
+def repo_root(start="."):
+    """探测 git 仓库根；非 git 仓库（或 git 命令失败）退化为 `os.path.abspath(start)`。
+
+    与 buglist.py / todolist.py 的同名函数逐字同款（Phase B 3 个脚本各自独立、不互相
+    import，故各自内联一份，见模块 docstring "子进程解耦"）。修复 Critical fix carry-over：
+    本脚本此前 4 个 cmd_* 直接用裸 `args.root`（默认 "."）拼路径，不像 buglist.py/todolist.py
+    那样探测 git 根——从非仓库根的子目录调用时会把 `openspec/issues/...` 错误地写到 cwd 而非
+    git 根，三脚本定位从此不一致。所有 cmd_* 现在统一先 `root = repo_root(args.root)` 再拼
+    路径；`read_pool` 调 buglist.py/todolist.py 子进程时也把这个已 resolve 的 root 传下去
+    （`--root`），保证跨三脚本落到同一个目录。"""
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=start, capture_output=True, text=True, check=True,
+        )
+        return out.stdout.strip()
+    except Exception:
+        return os.path.abspath(start)
+
+
 class CrossPoolIDConflict(RuntimeError):
     """D9 防护网触发：同一 ID 同时出现在 bug 池与 todo 池。"""
 
@@ -281,17 +303,18 @@ def cmd_reindex(args):
     Q3 不越权纠正、Q2 orphan 报警）。
     **禁读旧 INDEX.md**（D3）：全量确定性重建，不与磁盘上旧内容比较/合并。
     """
+    root = repo_root(args.root)
     try:
-        items = read_pool(args.root)
+        items = read_pool(root)
     except RuntimeError as e:
         _die(str(e))
         return  # pragma: no cover（_die 已 sys.exit(1)，此行只安抚静态分析）
 
     content = generate_index_md(items)
-    index_path = os.path.join(args.root, "openspec", "issues", "INDEX.md")
+    index_path = os.path.join(root, "openspec", "issues", "INDEX.md")
     atomic_write(index_path, content)
 
-    sync_batches_md(args.root, items)
+    sync_batches_md(root, items)
 
     open_n = sum(1 for it in items if not _is_terminal(it))
     closed_n = len(items) - open_n
@@ -556,7 +579,7 @@ def cmd_batch_add(args):
     跳过更安全——静默 no-op 会让调用方以为参数（title/优先级/计划）已生效，实际全被
     忽略，是更隐蔽的坑。
     """
-    root = args.root
+    root = repo_root(args.root)
     path = batches_md_path(root)
     lines = _read_batches_lines(path)
     if _batch_entry_exists(lines, args.key):
@@ -589,7 +612,7 @@ def cmd_batch_set_status(args):
     """`batch set-status {key} {S}`：只改该条目的 `状态:` 生成行，绝不动人写行（Q3）
     或 `成员:` 生成行（那是 reindex/Task 11 的职责，本命令不碰）。
     """
-    root = args.root
+    root = repo_root(args.root)
     if args.status not in BATCH_STATUSES:
         _die(f"批次状态非法：{args.status}（应为 {'/'.join(BATCH_STATUSES)}）")
 
@@ -674,7 +697,7 @@ def cmd_batch_rename(args):
     字节都不落盘。多文件写入本身无跨文件事务（D6 已知边界，靠"重跑收敛"），但至少不会因为
     校验类失败留下半吊子状态。
     """
-    root = args.root
+    root = repo_root(args.root)
     old_key, new_key = args.old, args.new
 
     path = batches_md_path(root)

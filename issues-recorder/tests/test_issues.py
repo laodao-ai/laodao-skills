@@ -13,7 +13,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 import issues as issues_mod
 from issues import (
-    atomic_write, cross_pool_id_conflicts, read_pool, CrossPoolIDConflict,
+    atomic_write, cross_pool_id_conflicts, read_pool, repo_root, CrossPoolIDConflict,
 )
 
 SCRIPT = str(Path(__file__).parent.parent / "scripts" / "issues.py")
@@ -182,6 +182,92 @@ class TestAtomicWrite:
         assert target.read_text(encoding="utf-8") == "original content"
         leftovers = [p for p in tmp_path.iterdir() if p.name != "file.md"]
         assert leftovers == []
+
+
+class TestRepoRoot:
+    """Important fix：4 个 cmd_*（reindex / batch add / batch set-status / batch rename）
+    此前直接用裸 `args.root`（默认 "."）拼路径，不像 buglist.py/todolist.py 那样探测 git
+    根——从非仓库根的子目录调用 issues.py 时会把 `openspec/issues/...` 错误地写到 cwd
+    （子目录）而非 git 根，三脚本定位从此不一致。`repo_root` 镜像 buglist.py 的同名实现：
+    优先用 git 仓库根，非 git 仓库/git 命令失败时退化为 `os.path.abspath(start)`。"""
+
+    def test_returns_git_toplevel_from_nested_subdirectory(self, tmp_path):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        subprocess.run(["git", "init"], cwd=str(repo), capture_output=True, text=True, check=True)
+        sub = repo / "a" / "b"
+        sub.mkdir(parents=True)
+
+        result = repo_root(str(sub))
+
+        assert Path(result).resolve() == repo.resolve()
+
+    def test_returns_git_toplevel_when_start_is_the_root_itself(self, tmp_path):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        subprocess.run(["git", "init"], cwd=str(repo), capture_output=True, text=True, check=True)
+
+        result = repo_root(str(repo))
+
+        assert Path(result).resolve() == repo.resolve()
+
+    def test_falls_back_to_abspath_when_git_command_raises(self, tmp_path, monkeypatch):
+        def boom(cmd, cwd=None, capture_output=True, text=True, check=True):
+            raise subprocess.CalledProcessError(128, cmd)
+
+        monkeypatch.setattr(issues_mod.subprocess, "run", boom)
+
+        result = repo_root(str(tmp_path))
+
+        assert result == os.path.abspath(str(tmp_path))
+
+    def test_falls_back_to_abspath_outside_any_git_repo(self, tmp_path):
+        """非 mock 版本：pytest 的 tmp_path 本身不在任何 git 仓库树内，应直接退化为
+        abspath，不抛异常——与既有测试套件（直接把 tmp_path 传给 cmd_reindex 等命令，
+        断言 `openspec/issues/...` 落在 tmp_path 下）隐含的前提一致。"""
+        result = repo_root(str(tmp_path))
+        assert result == os.path.abspath(str(tmp_path))
+
+
+class TestRepoRootIntegrationAcrossSubcommands:
+    """CLI 级验证（不只测 repo_root 纯函数本身）：`--root` 指向 git 仓库内的子目录时，
+    reindex / batch add 等命令应把 `openspec/issues/...` 落到 git 根，而不是落在调用时
+    传入的子目录（回归 Important finding：三脚本定位不一致）。"""
+
+    def test_reindex_writes_index_to_git_root_not_passed_subdir(self, tmp_path):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        subprocess.run(["git", "init"], cwd=str(repo), capture_output=True, text=True, check=True)
+        _write_bug_file(repo, "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": ""},
+        ])
+        sub = repo / "nested" / "dir"
+        sub.mkdir(parents=True)
+
+        proc = subprocess.run(
+            [sys.executable, SCRIPT, "--root", str(sub), "reindex"],
+            capture_output=True, text=True,
+        )
+
+        assert proc.returncode == 0, proc.stderr
+        assert (repo / "openspec" / "issues" / "INDEX.md").exists()
+        assert not (sub / "openspec").exists()
+
+    def test_batch_add_writes_batches_md_to_git_root_not_passed_subdir(self, tmp_path):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        subprocess.run(["git", "init"], cwd=str(repo), capture_output=True, text=True, check=True)
+        sub = repo / "nested" / "dir"
+        sub.mkdir(parents=True)
+
+        proc = subprocess.run(
+            [sys.executable, SCRIPT, "--root", str(sub), "batch", "add", "batch-1"],
+            capture_output=True, text=True,
+        )
+
+        assert proc.returncode == 0, proc.stderr
+        assert (repo / "openspec" / "issues" / "batches.md").exists()
+        assert not (sub / "openspec").exists()
 
 
 class TestReadPoolSubprocessFailure:
