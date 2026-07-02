@@ -166,8 +166,10 @@ buglist-recorder 依赖同一份，见其 SKILL.md 对应段）：
 
 **终态集 = `{DONE, WONTDO}`**——进入即"这条待办不再挂着"（WONTDO 是"决定不做"的合法闭合，
 和 DONE 一样从 INDEX 的 open 板消失）。**批次完成判据**：批次**成员数 ≥ 1** 且**全部成员
-∈ 终态集** → `issues.py reindex` 把该批次同步判/标 `DONE`；**0 成员批次永远保持 `PLANNED`**
-（防"空集全称为真"的 vacuous-truth 假 DONE）。**注意**：bug 池终态集是 `{FIXED, WONTFIX}`——
+∈ 终态集** → `issues.py reindex` 把该批次同步判/标 `DONE`；reindex 的自动判据**不会**把
+0 成员批次判/标为 `DONE`（保持 `PLANNED`，防"空集全称为真"的 vacuous-truth 假 DONE）——但人
+可用 `batch set-status` 手动把它标成任意状态（含 0 成员标 `DONE`），reindex 不会越权纠正，
+只在状态与成员终态不一致时追加 `⚠️ 不一致` 警告。**注意**：bug 池终态集是 `{FIXED, WONTFIX}`——
 两 recorder 词表不同，`reindex` 按各自 pool 判定，不硬编码字面 `"DONE"`（对 bug 池根本不成立）。
 
 ### 命令面
@@ -189,7 +191,8 @@ buglist-recorder 依赖同一份，见其 SKILL.md 对应段）：
 - `batch add / set-status / rename`——`issues/batches.md` 注册表操作：`add` 新建 `PLANNED`
   条目（成员空）；`set-status` 只改状态生成行；`rename` 改批次 key + 同步两池里所有该批次成员的
   批次 tag。批次生命周期 `PLANNED → IN_PROGRESS → DONE`（`PLANNED→IN_PROGRESS` 由人在真正开
-  cleanup change 时手动 `set-status`；`→DONE` 由 reindex 按完成判据被动同步，不由人直接标）。
+  cleanup change 时手动 `set-status`；`→DONE` 通常由 reindex 按完成判据被动同步——人也可以用
+  `set-status` 直接标，reindex 不会越权纠正，只在状态和成员终态不一致时追加 `⚠️` 警告）。
 
 ### sweep 协议（每个 change 收尾时）
 
