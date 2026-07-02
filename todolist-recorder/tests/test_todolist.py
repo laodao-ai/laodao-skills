@@ -455,6 +455,85 @@ class TestScanFilters:
         assert sorted(b["id"] for b in result["items"]) == ["T1", "T2"]
 
 
+class TestTriage:
+    """Task 7：triage 命令给指定 item 赋批次 + 未分诊开放态 → PROPOSED，幂等（D7）。
+    镜像 buglist 的 TestTriage；todolist 未分诊开放态只有 {OPEN}（终态 DONE/WONTDO 不同于 buglist）。"""
+
+    def test_open_item_triage_sets_proposed_and_batch(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "todolist", "2026-01", [
+            {"id": "T1", "status": "OPEN", "change": "x", "batch": ""},
+        ])
+        result = _triage(tmp_path, "T1", "clear-foo")
+        assert result["old_status"] == "OPEN"
+        assert result["new_status"] == "PROPOSED"
+        assert result["batch"] == "clear-foo"
+        scanned = _scan_json(tmp_path, [])
+        t1 = [b for b in scanned["items"] if b["id"] == "T1"][0]
+        assert t1["status"] == "PROPOSED"
+        assert t1["batch"] == "clear-foo"
+
+    def test_already_proposed_item_triage_is_idempotent_noop_on_status(self, tmp_path):
+        """D7：已 PROPOSED 的 item 再 triage → status 仍 PROPOSED（不报错、不跳变），只更新批次列。"""
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "todolist", "2026-01", [
+            {"id": "T1", "status": "PROPOSED", "change": "x", "batch": "old-batch"},
+        ])
+        result = _triage(tmp_path, "T1", "new-batch")
+        assert result["old_status"] == "PROPOSED"
+        assert result["new_status"] == "PROPOSED"
+        assert result["batch"] == "new-batch"
+        scanned = _scan_json(tmp_path, [])
+        t1 = [b for b in scanned["items"] if b["id"] == "T1"][0]
+        assert t1["status"] == "PROPOSED"
+        assert t1["batch"] == "new-batch"
+
+    def test_terminal_status_not_reverted_to_proposed(self, tmp_path):
+        """终态（DONE/WONTDO）triage 不倒回 PROPOSED，只更新批次列，不报错。"""
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "todolist", "2026-01", [
+            {"id": "T1", "status": "DONE", "change": "x", "batch": ""},
+            {"id": "T2", "status": "WONTDO", "change": "x", "batch": ""},
+        ])
+        for tid in ("T1", "T2"):
+            old = "DONE" if tid == "T1" else "WONTDO"
+            result = _triage(tmp_path, tid, "clear-foo")
+            assert result["old_status"] == old
+            assert result["new_status"] == old
+            assert result["batch"] == "clear-foo"
+
+    def test_status_change_syncs_detail_block_when_block_exists(self, tmp_path):
+        """todolist 块可选：给 motivation 强制建块，triage 状态变化时块的『状态』行同步，
+        scan 不报表↔块不一致。"""
+        payload = base_payload(motivation="降低采样耗时")
+        proc = run_add(tmp_path, payload)
+        assert proc.returncode == 0, proc.stderr
+        result = _triage(tmp_path, "T1", "clear-foo")
+        assert result["new_status"] == "PROPOSED"
+        content = _todolist_content(tmp_path)
+        assert "| 状态 | PROPOSED |" in content
+        scanned = _scan_json(tmp_path, [])
+        assert scanned["problems"] == []
+
+    def test_not_found_id_errors(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "todolist", "2026-01", [
+            {"id": "T1", "status": "OPEN", "change": "x", "batch": ""},
+        ])
+        proc = subprocess.run(
+            [sys.executable, SCRIPT, "--root", str(tmp_path), "triage",
+             "--id", "T99", "--批次", "clear-foo"],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode != 0
+        assert "ERROR" in proc.stderr
+
+
+def _triage(root, item_id, batch):
+    proc = subprocess.run(
+        [sys.executable, SCRIPT, "--root", str(root), "triage", "--id", item_id, "--批次", batch],
+        capture_output=True, text=True,
+    )
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
 def _scan_json(root, extra_args):
     proc = subprocess.run(
         [sys.executable, SCRIPT, "--root", str(root), "scan", "--json", *extra_args],

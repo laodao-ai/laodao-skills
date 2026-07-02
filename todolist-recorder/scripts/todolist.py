@@ -447,6 +447,62 @@ def _minimal_block(tid, cells, status, hist):
             f"| 模块 | {cells[1]} |\n| 类型 | {cells[3]} |\n| 状态 | {status} |\n\n{hist}")
 
 
+# ── triage ───────────────────────────────────────────────────────────────────
+
+def cmd_triage(args):
+    """给指定 item 赋批次 + 把状态从『未分诊开放态』推进到 PROPOSED（幂等，D7）。
+    镜像 buglist.py 的 cmd_triage；差异只在 todolist 自己的 STATUS_CODES（终态 DONE/WONTDO）。
+
+    定位 item：复用 set-status 的查找逻辑（遍历 list_files 找含该 ID 的表行）。
+    状态处理（推导自 STATUS_CODES，不硬编码字面集合，镜像 cmd_scan 的 nonterminal 推导）：
+      - 未分诊开放态 = STATUS_CODES 减 {PROPOSED} 减终态{DONE, WONTDO} → 即 {OPEN} → 置 PROPOSED。
+      - 已是 PROPOSED → 不改状态（no-op，幂等）。
+      - 已是终态（DONE/WONTDO）→ 不改状态（不把终态倒回 PROPOSED）。
+    批次列（表行末列，第 8 列 / cells[7]）无条件写入，与 status 是否变化无关；
+    旧格式行（无批次列）先补齐到 8 列再写，不越界。不报错（除 ID 未找到，沿用 set-status 的门禁）。
+    块可选：状态若变化且块存在则同步块的『状态』行；块不存在不强制建块（triage 不写批次/历史进块）。
+    """
+    root = repo_root(args.root)
+    batch = getattr(args, "批次")
+
+    target = None
+    for path in list_files(root):
+        with open(path, encoding="utf-8") as f:
+            lines = f.readlines()
+        sec = split_sections(lines)
+        rows = parse_table_rows(lines, sec) if sec else {}
+        if args.id in rows:
+            target = (path, lines, sec, rows)
+            break
+    if not target:
+        _die(f"未找到 ID：{args.id}")
+    path, lines, sec, rows = target
+
+    cells = rows[args.id]["cells"]
+    old_status = cells[4]
+    open_untriaged = set(STATUS_CODES) - {"DONE", "WONTDO", "PROPOSED"}
+    new_status = "PROPOSED" if old_status in open_untriaged else old_status
+
+    cells[4] = new_status
+    while len(cells) < 8:  # 旧格式（无批次列）行防御式补齐，不越界写 cells[7]
+        cells.append("")
+    cells[7] = batch
+    lines[rows[args.id]["line"]] = "| " + " | ".join(cells) + " |\n"
+
+    if new_status != old_status:
+        blocks = block_ranges(lines)
+        if args.id in blocks:
+            b_start, b_end = blocks[args.id]
+            for i in range(b_start, b_end):
+                if re.match(r"\|\s*状态\s*\|", lines[i]):
+                    lines[i] = f"| 状态 | {new_status} |\n"
+                    break
+
+    atomic_write(path, "".join(lines))
+    print(json.dumps({"id": args.id, "old_status": old_status, "new_status": new_status,
+                      "batch": batch, "file": os.path.relpath(path, root)}, ensure_ascii=False))
+
+
 # ── scan ─────────────────────────────────────────────────────────────────────
 
 def cmd_scan(args):
@@ -544,6 +600,11 @@ def main():
     s.add_argument("--reason", help="WONTDO 理由（WONTDO 必填）")
     s.add_argument("--month", help="覆盖月份")
     s.set_defaults(func=cmd_set_status)
+
+    s = sub.add_parser("triage", help="赋批次 + 未分诊开放态→PROPOSED（幂等，D7）")
+    s.add_argument("--id", required=True)
+    s.add_argument("--批次", dest="批次", required=True, help="批次名（清理 change 名）")
+    s.set_defaults(func=cmd_triage)
 
     s = sub.add_parser("scan", help="列出 TODO + 表↔块一致性自检")
     s.add_argument("--status", help="按状态码过滤")
