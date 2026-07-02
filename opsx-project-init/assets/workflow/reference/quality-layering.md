@@ -1,8 +1,10 @@
 # 质量分层：Prevention / Inline Detection / Residual（shift-left）
 
 > **定位**：回答"代码生成质量很高，后面还要那么多次 review 吗？"——不是砍 review，而是
-> **把标准前移进生成期已有的审查口，让事后 review 缩成残差**。与 [`spec-review.md`](../spec-review.md)
+> **把标准前移进生成期已有的审查口，消掉事后 review 的冗余**。与 [`spec-review.md`](../spec-review.md)
 > §一（review 只做 prevention 焊不住的残差）同一条铁律，在**代码层**的展开。
+> **〔P3c 校准〕"消冗余" ≠ "impl-review 变可选"**——见 §五：事后 impl-review **每次全跑**做独立强制主审，
+> shift-left 消的是通用质量的重复查，不是 impl-review 本身。
 
 ---
 
@@ -83,28 +85,35 @@ tests verify real behavior / architecture / security`——**纯通用**。它�
         Prevention(建对)             Inline Detection(循环内抓)          Residual(冷,事后)
  spec:  config.yaml 结构+D 约束      grill / 生成对话                    spec-review(validation+对抗+接地)
  code:  plan Global Constraints+TDD   逐任务双判审 + 终审(subagent-dev)    impl-review(领域+冷独立+scope)
-                                      ↑ 把 code-checklists 注入 B ↑       ↓ 于是这里缩成薄残差 ↓
+                                      ↑ 把 code-checklists 注入 B ↑       ↓ 消通用质量冗余,非缩掉 impl-review ↓
 ```
 
 设计侧用 config 固化结构/约束（prevention），让 spec-review 只做残差；
 代码侧把领域清单注入 plan 约束 + 终审 rubric（prevention + inline detection），让 impl-review 只做残差。
 **同一手法，两层对称。**
 
-## 五、对 workflow 的影响：事后 review 改 trigger 分级
+## 五、对 workflow 的影响：impl-review 是每次全跑的独立强制主审（P3c）
 
-注入点 B 落地后，领域审已在生成循环内 → **事后 `/impl-review` 不再"非平凡必跑"，改为风险分级**：
+> **〔grill-amendment / P3c〕** 本节早前据注入点 B 推出"事后 impl-review 缩成薄残差、高风险才跑冷独立抽查"——
+> **此推论已被否决**。注入点 B 确实把领域审前移进生成循环（即时 fix+re-review 闭环），但那**不使事后
+> impl-review 变边际**。
 
-- **普通变更**：信任生成期增强审（终审已含领域清单）；事后只跑 gstack/review（scope）+ 命中才跑官方（PR 风险）。
-- **高风险变更**（命中 TG 安全/并发/DB 等）：加跑 `/impl-review` 做**全冷独立抽查**——
-  脱离 controller 的彻底独立，专抓 controller 在循环内可能被说服放过的领域残差。
+- **impl-review 每次全跑·独立冷·强制主审**：实测能抓出生成循环内被 hot controller 说服放过的真问题——这是
+  shift-left 消不掉的价值（循环内 reviewer 冷、但 controller 热；事后 impl-review 完全脱 controller）。
+- **注入点 B 与 impl-review 并存不是重复**（见 workflow.md §三.6 / design §7.2）：前者循环内即时闭环、便宜早修；
+  后者事后独立兜底网。机制/职责不同，**别把任一个优化掉**。
+- shift-left 消掉的是**通用质量的冗余**（CR base 三层已查），不是 impl-review 本身。impl-review 编排器还并入
+  `gstack/review`（scope-drift + 完成度）+ 领域镜 + 对抗镜 + 历史镜 + 置信过滤，合成一份 code-review-report.md。
+- **无 `/clear`（G1）**：独立性由评审 fan-out 的 fresh 子代理给，不由 `/clear` 给。
 
-与"不分 S/M/L、TG 驱动"哲学一致：深度由命中的 TG + 风险决定，不是每次全量。
+TG 驱动的是**领域镜的选取 + outside voice 是否走 cross-model**（命中 HR-TG 才单开领域 cross-model），
+**不是"impl-review 跑不跑"**——impl-review 每次都跑。
 
 ## 六、检查清单（用 superpowers 跑实现时）
 
 - [ ] design 的领域约束是否确实进了 plan 的 **Global Constraints**（注入点 A）？
 - [ ] 终审 dispatch 是否把 rubric 增强为 **通用模板 + 命中栈 code-checklists/domains**（注入点 B）？
-- [ ] 普通变更是否**没有**重复跑事后全量 /impl-review（信任循环内增强审）？
-- [ ] 高风险变更（命中 TG）是否在 `/clear` 后跑了**冷独立** /impl-review？
+- [ ] impl-review 是否**每次全跑**（P3c 独立冷强制主审，非高风险才跑）？并入 `gstack/review` 的 scope-drift + 完成度？
+- [ ] 是否**没有**依赖 `/clear`（G1：fresh 子代理即独立性；子 agent 调度中禁清）？
 
-*方法论 v1 · 项目无关 · 配套 spec-review.md（设计侧残差）/ code-checklists/（领域清单）/ workflow.md（编排）*
+*方法论 v2（P3c：impl-review 每次全跑强制主审）· 项目无关 · 配套 spec-review.md（设计侧残差）/ code-checklists/（领域清单）/ workflow.md（编排）*
