@@ -31,13 +31,23 @@ import tempfile
 def atomic_write(path, text):
     """原子写：同目录临时文件写完整内容 → os.replace 原子换入。
     中途任何异常（含 os.replace 本身失败）都不会截断/损坏原文件——旧内容原样保留，
-    临时文件在 finally 里清理，不留残留 .tmp。"""
+    临时文件在 finally 里清理，不留残留 .tmp。
+
+    tempfile.mkstemp 固定以 0600 创建临时文件；os.replace 是纯 rename，目标会
+    继承临时文件的权限。覆写已存在文件前必须把临时文件权限对齐回原文件的权限，
+    否则已存在文件的权限会被静默从（例如）0644 收紧到 0600（对 group/other 变
+    不可读）。原文件不存在（首次创建）时用 0o644 兜底。"""
     d = os.path.dirname(path) or "."
     os.makedirs(d, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=d, suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
+        try:
+            mode = os.stat(path).st_mode & 0o777
+        except FileNotFoundError:
+            mode = 0o644
+        os.chmod(tmp, mode)
         os.replace(tmp, path)
     finally:
         if os.path.exists(tmp):

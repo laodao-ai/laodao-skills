@@ -4,6 +4,7 @@ detail-block rendering, and change-based auto-default.
 Run with: python3 -m pytest buglist-recorder/tests/ -v
 """
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -242,6 +243,20 @@ class TestAtomicWrite:
         target.write_text("old", encoding="utf-8")
         atomic_write(str(target), "new")
         assert target.read_text(encoding="utf-8") == "new"
+
+    def test_overwrite_preserves_original_file_permissions(self, tmp_path):
+        """回归：tempfile.mkstemp 固定以 0600 创建临时文件，os.replace 是纯 rename，
+        若不显式对齐权限，覆写会让已存在文件的权限被静默从 0644 收紧到 0600。"""
+        target = tmp_path / "file.md"
+        target.write_text("old", encoding="utf-8")
+        os.chmod(target, 0o644)
+        atomic_write(str(target), "new")
+        assert (os.stat(target).st_mode & 0o777) == 0o644
+
+    def test_new_file_gets_default_permissions(self, tmp_path):
+        target = tmp_path / "brand_new.md"
+        atomic_write(str(target), "content")
+        assert (os.stat(target).st_mode & 0o777) == 0o644
 
     def test_no_leftover_tmp_file_after_success(self, tmp_path):
         target = tmp_path / "file.md"
