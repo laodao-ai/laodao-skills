@@ -94,12 +94,51 @@ verify 判定完（它才权威定完整性）后、归档前，产出 `{change_
 **三段内容**：
 
 1. **✅ 完成了什么**：引 verify-report 的 done 项。**P3h-c：不直接搬运 verify 的 ✅**——每条至少复核锚点存在性（测试名 / commit / 文件:行 真的在），再写进"完成"；无锚点的不写成完成。
-2. **⏳ 未完成 / 延后**：本 change 新增的 buglist/todolist（impl-review defer 的）+ 被延后的 ≥2 方案决策（附当时自动选了什么 / 为何拿不准）+ verify 的 Minor 缺口。
+2. **⏳ 未完成 / 延后**：本 change 新增的 buglist/todolist（impl-review defer 的，已按下方 §2.1 sweep 分诊进批次 `{change_name}`，见 `openspec/issues/batches.md`）+ 被延后的 ≥2 方案决策（附当时自动选了什么 / 为何拿不准）+ verify 的 Minor 缺口。
 3. **▶ 下一阶段建议**：建议开哪个清理 change、优先级；哪些 defer 项该一起清。
 
 > **为何独立成步、不并进 verify 或 archive**：verify 判"完整性"、hand-off 是"给人的高层交接 + 下阶段种子"，altitude 不同；时机必须在 verify **之后**（引其权威结论）、archive **之前**（随归档留档）。opsx-done 是自制 skill，加此步无碍。
 
-> 〔Phase B 补〕正式 **issues sweep 步**（`scan --status OPEN --源 {本change}` → 逐项分诊入批次 → 写 `batches.md`(PLANNED) → hand-off 引用批次）属 Phase B（I5/I6）。Phase A 的 hand-off 只**列 defer 项 + 建议开清理 change**，不做正式分诊入批次。
+### 2.1 issues sweep 子步（先于上面「三段内容」撰写，I5/I6）
+
+verify 判完之后、写 hand-off 正文之前，先把**本 change 新增**的未分诊 OPEN 项归入一个批次——这样上面第 2 段能引批次号，而不是逐条罗列裸 ID。主 session 直接跑（纯机械 bash，无需额外派子代理；若第二步整体交给了 Sonnet 子代理，由该子代理顺带执行）。
+
+**脚本路径**：buglist.py / todolist.py / issues.py 分属 `buglist-recorder`、`todolist-recorder`、`issues-recorder` 三个 sibling skill，随 laodao-skills `setup.sh` 各自独立 symlink 到 `~/.claude/skills/`（同 tag、opsx-project-init 等 skill 引用兄弟脚本的既有约定）：
+
+```
+~/.claude/skills/buglist-recorder/scripts/buglist.py
+~/.claude/skills/todolist-recorder/scripts/todolist.py
+~/.claude/skills/issues-recorder/scripts/issues.py
+```
+
+若该固定路径不存在（非常规安装/裸源码检出），在 `~/.claude/skills/`、`~/.codex/skills/`、或本仓库内 `find . -name buglist.py` 兜底定位，找不到就停下问用户脚本在哪。
+
+以下命令均在 `{项目根目录}`（cwd）下执行，`--root` 缺省即当前目录，脚本自动探测 git 根：
+
+1. **显式传 `--change`（D4）**：扫描本 change 名下的 OPEN 项，不靠 `detect_change` 猜：
+   ```bash
+   python3 ~/.claude/skills/buglist-recorder/scripts/buglist.py scan --status OPEN --change {change_name} --json
+   python3 ~/.claude/skills/todolist-recorder/scripts/todolist.py scan --status OPEN --change {change_name} --json
+   ```
+   （JSON 顶层键分别是 `bugs` / `items`，每项含 `id`。）
+2. **逐项 triage 进同一个批次**（Q2 保守裁决：**永远只建 1 个批次、key = 本 change 名，禁跨 change 合并**）：
+   ```bash
+   python3 ~/.claude/skills/buglist-recorder/scripts/buglist.py triage --id {id} --批次 {change_name}
+   python3 ~/.claude/skills/todolist-recorder/scripts/todolist.py triage --id {id} --批次 {change_name}
+   ```
+   对每个第 1 步扫出的 `id` 都跑一次（bug 用 buglist 的 triage，todo 用 todolist 的）。`triage` 对已 PROPOSED 的项 no-op（D7 幂等），重跑本步安全。
+3. **建批次条目（PLANNED）**：
+   ```bash
+   python3 ~/.claude/skills/issues-recorder/scripts/issues.py batch add {change_name}
+   ```
+   `batch add` 对已存在的 key 报错而非静默 no-op（新建语义）；若报错信息是"批次 key 已存在"，视为**已建过、跳过**（不是失败），继续下一步。
+4. **末尾跑 reindex（D3）**——必须在上面 triage / batch add 之后跑，刷新 `openspec/issues/INDEX.md` + 同步 `batches.md` 的 `状态:`/`成员:` 生成行：
+   ```bash
+   python3 ~/.claude/skills/issues-recorder/scripts/issues.py reindex
+   ```
+5. **hand-off 引用该批次**：上面「三段内容」第 2 段写批次号 `{change_name}`（指向 `openspec/issues/batches.md` 对应条目 + `openspec/issues/INDEX.md`），不再逐条罗列裸 ID。
+
+**范围边界（design §4.2，不在本 sweep 内）**：sweep 只圈**源 == 本 change**的未分诊 OPEN 项。孤儿项（源 = `""`，多 change 并行、`detect_change` 探不出归属的）**不归本 sweep 管**——由独立的通用「清 bug/todo」工作流兜底（`scan --open-ungrouped` → `triage` → 另开 cleanup change），不因 sweep 窄而无声蒸发；sweep 本身保持窄而确定，别为了兜孤儿把 sweep 的 `--change` 过滤放宽。
 
 ---
 
@@ -242,6 +281,7 @@ opsx-done 完成
 - **verify 必产 `verify-report.md`** 存 change 目录（随归档留档）。
 - **verify 防假✅（P3h）**：每条 ✅ 必附机验锚点（测试名/commit/文件:行），无锚点 ✅ 降级 gap；强模型 + Do-Not-Trust 冷启（阶段三去人类门后 verify 是唯一终门，禁弱模型）。见 design §7.3.1 / adr/0001。
 - **hand-off.md（P3g）**：verify 之后 / archive 之前产出（done/not-done + 延后项 + 下阶段建议），随归档留档，作异步人类再入口 + 下个 change 种子；**不直接搬运 verify 的 ✅**（复核锚点存在性）。
+- **issues sweep 子步（§2.1，D3/D4）**：写 hand-off 正文前先跑；`scan`/`triage` **显式传 `--change {本change}`**（不靠 `detect_change` 猜，D4）；只建 **1 个批次、key=本 change 名**（Q2 保守，禁跨 change 合并）；**末尾跑 `issues.py reindex`**（D3）刷新 INDEX + 同步批次状态；只圈 `源==本change` 的未分诊 OPEN 项，孤儿（源=""）不归本 sweep，交独立清理流程兜底。
 
 ## 模型选择（按本步性质，逐步定）
 
