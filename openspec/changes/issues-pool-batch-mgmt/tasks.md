@@ -42,3 +42,10 @@
 
 - [ ] 6.1 本仓 `openspec/INDEX.md` 若有规则/计数变更则同步（CLAUDE.md 硬性要求）
 - [ ] 6.2 spec delta 2 条 Requirement 归档时并入 `openspec/specs/spec-workflow/`（opsx-done archive 步做）
+
+## 7. Q1–Q3 裁决落地〔spec-review-amendment · provisional，待设计门确认〕
+
+- [ ] 7.1 **Q1 迁移加固**：`next_id`/`scan` 过渡期 **dual-read**（新 `issues/` + 旧 `buglists|todolists/` 都扫再取 max）；跨路径 **ID 撞号检测**（同 ID 报错）；proposal 记硬切风险〔Q1〕
+- [ ] 7.2 **Q2 批次命名保守化**：sweep 永远新建 1 批次 key=本change、禁跨 change 合并；`batch` 加 `rename`；reindex 对 orphan 批次 tag 显式报警不静默生成 ghost〔Q2〕
+- [ ] 7.3 **Q3 batches.md grammar**：定字段级 grammar（生成行〔状态/成员〕vs 人写行〔计划/优先级/范围〕+ 分隔）；reindex 只 patch 生成行、绝不覆写人写行；"纠正"只追加警告标注、不越权改人写状态值〔Q3〕
+- [ ] 7.4 三条若设计门被改选项，同步 design §8.2 + 本节任务

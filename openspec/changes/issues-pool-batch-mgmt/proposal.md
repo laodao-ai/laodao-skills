@@ -49,6 +49,7 @@ Phase B 把这套手动分诊**系统化**并修掉它暴露的 smell。
 - **opsx-done**：落地 issues sweep 步（去掉 A 留的〔Phase B 补〕占位）。
 - **workflow bundle 源**：`workflow/workflow.md` 追加 sweep 步引用（ROADMAP 约束1：B 增量改一次）；review UI `workflow/tools/engine.js` + `review.html` 读 issues 新路径。
 - **下游消费仓——不在本 change 内，routine 采纳**：`update` 重拉新 bundle + 迁移各自 buglist/todolist → issues/ + 路径引用。各消费仓各自做。
+  - ⚠️ **硬切风险 + 加固〔spec-review Q1，provisional〕**：默认路径 `buglists/`→`issues/` 是**破坏性变更**；若下游只 `update`（拉新脚本）而未迁移旧数据，新脚本按新路径 `next_id` 会从 B1 重数、**与旧文件 ID 撞号**，旧 OPEN 债对新 scan **隐形**（违本 change「零无声堆积」）。故 Phase B **必交付过渡期 dual-read**（新旧路径都扫再取 max）+ **ID 撞号检测**，把风险从"寄望下游完整迁移"降到"未迁移也不撞号/不隐形"。完整数据搬迁仍属下游 routine。
 
 ## Stakeholders & External Dependencies（TG-20）
 

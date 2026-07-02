@@ -99,3 +99,13 @@ sweep（I6）以 **`源==本change ∧ status∈OPEN ∧ 批次==∅`** 为界�
 | batches.md 状态引用不存在的成员 | reindex 对账 | 标不一致 | reindex 输出 |
 | INDEX.md 被手改 | banner 校验（D3） | 无条件覆盖重建 + 告警 | reindex 输出 |
 | 写入中途中断（半写） | temp+`os.replace` 原子写规避（D6） | 原文件不损，重跑收敛 | — |
+
+### 8.2 Q1–Q3 临时裁决〔spec-review-amendment · **provisional，待设计门用户确认**〕
+
+设计门 AskUserQuestion 超时（用户暂离），按推荐选项作**临时裁决**推进，用户回来可覆盖：
+
+- **Q1 迁移/ID 撞号 = 加固版**：迁移仍算下游 routine，但 **Phase B 必须**交付：① 过渡期 **dual-read**（`next_id`/`scan` 新旧路径都扫再取 max，避免撞号）；② **ID 撞号检测**（跨路径同 ID 报错）；③ proposal **诚实记硬切风险**。不交付完整 migrate 命令（那扩 scope），但堵住"零无声堆积"漏洞。
+- **Q2 批次命名/对账 = 保守简化**：sweep **永远新建 1 个批次、key = 本 change 名、禁跨 change 合并**（不做主题聚类判断）；`batch` 加 **rename** 命令（人真开 cleanup change 用不同名时重命名）；reindex 对 "item 有批次 tag 但 batches.md 无此 key" 的 orphan **显式报警、不静默生成 ghost 批次**。
+- **Q3 batches.md 格式契约 = 精确 patch**：定**字段级 grammar**（哪些行 reindex 生成〔状态/成员〕、哪些人写〔计划/优先级/一句范围〕，明确分隔）；reindex **只精确 patch 生成行、绝不覆写人写行**；"标不一致纠正" = reindex **只追加警告标注、绝不越权改人写状态值**（防吃手写 + 防人写⇄reindex 震荡）。
+
+> 三条均 provisional。用户设计门可改任一为其它选项（Q1 完整 migrate / 纯硬切；Q2 主题聚类；Q3 全量重建）；改了则同步 design/spec/tasks + 对应任务。

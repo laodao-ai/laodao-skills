@@ -88,4 +88,10 @@ autoplan（gstack 广审）**可用但本次有意跳过**，非静默：理由�
 
 ## 收敛口
 
-**不建议直接进 writing-plans**。建议：**设计门先裁 Q1–Q3**（3 个真 scope/机制决策）→ 据裁决把 design/spec 补齐 → 再进实现。自动决策 D1–D9 已就地补入（标 `[spec-review-amendment]`）。Q1 若不加固（dual-read + 撞号检测），change 的核心 Success Metric「零无声堆积」名不副实。
+**设计门 AskUserQuestion 超时（用户暂离）**：Q1–Q3 已按推荐选项作 **provisional 裁决**（见 design §8.2），用户回来可覆盖：
+
+- **Q1 = 加固版**（迁移仍下游 + Phase B 交付 dual-read + ID 撞号检测 + proposal 记风险）
+- **Q2 = 保守简化**（sweep 新建 1 批次 key=本change、加 batch rename、orphan 显式报警）
+- **Q3 = 精确 patch**（batches.md 字段级 grammar、reindex 只 patch 生成行不吃手写、纠正只加警告不越权改值）
+
+自动决策 D1–D9 + Q1–Q3 provisional 均已补入 design/spec/tasks/proposal（标 `[spec-review-amendment]`）。**设计门未由我替过**——是否批准该设计进 writing-plans（阶段三实现）由用户拍板；用户回来可 (a) 确认 provisional 裁决 → 进实现，或 (b) 改任一 Q 的选项 → 同步后再进。
