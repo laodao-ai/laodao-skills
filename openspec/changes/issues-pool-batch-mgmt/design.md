@@ -18,7 +18,7 @@
 | **TG-19** 多需求 | I1–I13 | 见 tasks.md 分节 |
 | **TG-20** 外部影响方 | laodao-skills 共享 toolkit → 其它项目迁移 | 见 proposal Stakeholders（OQ3） |
 
-- **TG-23（≥2 合理方案）**：I* 系列的方案取舍已在 umbrella design + `adr/` 记录，**Phase B 不新增 ADR**（决策全 ✅ 定，无新分叉）。
+- **TG-23（≥2 合理方案）**：I* 系列的方案取舍已在 umbrella design + `adr/` 记录，**Phase B 不新增 ADR**（架构级 ADR `0003`/`0004` 属另开 change，非本 change）；本 change grill 只**补 umbrella 未钉死处**（B-Q1 终态集 §4.1、B-Q2 命令归属 §五），就地记入 design/spec，不升 ADR。
 
 ## 三、决策（引用 umbrella §8 / 速查表 I1–I13，不复制）
 
@@ -30,16 +30,46 @@
 
 - ❌ **不做「逾期主动催办」**：早前旧稿曾想让 INDEX 主动标记逾期 PLANNED 批次（原 spec 需求标题一度含"逾期主动催办"，是 **Q5 前旧版**）；grill Q5 判「逾期」判据难定、且属投机机器，**删除**。
 - ✅ **改被动**：`INDEX.md` 只把 open 项 × 批次**摊清、标 DONE**，剩下的 open 项在**下次清 bug/todo 时自然纳入**；不设逾期计算、不主动喊。
-- ✅ **reindex 同步批次状态**（焊死 `batches.md` 状态漂移）：reindex 填成员时**拿 item 池当 ground truth** 校验/同步批次 `状态`——成员全 DONE/FIXED → 批次判/标 DONE；仍有成员 OPEN/PROPOSED 却手标 DONE → reindex **标不一致纠正**（不静默信手写状态）。`PLANNED→IN_PROGRESS` 仍由人起 cleanup change 时设。
+- ✅ **reindex 同步批次状态**（焊死 `batches.md` 状态漂移）：reindex 填成员时**拿 item 池当 ground truth** 校验/同步批次 `状态`——成员**全部进入各自 recorder 终态集** → 批次判/标 `DONE`；仍有成员未进终态却手标 `DONE` → reindex **标不一致纠正**（不静默信手写状态）。`PLANNED→IN_PROGRESS` 仍由人起 cleanup change 时设。
 
-> 落地口径见 umbrella §8.5（grill-amendment）+ 决策速查表 I2/I12。spec delta 的第 2 条 Requirement 即固化此被动版。
+### 4.1 终态集定义〔grill-amendment: B-Q1〕
 
-## 五、ROADMAP 约束落地（拆开必守）
+两 recorder **状态词表不同**,批次完成判据不能硬编码字面 "DONE":
+
+| recorder | 全部 STATUS_CODES | **终态集**（进入即"这条债不再挂着"） |
+|---|---|---|
+| buglist | OPEN·VERIFIED·PROPOSED·IN_PROGRESS·FIXED·WONTFIX·BLOCKED | **FIXED, WONTFIX** |
+| todolist | OPEN·PROPOSED·DONE·WONTDO | **DONE, WONTDO** |
+
+- **批次完成判据 = 全部成员 ∈ 各自终态集**（含 WONT\*——WONTFIX/WONTDO 是"决定不修/不做"的**合法闭合**,批次里没有还 OPEN/PROPOSED/IN_PROGRESS/BLOCKED 的活就算清完）。
+- reindex 按 **per-recorder 终态集**判,不写死 "DONE"（对 bug 根本不成立）。
+- WONT\* item 同 FIXED/DONE 一样从 INDEX open 板消失,批次成员记录留 `batches.md` 作历史。
+
+> 落地口径见 umbrella §8.5（grill-amendment）+ 决策速查表 I2/I12。spec delta 第 2 条 Requirement 已固化此被动版 + 终态集判据。B-Q1 是本 Phase B grill 对 umbrella 未钉死处的补充（umbrella §8.3 只写 `OPEN→PROPOSED→DONE/FIXED`,未覆盖 WONT\* 对批次完成的语义）。
+
+### 4.2 sweep 界定"本 change 新增"〔grill-amendment: B-Q3〕
+
+sweep（I6）以 **`源==本change ∧ status∈OPEN ∧ 批次==∅`** 为界，**只圈本 change 自己新增的未分诊项**：
+
+- 源 = **别的 change** 的老 OPEN 项 → `--源` 过滤排除（各自 change 已诊，不重诊）。
+- 源 = **`""`**（多 change 并行、`detect_change`(buglist.py:50) 探不出）的孤儿项 → **不归本次 change 的 sweep 管**；由**独立的通用「清 bug/todo」工作流**（`scan --open-ungrouped` → `triage` → 另开 cleanup change）兜底。
+- 故 sweep 保持**窄而确定**（只碰能确定归属的）。全池未分诊项的安全网是**独立的通用清理流程**，不是 per-change sweep——两条路分工：孤儿不因 sweep 窄而无声蒸发，"不得无声蒸发"由通用清理路径守（非靠把 sweep 变宽）。
+
+## 五、reindex / batch 命令归属〔grill-amendment: B-Q2〕
+
+接地事实：`buglist.py`（buglist-recorder）与 `todolist.py`（todolist-recorder）是**两个独立 skill 的独立脚本**，各管自己一类。但 `reindex` / `batch` 是**跨 bug+todo**（join 两池 + 维护 `issues/INDEX.md` + `issues/batches.md`）。umbrella §8.6 只说"新增 reindex/batch 跨 bug+todo"，**未定归属**——grill 补：
+
+- **新增一个共享 issues 层脚本**（`issues.py`，或薄 skill `issues-recorder`）**独占跨类型命令**（`reindex` / `batch`）+ owns `issues/INDEX.md` + `issues/batches.md`。
+- **per-type 脚本（`buglist.py` / `todolist.py`）保持只管各自** add / scan / set-status / triage（+ 批次列 + 路径默认改 `issues/`）。
+- **职责分层**：per-type = 记录（provenance 流水账）；跨-type = 索引 + 批次（物化板 + 注册表）。避免把 todo 命令藏进 bug 脚本、或两脚本各实现一份（双真相源，违 I2/I13）。
+- **与 `minimize-repo-footprint` 的交集**：共享脚本**物理落点**（全局装 vs 随 recorder）届时随该 change 的脚本全局化一并定；本 change 先定"**独立共享层**"这一结构决策，落点留交集处理。
+
+## 六、ROADMAP 约束落地（拆开必守）
 
 - **约束1（workflow.md 增量改一次）**：本 change 给 `workflow.md` **只追加 sweep 步引用**，不碰 Phase A 写的连续化骨架、不预写 Phase C 的 outside-voice 步。
 - **约束2（验证按相分摊）**：本 change 只验本相产物自洽 = §8.2「reindex 生成 INDEX + dated 文件 + batches.md 三处一致」（表↔块↔INDEX 自检）；不验 A/C 的产物。
 - **约束3（下游采纳不在相内）**：消费仓迁移 issues 数据是下游 routine（proposal Non-Goals）。
 
-## 六、不做（Phase B Non-Goals，见 proposal）
+## 七、不做（Phase B Non-Goals，见 proposal）
 
 不含连续化（A 已交付）/ 跨模型 outside voice（C）；不清空既有债务（迁移结构即可）；不逾期催办（I12）；不含消费仓采纳（下游）；不另起 rules 文件（I13）。

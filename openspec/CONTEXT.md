@@ -52,16 +52,25 @@ _Avoid_: 笼统说"不依赖 gstack"（会误伤合法的产出物复用）
 _Avoid_: 把批次塞进 item 的 status 列（三维度须分家）
 
 **三维度分家 (源 / 批次 / status)**:
-一条债务 item 的三个正交字段：**源 change**（哪个 change 发现的，provenance，不可变）/ **批次**（归入哪个清理 change，triage 结果，可变）/ **status**（`OPEN→PROPOSED→DONE` 生命周期，回归干净、不塞批次）。混用是旧 smell 的根因。
+一条债务 item 的三个正交字段：**源 change**（哪个 change 发现的，provenance，不可变）/ **批次**（归入哪个清理 change，triage 结果，可变）/ **status**（生命周期，回归干净、不塞批次；**词表按 recorder 各异**——bug: `OPEN→…→FIXED/WONTFIX`，todo: `OPEN→PROPOSED→DONE/WONTDO`）。混用是旧 smell 的根因。
+
+**终态集 (Terminal Set)**:
+一个 recorder 里表示"这条债不再挂着"的状态码集合——**buglist: {FIXED, WONTFIX}，todolist: {DONE, WONTDO}**（含 WONT\*：决定不修/不做也是合法闭合）。批次"完成"判据 = 成员**全部进入各自终态集**，reindex 据此判批次 DONE。存在的原因：两 recorder 词表不同，不能硬编码字面 "DONE"（bug 根本没有 DONE）。
+_Avoid_: 用单个 "DONE" 指代所有完成（bug 侧是 FIXED；WONT\* 也是终态、不是"没做完"）
 
 **分诊 / sweep (Triage / Sweep)**:
 把 OPEN 债务 item 归入某批次并转 PROPOSED 的动作。挂在 opsx-done 生成 hand-off 那步，每 change 完成后**只诊本 change 新增**的 OPEN 项（老项各自 change 时已诊过）。
 
 **reindex（重建索引）**:
-从 dated 文件 + batches.md 重建 `issues/INDEX.md` 的命令。INDEX 只生成禁手改，杜绝第三漂移源；reindex 顺带**拿 item 池当 ground truth 同步批次状态**（成员全 DONE→批次 DONE、不一致标出）。
+从 dated 文件 + batches.md 重建 `issues/INDEX.md` 的命令。INDEX 只生成禁手改，杜绝第三漂移源；reindex 顺带**拿 item 池当 ground truth 同步批次状态**（成员全部进入各自 recorder 终态集→批次 DONE、不一致标出）。
+
+**设计层连续 vs 编排层连续 (Design-level vs Orchestration-level Continuity)**:
+工作流"连续"分两层。**设计层连续** = 去掉逼人重来的断点（`/clear`、阶段三人类门），让阶段之间**没有非做不可的中断**；已由本工作流达成。**编排层连续** = 各步不再靠人**逐个 copy prompt 手动触发**，而由一个 orchestrator 顺序驱动；阶段三的这层由 `opsx-ship` 补上（见 `adr/0004`）。二者正交：设计层扫清了"该不该停"，编排层扫清了"谁来按下一步"。
+_Avoid_: 笼统说"工作流已连续"（要分清是"无强制中断"还是"无手动逐步触发"——前者早已达成，后者是 opsx-ship 才补的）
 
 ## Flagged ambiguities
 
 - 「门」曾笼统指一切停顿——已分 **人类门（阻塞、需人判断）** vs **verify 终门（自动、机验）** vs **hand-off（异步、非阻塞的人类再入口）** 三种，勿混（见 `adr/0001-phase3-no-gate-verify-anchors.md`）。
 - 「✅」在评审/verify 语境下曾被无条件信任——现约束为**必附证据锚点**方成立，否则是假✅。
 - 「镜」单字曾可能被误读成「镜子/mirror」——已钉死为「镜头/**review lens**」（聚焦单一角度的独立 reviewer 子代理），非映照。
+- 「连续」曾笼统指"自动化程度高"——已分 **设计层连续（无强制中断）** vs **编排层连续（无手动逐步触发）**，前者早达成、后者靠 `opsx-ship`（见 `adr/0004-opsx-ship-stage3-orchestrator.md`）。
