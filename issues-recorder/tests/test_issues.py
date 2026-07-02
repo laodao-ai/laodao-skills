@@ -726,6 +726,63 @@ class TestReindexStatusLineFullwidthColonCarry:
         assert status_lines[0] == "状态: DONE"
 
 
+class TestReindexBatchesMdMissingTrailingNewline:
+    """Critical fix 回归：`batches.md` 文件末尾缺尾随换行（半手维护文件常见——
+    `readlines()` 会让最后一行不以 `\\n` 结尾）时，`⚠️ 不一致` 警告行的插入不得
+    粘连到人写行——粘连既腐蚀人写行内容（违 Q3 不覆写人写行），又让粘连后的 ⚠️ 行
+    不再以 `⚠️ 不一致:` 开头，`_BATCH_WARN_LINE_RE` 认不出它，导致每跑一次 reindex
+    再插一条新 ⚠️（破幂等，数据腐蚀不自愈）。见 `_read_batches_lines` 的规范化修复。"""
+
+    def test_warning_line_does_not_glue_to_handwritten_line_without_trailing_newline(
+        self, tmp_path
+    ):
+        # 末行 `计划: x` 故意不带 `\n`，模拟半手维护文件缺尾随换行的真实情况；
+        # 状态标 DONE 但成员（B1）未终态 → 触发 ⚠️ 不一致 追加。
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n",
+            "状态: DONE\n",
+            "成员: (生成)\n",
+            "优先级: P1\n",
+            "计划: x",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "batch-1"},
+        ])
+        _run_reindex(tmp_path)
+        content = _read_batches(tmp_path)
+        lines = content.splitlines()
+
+        # 人写行逐字保留（未被 ⚠️ 粘连覆写）
+        plan_line = next(l for l in lines if l.startswith("计划:"))
+        assert plan_line == "计划: x"
+
+        # ⚠️ 行独立成行，且以规范前缀开头（能被 _BATCH_WARN_LINE_RE 识别）
+        warn_lines = [l for l in lines if l.startswith("⚠️ 不一致:")]
+        assert len(warn_lines) == 1
+        assert not any(l.startswith("计划: x⚠️") for l in lines)
+
+    def test_idempotent_across_two_reindex_runs_when_file_lacks_trailing_newline(
+        self, tmp_path
+    ):
+        _write_batches_md(tmp_path, [
+            "### batch-1 — 清理项\n",
+            "状态: DONE\n",
+            "成员: (生成)\n",
+            "优先级: P1\n",
+            "计划: x",
+        ])
+        _write_bug_file(tmp_path, "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "batch-1"},
+        ])
+        _run_reindex(tmp_path)
+        first = _read_batches(tmp_path)
+        _run_reindex(tmp_path)
+        second = _read_batches(tmp_path)
+
+        assert first == second  # batches.md 逐字节稳定
+        assert first.count("⚠️ 不一致") == 1  # 不累积
+
+
 # ── fixtures ─────────────────────────────────────────────────────────────────
 
 def _run_reindex(root):

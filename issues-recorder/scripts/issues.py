@@ -341,11 +341,30 @@ def batches_md_path(root):
 
 
 def _read_batches_lines(path):
-    """batches.md 不存在时视为空注册表（`[]`），供 add 首次建文件时走同一套逻辑。"""
+    """batches.md 不存在时视为空注册表（`[]`），供 add 首次建文件时走同一套逻辑。
+
+    规范化尾随换行（Critical fix）：`batches.md` 是半手维护文件，文件末尾缺尾随换行
+    很常见——`readlines()` 会让最后一行不以 `\\n` 结尾。本文件下游多处对 `lines` 做
+    `lines.insert(...)` 兜底插入（`_sync_one_entry` 的成员行/状态行/⚠️ 警告行缺失
+    插入、`cmd_batch_set_status` 的状态行缺失插入），这些插入都假定“每一行都独立
+    以 `\\n` 结尾”。若最后一行缺换行，插入的新行会在 `"".join()` 落盘时直接粘连到
+    该行文本后面——不仅覆写/腐蚀人写行（违反 Q3 不覆写人写行），且粘连后的 ⚠️ 行不再
+    以 `⚠️ 不一致:` 开头，`_BATCH_WARN_LINE_RE` 认不出它，导致下次 reindex 的“先剥旧
+    ⚠️”识别不到、每跑一次 reindex 再插一条新 ⚠️——破幂等，数据腐蚀不自愈。
+
+    所有下游函数（`_split_batches_entries`/`_find_batch_entry_range`/`sync_batches_md`/
+    `cmd_batch_add`/`cmd_batch_set_status`/`cmd_batch_rename`）都经由本函数读取
+    `batches.md`，故在此单点补齐是覆盖面最全、最不易遗漏未来新增插入点的实现：只有
+    整个文件的最后一行可能缺换行（`readlines()` 对其余每一行都保证以 `\\n` 结尾），
+    在此统一补上后，下游任何位置的 `lines.insert(...)` 都不会再粘连到前一行。
+    """
     if not os.path.exists(path):
         return []
     with open(path, encoding="utf-8") as f:
-        return f.readlines()
+        lines = f.readlines()
+    if lines and not lines[-1].endswith("\n"):
+        lines[-1] = lines[-1] + "\n"
+    return lines
 
 
 def _find_batch_entry_range(lines, key):
