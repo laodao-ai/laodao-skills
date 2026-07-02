@@ -12,51 +12,70 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 import init as init_mod
-from init import copy_review_tool
+from init import copy_review_tool, copy_bundle
 
 
-class TestCopyReviewTool:
-    def test_copies_tools_dir_and_serve_sh_and_generates_root_review_html(self, tmp_path):
-        n = copy_review_tool(str(tmp_path))
+class TestReviewToolDeployment:
+    """B1 归位后：tools/ 由 workflow bundle 携带（copy_bundle → openspec/workflow/tools/），
+    copy_review_tool 只铺「服务器根锚」——serve.sh + 根 review.html 留 openspec/ 根。
+    故测试须先 copy_bundle 再 copy_review_tool（复刻 run() 的调用顺序）。"""
+
+    def _deploy(self, root):
+        copy_bundle(str(root))            # tools/ 落 openspec/workflow/tools/
+        return copy_review_tool(str(root))  # serve.sh + 根 review.html 落 openspec/ 根
+
+    def test_tools_under_workflow_and_root_anchors_at_openspec_root(self, tmp_path):
+        n = self._deploy(tmp_path)
         osroot = tmp_path / "openspec"
-        assert (osroot / "tools" / "engine.js").is_file()
-        assert (osroot / "tools" / "engine.css").is_file()
-        assert (osroot / "tools" / "review-stub.html").is_file()
-        assert (osroot / "tools" / "vendor" / "marked.min.js").is_file()
+        # 工具机械随 bundle 落 openspec/workflow/tools/（B1 归位）
+        assert (osroot / "workflow" / "tools" / "engine.js").is_file()
+        assert (osroot / "workflow" / "tools" / "engine.css").is_file()
+        assert (osroot / "workflow" / "tools" / "review-stub.html").is_file()
+        assert (osroot / "workflow" / "tools" / "vendor" / "marked.min.js").is_file()
+        # 服务器根锚留 openspec/ 根（serve.sh 须从此起服务才覆盖到 changes/specs）
         assert (osroot / "serve.sh").is_file()
         assert (osroot / "review.html").is_file()
-        assert n > 0
+        # 不再在 openspec/ 根留 tools/
+        assert not (osroot / "tools").exists()
+        assert n == 2  # copy_review_tool 只铺 serve.sh + 根 review.html
 
     def test_root_review_html_substitutes_project_name(self, tmp_path):
         project_dir = tmp_path / "my-project"
         project_dir.mkdir()
-        copy_review_tool(str(project_dir))
+        self._deploy(project_dir)
         osroot = project_dir / "openspec"
         content = (osroot / "review.html").read_text(encoding="utf-8")
-        template = (osroot / "tools" / "review-stub.html").read_text(encoding="utf-8")
-        # The template source (as copied into openspec/tools/) must stay RAW/un-substituted —
-        # it's read by the other two producers (change-review-stub.py hook, gen_review_stub.py)
-        # as their own substitution source, so it must still contain the literal token.
+        template = (osroot / "workflow" / "tools" / "review-stub.html").read_text(encoding="utf-8")
+        # 模板源（openspec/workflow/tools/）须保持原始未替换——它是另两个生产者
+        # （change-review-stub.py hook、gen_review_stub.py）各自替换的源，须仍含字面 token。
         assert "__PROJECT_NAME__" in template
-        # The generated root review.html, in contrast, must have the token substituted with
-        # the project's directory basename — and be otherwise byte-identical to the template.
+        # 生成的根 review.html 须已替换为项目目录名，且与模板逐字节一致（仅 token 被换）。
         assert "__PROJECT_NAME__" not in content
         assert content == template.replace("__PROJECT_NAME__", "my-project")
 
+    def test_root_review_html_references_workflow_tools_assets(self, tmp_path):
+        # B1 归位后资产必须是根相对 /workflow/tools/...（服务器根 = openspec/），旧 /tools/ 不得残留
+        self._deploy(tmp_path)
+        content = (tmp_path / "openspec" / "review.html").read_text(encoding="utf-8")
+        assert "/workflow/tools/engine.js" in content
+        assert "/workflow/tools/engine.css" in content
+        assert 'href="/tools/' not in content
+        assert 'src="/tools/' not in content
+
     def test_serve_sh_is_executable(self, tmp_path):
-        copy_review_tool(str(tmp_path))
+        self._deploy(tmp_path)
         mode = (tmp_path / "openspec" / "serve.sh").stat().st_mode
         assert mode & stat.S_IXUSR
 
     def test_idempotent_rerun_overwrites_cleanly(self, tmp_path):
         project_dir = tmp_path / "another-project"
         project_dir.mkdir()
-        copy_review_tool(str(project_dir))
-        copy_review_tool(str(project_dir))  # update-mode re-run
+        self._deploy(project_dir)
+        self._deploy(project_dir)  # update-mode re-run
         osroot = project_dir / "openspec"
         assert (osroot / "review.html").is_file()
         content = (osroot / "review.html").read_text(encoding="utf-8")
-        template = (osroot / "tools" / "review-stub.html").read_text(encoding="utf-8")
+        template = (osroot / "workflow" / "tools" / "review-stub.html").read_text(encoding="utf-8")
         # still a clean substituted copy, not duplicated/appended, not re-substituted-twice
         assert content == template.replace("__PROJECT_NAME__", "another-project")
 

@@ -33,8 +33,8 @@ def make_project(tmp_path, with_review_tool=True):
     osroot = tmp_path / "openspec"
     (osroot / "changes" / "add-widget").mkdir(parents=True)
     if with_review_tool:
-        (osroot / "tools").mkdir(parents=True, exist_ok=True)
-        (osroot / "tools" / "review-stub.html").write_text(STUB_TEMPLATE, encoding="utf-8")
+        (osroot / "workflow" / "tools").mkdir(parents=True, exist_ok=True)
+        (osroot / "workflow" / "tools" / "review-stub.html").write_text(STUB_TEMPLATE, encoding="utf-8")
         (osroot / "review.html").write_text("root", encoding="utf-8")
     return tmp_path
 
@@ -55,8 +55,8 @@ class TestChangeReviewStubHook:
         # __PROJECT_NAME__ substituted with the project root's (cwd's) basename …
         assert "__PROJECT_NAME__" not in rendered
         assert rendered == STUB_TEMPLATE.replace("__PROJECT_NAME__", tmp_path.name)
-        # … while the template source itself (openspec/tools/review-stub.html) stays raw.
-        template_src = tmp_path / "openspec" / "tools" / "review-stub.html"
+        # … while the template source itself (openspec/workflow/tools/review-stub.html) stays raw.
+        template_src = tmp_path / "openspec" / "workflow" / "tools" / "review-stub.html"
         assert "__PROJECT_NAME__" in template_src.read_text(encoding="utf-8")
 
     def test_skips_silently_when_review_tool_not_installed(self, tmp_path):

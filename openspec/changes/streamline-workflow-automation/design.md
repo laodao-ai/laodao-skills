@@ -45,7 +45,8 @@
    - **权威源 = `laodao-skills` 仓**：① workflow bundle 源 `opsx-project-init/assets/`（`assets/workflow/` 的 workflow.md / trigger-catalog.md / reference/quality-layering.md / spec-checklists / code-checklists、review UI、hooks、checkpoint 脚本）② 自制 skill 目录本身（`spec-review/`、`impl-review/`、`opsx-done/`、`buglist-recorder/`、`todolist-recorder/` + 新增 codex outside-voice helper）。
    - **消费仓副本 = 任何项目（含 laodao-skills 自己 dogfood 的）** `openspec/workflow/`、`openspec/tools/`、`hack/`——经 `opsx-project-init update` 重拉刷新。
    - 改动 MUST 在**权威源**做；消费仓走 `update` 采纳。**禁止只改消费仓副本**（update 覆盖 → 丢改动/漂移）。例外：`config.yaml` per-project（update 跳过），在消费仓改。
-   - **bundle 结构调整（B1）**：review UI 的 `tools/` 归入 workflow bundle——源 `assets/review-tool/{tools/,serve.sh}` → `assets/workflow/{tools/,serve.sh}`；部署落点 `openspec/tools/` → `openspec/workflow/tools/`（serve.sh / review.html 整组随行）；bundle 一目录自包含。需同步改 opsx-project-init 部署逻辑 + serve.sh/review.html/CLAUDE.md 的 `tools/` 路径引用。
+   - **bundle 结构调整（B1）**：review UI 的 `tools/` 归入 workflow bundle——源 `assets/review-tool/tools/` → `assets/workflow/tools/`；部署落点 `openspec/tools/` → `openspec/workflow/tools/`。需同步改 opsx-project-init 部署逻辑 + serve.sh/review.html/CLAUDE.md 的 `tools/` 路径引用。
+     - **〔grill-amendment〕半归位（实现揭出的服务器根约束）**：review 工具靠「HTTP 服务器根 = `openspec/`」+ 根相对资产路径（`/workflow/tools/engine.js`）工作，而被审内容（`changes/`、`specs/`、`roadmaps/`）在 `openspec/` 层、**在 `workflow/` 之上**。故原文「serve.sh / review.html **整组随行**进 `workflow/`」不可行——一旦离开 `openspec/` 根：① serve.sh `cd $DIR` 起的服务器根会变成 `workflow/`，`/changes/<name>/…` 全 404；② engine.js 从 `window.location.pathname` 推 scope，根 review.html 须落 `/review.html` 才得 scope=`""`（全树）。**定案：只把工具机械 `tools/` 归入 `openspec/workflow/tools/`（随 copy_bundle 自动部署），serve.sh + 根 review.html 留 `openspec/` 根**（服务器根锚，不动，engine.js 不碰）；仅 review-stub.html 资产路径 `/tools/` → `/workflow/tools/`，+ 两个读模板的生产者（`change-review-stub.py`、`gen_review_stub.py`@opsx-roadmap-planner）改模板路径。
 
 ---
 
@@ -206,7 +207,7 @@
 | C6 | fallback | codex preflight → ready/not_installed/not_authed/disabled；非 ready/报错/超时 → 原生 Task 子代理 outside voice（保独立性、丢跨模型）；全程非阻塞 5min 封顶 | ✅ 定 |
 | C7 | gstack 边界 | autoplan / gstack review 的 outside voice **保 gstack 原生**（不动）；自制机制**只驱动**自制 skill；spec-review"复用"= 读 `gstack-review.md` findings，不重实现 | ✅ 定 |
 | G6 | 改在权威源 | 权威源 = laodao-skills（bundle assets + 自制 skill 目录）；消费仓 `openspec/workflow`·`tools`·`hack` 是副本，走 `opsx-project-init update` 采纳；**禁止只改副本**。→ 本 change 归属 laodao-skills 仓 | ✅ 定 |
-| B1 | review UI 归位 | `tools/` 归入 workflow bundle：源 `assets/review-tool/` → `assets/workflow/`，部署 `openspec/tools/` → `openspec/workflow/tools/`（serve.sh/review.html 整组随行）；改 opsx-project-init 部署逻辑 + 路径引用 | ✅ 定 |
+| B1 | review UI 归位 | 〔grill-amendment〕**半归位**：仅工具机械 `tools/` 归 `openspec/workflow/tools/`（随 copy_bundle）；serve.sh + 根 review.html **留 `openspec/` 根**（服务器根锚——工具靠服务器根=openspec/ 才覆盖得到 changes/specs，engine.js scope 靠 /review.html）。资产路径 /tools/→/workflow/tools/ + 两 producer 改模板路径。原文"整组随行"因服务器根约束不可行，见原则6 | ✅ 定 |
 | I13 | issues 标准归属 | §8 即规范定义；唯一真相源 = 两 recorder skill 的"约定速查"段（写进去），不另起 rules 文件 | ✅ 定 |
 
 ---

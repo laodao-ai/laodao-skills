@@ -74,15 +74,16 @@ openspec/
 │   ├── generation-process.md design-diagrams.md spec-review.md
 │   ├── config.template.yaml
 │   ├── spec-checklists/  code-checklists/   (base + domains)
+│   ├── tools/            ← engine.js + engine.css + vendor/marked.min.js + review-stub.html（B1 归位进 bundle）
+│   │                       （review-stub.html 是模板，roadmap/change 目录的 review.html 由它生成）
 │   └── reference/         (说明类，可删)
 ├── config.yaml            ← init 从 config.template.yaml 生成（本项目段待填）
 ├── INDEX.md               ← 注入「工作流规则」托管区块
 ├── changes/  specs/       ← 目录骨架
-├── review.html            ← 文档查看器根入口（scope="" 全树导航）
+├── review.html            ← 文档查看器根入口（scope="" 全树导航；资产引用 /workflow/tools/…）
 ├── serve.sh                ← 后台起停封装：start [port] / stop / restart [port]，
-│                             cd 到 openspec/ 再起 python3 -m http.server（detached，打印可点链接）
-├── tools/                  ← engine.js + engine.css + vendor/marked.min.js + review-stub.html
-│                             （review-stub.html 是模板，roadmap/change 目录的 review.html 由它生成）
+│                             cd 到 openspec/ 再起 python3 -m http.server（服务器根=openspec/，
+│                             故 review UI 能 HTTP 覆盖 changes/specs；根锚留根，工具机械在 workflow/tools/）
 CLAUDE.md / AGENTS.md      ← 注入「OpenSpec 工作流」托管区块（强制规范 + 3 配套 skill 说明）
 ```
 

@@ -9,7 +9,7 @@
 行为：
   · 仅对 Bash 工具、且命令实际执行 `openspec new change <name>` 时介入（PostToolUse：命令已跑完）。
   · 解析出 <name>；若 openspec/changes/<name>/ 不存在（如被 FF-0 拦下、或命令本身失败）→ 静默放行。
-  · 若项目根 openspec/review.html 或 openspec/tools/review-stub.html 不存在（还没跑过
+  · 若项目根 openspec/review.html 或 openspec/workflow/tools/review-stub.html 不存在（还没跑过
     opsx-project-init）→ 静默放行，不强迫铺设顺序。
   · 否则读模板、替换 __PROJECT_NAME__（项目根目录名，对一次安装永不变，故不重蹈 __SCOPE__ 的
     过时症）为项目名后写入 openspec/changes/<name>/review.html（幂等：内容已一致则跳过写入）。
@@ -49,7 +49,7 @@ def main() -> None:
     if not os.path.isdir(change_dir):
         sys.exit(0)  # 命令没真正建出目录（被拦 / 失败）→ 放行
 
-    stub_template_path = os.path.join(cwd, "openspec", "tools", "review-stub.html")
+    stub_template_path = os.path.join(cwd, "openspec", "workflow", "tools", "review-stub.html")
     root_review_path = os.path.join(cwd, "openspec", "review.html")
     if not (os.path.isfile(stub_template_path) and os.path.isfile(root_review_path)):
         sys.exit(0)  # 项目还没跑过 opsx-project-init → 静默跳过

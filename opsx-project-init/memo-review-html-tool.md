@@ -49,12 +49,13 @@ openspec/
 变成 3 层。若"回根链接"/"引擎脚本引用"在生成时硬编码相对路径（如 `../../review.html`），
 archive 把整个目录搬家之后就会断链（archive 是整目录搬迁，不是选择性拷贝，靠现有归档样本里
 `staff-review-report.md` 等非标准文件也原样跟着搬确认过）。
-**修法**：壳子里所有静态引用一律用**根相对路径**（`/review.html`、`/tools/engine.js`，以 `/`
+**修法**：壳子里所有静态引用一律用**根相对路径**（`/review.html`、`/workflow/tools/engine.js`，以 `/`
 开头、相对 server origin 解析，不相对当前文档深度），不管 stub 躺多深、目录怎么搬，字符串不变。
+（B1 归位后工具机械在 `openspec/workflow/tools/`，故资产路径带 `/workflow/` 前缀；服务器根仍是 `openspec/`。）
 文档正文里作者手写的相对路径（如 `design.md` 里的 `../adr/...`）不受影响，那些走浏览器标准的
 "相对当前文档 URL"解析，本来就是对的，不需要改动引擎的这部分逻辑。
 
-## 引擎（`tools/engine.js` + `engine.css`）能力清单
+## 引擎（`workflow/tools/engine.js` + `engine.css`）能力清单
 
 - Markdown 渲染：需要**内联 vendor 一份小型渲染库**（如压缩后的 marked.js），不用 CDN `<script src>`
   ——避免离线不可用（这个产品本身定位 local-first，查看工具也不该依赖联网）

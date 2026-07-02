@@ -8,7 +8,7 @@ const {
   parentOf,
   formatPathBar,
   formatTabTitle,
-} = require('../assets/review-tool/tools/engine.js');
+} = require('../assets/workflow/tools/engine.js');
 
 test('parseDirectoryListing: files and subdirectories', () => {
   const html = `<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">

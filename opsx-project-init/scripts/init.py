@@ -96,31 +96,37 @@ def copy_bundle(root):
 
 
 def copy_review_tool(root):
-    """铺设 review.html / serve.sh / tools/（engine.js, engine.css, vendor/, review-stub.html）到
-    openspec/。目录 scope 由 engine.js 在加载时从 window.location.pathname 推导（无占位符替换）。
-    根 review.html 是 review-stub.html 模板的拷贝，但**替换 __PROJECT_NAME__ 为项目目录名**——
-    这个值对一次安装永不变（不随目录搬迁而变），故不会重蹈 __SCOPE__ 的过时症。
-    openspec/tools/review-stub.html 本身（供 change-review-stub.py / gen_review_stub.py 两个
-    生产者读作模板源）必须保持原始未替换状态，仍含字面 token。
-    update 模式整体覆盖刷新（与 copy_bundle 同款语义）。
+    """铺设 review 工具的「服务器根锚」文件：serve.sh + 根 review.html 到 openspec/ 根。
+
+    tools/（engine.js, engine.css, vendor/, review-stub.html）已随 workflow bundle 由
+    copy_bundle 铺到 openspec/workflow/tools/（B1 归位）——本函数**不再拷 tools/**。
+
+    为何 serve.sh / 根 review.html 留 openspec/ 根、不进 workflow/：review 工具靠「HTTP
+    服务器根 = openspec/」+ 根相对资产路径（/workflow/tools/engine.js）工作；被审内容
+    （changes/ specs/ roadmaps/）在 openspec/ 层、在 workflow/ 之上——serve.sh 须从
+    openspec/ 起服务才覆盖得到它们，engine.js 从 window.location.pathname 推 scope、根
+    review.html 须落 /review.html 才得 scope=""（全树）。故这两个根锚留根，仅工具机械
+    （tools/）归 workflow bundle。见 design.md 决策表 B1 / 原则6〔grill-amendment〕。
+
+    根 review.html = openspec/workflow/tools/review-stub.html 模板替换 __PROJECT_NAME__ 为
+    项目目录名（该值对一次安装永不变，不重蹈 __SCOPE__ 过时症）。模板本身保持原始未替换
+    （供 change-review-stub.py / gen_review_stub.py 两个生产者读作源）。update 覆盖刷新。
     """
     osroot = os.path.join(root, "openspec")
-    dst_tools = os.path.join(osroot, "tools")
-    shutil.copytree(os.path.join(REVIEW_TOOL_SRC, "tools"), dst_tools, dirs_exist_ok=True)
 
     serve_src = os.path.join(REVIEW_TOOL_SRC, "serve.sh")
     serve_dst = os.path.join(osroot, "serve.sh")
     shutil.copyfile(serve_src, serve_dst)
     shutil.copymode(serve_src, serve_dst)
 
-    stub_path = os.path.join(dst_tools, "review-stub.html")
+    stub_path = os.path.join(osroot, "workflow", "tools", "review-stub.html")
     project_name = os.path.basename(os.path.abspath(root))
     template_text = open(stub_path, encoding="utf-8").read()
     rendered = template_text.replace("__PROJECT_NAME__", project_name)
     with open(os.path.join(osroot, "review.html"), "w", encoding="utf-8") as f:
         f.write(rendered)
 
-    return sum(len(fs) for _, _, fs in os.walk(dst_tools)) + 2  # +serve.sh +review.html
+    return 2  # serve.sh + 根 review.html（tools/ 已由 copy_bundle 计入 openspec/workflow/）
 
 
 def copy_hack(root):
@@ -249,8 +255,8 @@ def run(root, mode):
 
     n_review = copy_review_tool(root)
     report.append(
-        f"铺 review 工具：openspec/review.html + openspec/tools/ + openspec/serve.sh"
-        f"（{n_review} 文件，{'覆盖' if mode=='update' else '写入'}）"
+        f"铺 review 根锚：openspec/review.html + openspec/serve.sh"
+        f"（{n_review} 文件，{'覆盖' if mode=='update' else '写入'}；tools/ 随 bundle 入 openspec/workflow/tools/）"
     )
 
     n_hack = copy_hack(root)
