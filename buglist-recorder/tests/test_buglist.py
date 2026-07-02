@@ -358,6 +358,108 @@ class TestDualRead:
         assert proc.stderr == ""
 
 
+class TestScanFilters:
+    """Task 6：scan 新增 --change / --批次 / --open-ungrouped 三个过滤维度，
+    支撑 Phase B 后续 sweep（按源/按批次挑活、找未分批的开放项）。三者与既有 --status
+    都是 AND 叠加——scan 收集完 bugs 后逐个过滤链应用，互不影响彼此的判定输入。"""
+
+    def test_change_filters_by_source(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "change-a", "batch": ""},
+            {"id": "B2", "status": "OPEN", "change": "change-b", "batch": ""},
+        ])
+        result = _scan_json(tmp_path, ["--change", "change-a"])
+        assert [b["id"] for b in result["bugs"]] == ["B1"]
+
+    def test_batch_filters_by_batch(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "batch-1"},
+            {"id": "B2", "status": "OPEN", "change": "x", "batch": "batch-2"},
+            {"id": "B3", "status": "OPEN", "change": "x", "batch": ""},
+        ])
+        result = _scan_json(tmp_path, ["--批次", "batch-1"])
+        assert [b["id"] for b in result["bugs"]] == ["B1"]
+
+    def test_open_ungrouped_matches_nonterminal_without_batch(self, tmp_path):
+        """非终态 = STATUS_CODES 减 {FIXED, WONTFIX}。B1/B2 命中（非终态 + 无批次）；
+        B3/B5 是终态（FIXED/WONTFIX）不该命中；B4 虽非终态但已有批次不该命中。"""
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": ""},
+            {"id": "B2", "status": "VERIFIED", "change": "x", "batch": ""},
+            {"id": "B3", "status": "FIXED", "change": "x", "batch": ""},
+            {"id": "B4", "status": "OPEN", "change": "x", "batch": "batch-1"},
+            {"id": "B5", "status": "WONTFIX", "change": "x", "batch": ""},
+        ])
+        result = _scan_json(tmp_path, ["--open-ungrouped"])
+        assert sorted(b["id"] for b in result["bugs"]) == ["B1", "B2"]
+
+    def test_open_ungrouped_covers_all_nonterminal_statuses(self, tmp_path):
+        """逐一覆盖 buglist 的全部 5 个非终态码（PROPOSED/IN_PROGRESS/BLOCKED 也要命中，
+        不只是示例里出现的 OPEN/VERIFIED）。"""
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-01", [
+            {"id": "B1", "status": "PROPOSED", "change": "x", "batch": ""},
+            {"id": "B2", "status": "IN_PROGRESS", "change": "x", "batch": ""},
+            {"id": "B3", "status": "BLOCKED", "change": "x", "batch": ""},
+        ])
+        result = _scan_json(tmp_path, ["--open-ungrouped"])
+        assert sorted(b["id"] for b in result["bugs"]) == ["B1", "B2", "B3"]
+
+    def test_filters_combine_with_and(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "change-a", "batch": ""},
+            {"id": "B2", "status": "OPEN", "change": "change-b", "batch": ""},
+            {"id": "B3", "status": "FIXED", "change": "change-a", "batch": ""},
+        ])
+        result = _scan_json(tmp_path, ["--change", "change-a", "--open-ungrouped"])
+        assert [b["id"] for b in result["bugs"]] == ["B1"]
+
+    def test_status_and_batch_combine(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": "batch-1"},
+            {"id": "B2", "status": "FIXED", "change": "x", "batch": "batch-1"},
+            {"id": "B3", "status": "OPEN", "change": "x", "batch": "batch-2"},
+        ])
+        result = _scan_json(tmp_path, ["--status", "OPEN", "--批次", "batch-1"])
+        assert [b["id"] for b in result["bugs"]] == ["B1"]
+
+    def test_no_filters_returns_everything(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "buglist", "2026-01-01", [
+            {"id": "B1", "status": "OPEN", "change": "x", "batch": ""},
+            {"id": "B2", "status": "FIXED", "change": "y", "batch": "batch-1"},
+        ])
+        result = _scan_json(tmp_path, [])
+        assert sorted(b["id"] for b in result["bugs"]) == ["B1", "B2"]
+
+
+def _scan_json(root, extra_args):
+    proc = subprocess.run(
+        [sys.executable, SCRIPT, "--root", str(root), "scan", "--json", *extra_args],
+        capture_output=True, text=True,
+    )
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
+def _write_mixed_file(dir_path, date, rows):
+    """镜像 _write_dated_file，但每行的 status/change/batch 可独立指定
+    （scan 过滤测试需要混合数据，不能像 _write_dated_file 那样固定 OPEN/无批次）。"""
+    dir_path.mkdir(parents=True, exist_ok=True)
+    lines = [
+        f"# {date} Buglist\n\n",
+        "> 来源：test\n",
+        f"> 创建日期：{date}\n\n",
+        "## 状态总览\n\n",
+        "| ID | 模块 | 问题摘要 | 优先级 | 状态 | 时间 | 关联Change | 批次 |\n",
+        "|----|------|----------|--------|------|------|------------|------|\n",
+    ]
+    for r in rows:
+        lines.append(
+            f"| {r['id']} | `foo.c:1` | fixture | P2 | {r['status']} | 10:00 | "
+            f"{r.get('change') or '-'} | {r.get('batch', '')} |\n"
+        )
+    (dir_path / f"{date}-buglist.md").write_text("".join(lines), encoding="utf-8")
+
+
 def _write_dated_file(dir_path, date, ids):
     """写一个最小合法的 dated buglist 文件（只含状态总览表，够 list_files/all_ids/id_conflicts
     解析），用于 dual-read 测试在指定目录（新或旧）铸出 fixture 数据。"""

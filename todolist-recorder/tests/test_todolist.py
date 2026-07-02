@@ -392,6 +392,97 @@ class TestDualRead:
         assert proc.stderr == ""
 
 
+class TestScanFilters:
+    """Task 6：scan 新增 --change / --批次 / --open-ungrouped 三个过滤维度，
+    支撑 Phase B 后续 sweep。todolist 的非终态集与 buglist 不同——STATUS_CODES 只有
+    OPEN/PROPOSED/DONE/WONTDO，终态是 DONE/WONTDO，非终态 = {OPEN, PROPOSED}，
+    不能硬套 buglist 的 5 值非终态集。三者与既有 --status/--type 都是 AND 叠加。"""
+
+    def test_change_filters_by_source(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "todolist", "2026-01", [
+            {"id": "T1", "status": "OPEN", "change": "change-a", "batch": ""},
+            {"id": "T2", "status": "OPEN", "change": "change-b", "batch": ""},
+        ])
+        result = _scan_json(tmp_path, ["--change", "change-a"])
+        assert [b["id"] for b in result["items"]] == ["T1"]
+
+    def test_batch_filters_by_batch(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "todolist", "2026-01", [
+            {"id": "T1", "status": "OPEN", "change": "x", "batch": "batch-1"},
+            {"id": "T2", "status": "OPEN", "change": "x", "batch": "batch-2"},
+            {"id": "T3", "status": "OPEN", "change": "x", "batch": ""},
+        ])
+        result = _scan_json(tmp_path, ["--批次", "batch-1"])
+        assert [b["id"] for b in result["items"]] == ["T1"]
+
+    def test_open_ungrouped_matches_only_open_and_proposed(self, tmp_path):
+        """todolist 非终态只有 OPEN/PROPOSED（不是 buglist 那 5 个）：T1/T2 命中；
+        T3（DONE）、T5（WONTDO）是终态不该命中；T4 虽 OPEN 但已有批次不该命中。"""
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "todolist", "2026-01", [
+            {"id": "T1", "status": "OPEN", "change": "x", "batch": ""},
+            {"id": "T2", "status": "PROPOSED", "change": "x", "batch": ""},
+            {"id": "T3", "status": "DONE", "change": "x", "batch": ""},
+            {"id": "T4", "status": "OPEN", "change": "x", "batch": "batch-1"},
+            {"id": "T5", "status": "WONTDO", "change": "x", "batch": ""},
+        ])
+        result = _scan_json(tmp_path, ["--open-ungrouped"])
+        assert sorted(b["id"] for b in result["items"]) == ["T1", "T2"]
+
+    def test_filters_combine_with_and(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "todolist", "2026-01", [
+            {"id": "T1", "status": "OPEN", "change": "change-a", "batch": ""},
+            {"id": "T2", "status": "OPEN", "change": "change-b", "batch": ""},
+            {"id": "T3", "status": "DONE", "change": "change-a", "batch": ""},
+        ])
+        result = _scan_json(tmp_path, ["--change", "change-a", "--open-ungrouped"])
+        assert [b["id"] for b in result["items"]] == ["T1"]
+
+    def test_status_and_batch_combine(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "todolist", "2026-01", [
+            {"id": "T1", "status": "OPEN", "change": "x", "batch": "batch-1"},
+            {"id": "T2", "status": "DONE", "change": "x", "batch": "batch-1"},
+            {"id": "T3", "status": "OPEN", "change": "x", "batch": "batch-2"},
+        ])
+        result = _scan_json(tmp_path, ["--status", "OPEN", "--批次", "batch-1"])
+        assert [b["id"] for b in result["items"]] == ["T1"]
+
+    def test_no_filters_returns_everything(self, tmp_path):
+        _write_mixed_file(tmp_path / "openspec" / "issues" / "todolist", "2026-01", [
+            {"id": "T1", "status": "OPEN", "change": "x", "batch": ""},
+            {"id": "T2", "status": "DONE", "change": "y", "batch": "batch-1"},
+        ])
+        result = _scan_json(tmp_path, [])
+        assert sorted(b["id"] for b in result["items"]) == ["T1", "T2"]
+
+
+def _scan_json(root, extra_args):
+    proc = subprocess.run(
+        [sys.executable, SCRIPT, "--root", str(root), "scan", "--json", *extra_args],
+        capture_output=True, text=True,
+    )
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
+def _write_mixed_file(dir_path, month, rows):
+    """镜像 _write_dated_file，但每行的 status/change/batch 可独立指定
+    （scan 过滤测试需要混合数据，不能像 _write_dated_file 那样固定 OPEN/无批次）。"""
+    dir_path.mkdir(parents=True, exist_ok=True)
+    lines = [
+        f"# {month} TODO\n\n",
+        "> 项目：test\n\n",
+        "## 状态总览\n\n",
+        "| ID | 模块 | 描述 | 类型 | 状态 | 时间 | 关联Change | 批次 |\n",
+        "|----|------|------|------|------|------|------------|------|\n",
+    ]
+    for r in rows:
+        lines.append(
+            f"| {r['id']} | `foo.c` | fixture | 性能优化 | {r['status']} | 2026-01-01 10:00 | "
+            f"{r.get('change') or '-'} | {r.get('batch', '')} |\n"
+        )
+    (dir_path / f"{month}-todolist.md").write_text("".join(lines), encoding="utf-8")
+
+
 def _write_dated_file(dir_path, month, ids):
     """写一个最小合法的月度 todolist 文件（只含状态总览表，够 list_files/all_ids/id_conflicts
     解析），用于 dual-read 测试在指定目录（新或旧）铸出 fixture 数据。"""

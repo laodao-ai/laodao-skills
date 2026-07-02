@@ -516,6 +516,13 @@ def cmd_scan(args):
 
     if args.status:
         bugs = [b for b in bugs if b["status"] == args.status]
+    if args.change:
+        bugs = [b for b in bugs if b["change"] == args.change]
+    if getattr(args, "批次", None):
+        bugs = [b for b in bugs if b.get("batch") == getattr(args, "批次")]
+    if args.open_ungrouped:
+        nonterminal = set(STATUS_CODES) - {"FIXED", "WONTFIX"}
+        bugs = [b for b in bugs if b["status"] in nonterminal and not b.get("batch")]
     if args.json:
         print(json.dumps({"bugs": bugs, "problems": problems}, ensure_ascii=False, indent=2))
         return
@@ -579,6 +586,10 @@ def main():
 
     s = sub.add_parser("scan", help="列出 bug + 表↔块一致性自检")
     s.add_argument("--status", help="按状态码过滤")
+    s.add_argument("--change", help="按关联 change（来源）过滤")
+    s.add_argument("--批次", dest="批次", help="按批次过滤")
+    s.add_argument("--open-ungrouped", dest="open_ungrouped", action="store_true",
+                    help="非终态（STATUS_CODES 减 FIXED/WONTFIX）且未分批的 bug")
     s.add_argument("--json", action="store_true")
     s.set_defaults(func=cmd_scan)
 
