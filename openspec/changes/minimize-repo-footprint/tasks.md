@@ -3,21 +3,21 @@
 > 决策真相源 = [`adr/0003`](../../adr/0003-deploy-footprint-global-rules-minimal-repo-copy.md)（+ grill-amendment）+ [`adr/0005`](../../adr/0005-dev-runtime-checkout-split.md) + [design.md](./design.md)。
 > 全部未勾（explore/propose + 一轮 grill 收敛，实现在阶段三）。
 > 需求 ID 见 [specs/spec-workflow/spec.md](./specs/spec-workflow/spec.md)：**R-MRF-1** 分层部署 · **R-MRF-2** resolver · **R-MRF-3** 迁移。
-> grill 2026-07-03 后：**撤销"提根"**、canonical 改软链(Unix)/指针(Windows)、checkpoint 归 `~/.laodao/hack/`。Codex-hook 空档已单记 todolist（超本 change 范围）。
+> grill 2026-07-03 后：**撤销"提根"**、canonical 改软链(Unix)/指针(Windows)、checkpoint 归 `~/.sdflow/hack/`。Codex-hook 空档已单记 todolist（超本 change 范围）。
 
 ## 1. canonical 全局位（不提根）〔R-MRF-1，grill-amendment〕
 
 > 撤销"提根"：bundle 留 `opsx-project-init/assets/workflow/`，canonical 间接层藏住布局。
 
-- [ ] 1.1 `setup.sh` 建 canonical（Unix）：软链 `~/.laodao/workflow` → 运行 checkout 的 `opsx-project-init/assets/workflow`；幂等、agent 中立〔R-MRF-1〕
-- [ ] 1.2 `setup.sh` 建 canonical（Windows）：写指针文件 `~/.laodao/workflow-path`（内容 = bundle 绝对路径，取自 `$REPO_DIR`）〔R-MRF-1〕
+- [ ] 1.1 `setup.sh` 建 canonical（Unix）：软链 `~/.sdflow/workflow` → 运行 checkout 的 `opsx-project-init/assets/workflow`；幂等、agent 中立〔R-MRF-1〕
+- [ ] 1.2 `setup.sh` 建 canonical（Windows）：写指针文件 `~/.sdflow/workflow-path`（内容 = bundle 绝对路径，取自 `$REPO_DIR`）〔R-MRF-1〕
 - [ ] 1.3 确认 bundle 仍在 `assets/workflow`、"唯一权威源"5 处约定（SKILL.md×4/init.py/config.yaml/CHANGELOG）不动〔R-MRF-1〕
 
 ## 2. 部署分层：init.py 改造（R-MRF-1）
 
 - [ ] 2.1 `copy_bundle` 去掉规则部分——只部署 `tools/` 子树到消费仓 `openspec/workflow/tools/`，规则文件不再复制〔R-MRF-1〕
-- [ ] 2.2 `checkpoint-commit.sh` 改**全局装到 `~/.laodao/hack/`**（agent 中立 canonical 根，**非** `~/.claude/hooks`——bash 工具非 Claude 事件 hook），不再进消费仓 `hack/`；拷贝 + chmod 一次设好 exec 位〔R-MRF-1，grill-amendment〕
-- [ ] 2.3 `workflow.md` line62 `[checkpoint]` 单点约定改指 `~/.laodao/hack/checkpoint-commit.sh`（步骤表简写不含硬路径，只改此一处）〔R-MRF-1，grill-amendment〕
+- [ ] 2.2 `checkpoint-commit.sh` 改**全局装到 `~/.sdflow/hack/`**（agent 中立 canonical 根，**非** `~/.claude/hooks`——bash 工具非 Claude 事件 hook），不再进消费仓 `hack/`；拷贝 + chmod 一次设好 exec 位〔R-MRF-1，grill-amendment〕
+- [ ] 2.3 `workflow.md` line62 `[checkpoint]` 单点约定改指 `~/.sdflow/hack/checkpoint-commit.sh`（步骤表简写不含硬路径，只改此一处）〔R-MRF-1，grill-amendment〕
 - [ ] 2.4 `serve.sh` / 根 `review.html` 复制逻辑保持（tools 最小副本模型不变）〔R-MRF-1〕
 
 ## 3. 规则解析 resolver（R-MRF-2）
@@ -25,7 +25,7 @@
 - [ ] 3.1 定义 resolver 三步链 + 步2 平台回落链的**共享约定**（写进各 skill SKILL.md 引用的公共段 / 一句话协议）〔R-MRF-2〕
 - [ ] 3.2 各 skill 规则读点改按 resolver 解析——**先扫全读点清单**（spec-review/impl-review 已知；opsx-done/recorders/opsx-ship 逐个扫，见 proposal 开放问题3）〔R-MRF-2〕
 - [ ] 3.3 步1 判据 = 查**规则文件本体**（`workflow.md`/`spec-checklists/`/`code-checklists/`），**不查** `openspec/workflow/` 目录（tools/ 使目录恒存在）〔R-MRF-2〕
-- [ ] 3.4 步2 = "试 `~/.laodao/workflow/` 目录 → 否则读 `~/.laodao/workflow-path`"回落链（平台无关）〔R-MRF-2〕
+- [ ] 3.4 步2 = "试 `~/.sdflow/workflow/` 目录 → 否则读 `~/.sdflow/workflow-path`"回落链（平台无关）〔R-MRF-2〕
 - [ ] 3.5 步3 显式降级 = **反静默守卫**：全局缺 → 通用评审 + 告警，不静默当"无此层"（措辞对齐 CONTEXT 术语）〔R-MRF-2〕
 
 ## 4. 迁移：opt-in 删 + 陈旧遮蔽告警（R-MRF-3）

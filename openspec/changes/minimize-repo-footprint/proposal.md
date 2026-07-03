@@ -19,8 +19,8 @@
 | 本体 | `config.yaml` / `changes/` / `specs/` | 仓内 | 仓内（天然属仓） |
 
 - **解析 resolver**：skills 读规则改为「仓内有规则文件 → 用本地；否则 → 全局 canonical bundle；全局也缺 → 显式降级 + 告警」（三步链，见 design）。
-- **全局钉法**〔grill-amendment〕：**不提根**——bundle 留 `opsx-project-init/assets/`；`setup.sh` 建 canonical（Unix 软链 `~/.laodao/workflow` / Windows 指针 `~/.laodao/workflow-path`）藏住 assets/ 布局，skills 走"试目录→否则读指针"回落链解析，锚点 = 运行 checkout（`adr/0005`）。
-- **checkpoint 全局化**〔grill-amendment〕：`checkpoint-commit.sh` 移到 agent 中立的 canonical 根 `~/.laodao/hack/`（**非** `~/.claude/hooks`——它是跨-agent bash 工具、不是 Claude 事件 hook），顺带根治 `core.fileMode=false` exec 位丢失。
+- **全局钉法**〔grill-amendment〕：**不提根**——bundle 留 `opsx-project-init/assets/`；`setup.sh` 建 canonical（Unix 软链 `~/.sdflow/workflow` / Windows 指针 `~/.sdflow/workflow-path`）藏住 assets/ 布局，skills 走"试目录→否则读指针"回落链解析，锚点 = 运行 checkout（`adr/0005`）。
+- **checkpoint 全局化**〔grill-amendment〕：`checkpoint-commit.sh` 移到 agent 中立的 canonical 根 `~/.sdflow/hack/`（**非** `~/.claude/hooks`——它是跨-agent bash 工具、不是 Claude 事件 hook），顺带根治 `core.fileMode=false` exec 位丢失。
 - **迁移**：`update` 停止复制规则、检测残留旧规则则**告警**（删=跟全局 / 留=pin），**绝不自动删**。
 
 ## Success Metrics
@@ -41,7 +41,7 @@
 
 ## Impact
 
-- **代码**：`opsx-project-init/scripts/init.py`（`copy_bundle` 去规则、`copy_hack` 改全局装）、`setup.sh`（建 canonical 软链/指针 + 装 checkpoint 到 `~/.laodao/hack/`）、各 skill SKILL.md 的规则读点（改 resolver 解析）、`workflow.md` line62 checkpoint 约定改指全局。〔grill-amendment：不提根，bundle 留 `assets/`〕
+- **代码**：`opsx-project-init/scripts/init.py`（`copy_bundle` 去规则、`copy_hack` 改全局装）、`setup.sh`（建 canonical 软链/指针 + 装 checkpoint 到 `~/.sdflow/hack/`）、各 skill SKILL.md 的规则读点（改 resolver 解析）、`workflow.md` line62 checkpoint 约定改指全局。〔grill-amendment：不提根，bundle 留 `assets/`〕
 - **spec**：MODIFY 既有「workflow bundle 改在权威源、经部署下发」（下发模型变）；ADD「规则全局解析 resolver」。
 - **测试**：`opsx-project-init/tests/`（init/checkpoint/hook 现有测试须跟部署模型改）。
 - **已知代价**：消费仓失去按仓 pin 规则（跟全局 HEAD，规则一改即刻影响所有仓）——ADR 已拍板接受。
@@ -54,8 +54,8 @@
 
 ## Open Questions（TG-21）
 
-1. canonical 前缀命名（`~/.laodao/` grill 暂用，低风险，可改）。
-2. ~~Windows 无软链兜底~~ → **已定**：指针文件 `~/.laodao/workflow-path`（grill 2026-07-03）。
+1. canonical 前缀命名（`~/.sdflow/` grill 暂用，低风险，可改）。
+2. ~~Windows 无软链兜底~~ → **已定**：指针文件 `~/.sdflow/workflow-path`（grill 2026-07-03）。
 3. 各 skill 规则读点的完整清单（spec-review/impl-review 已知；opsx-done/recorders/opsx-ship 待逐个扫）。
 4. 迁移告警的具体触发点与文案（`update` 内联？独立 `opsx-maintain` 检查？）。
 

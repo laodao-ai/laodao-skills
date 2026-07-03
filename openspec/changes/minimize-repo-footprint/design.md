@@ -38,9 +38,9 @@ skills（spec-review / impl-review / opsx-done / recorders / opsx-ship）读规�
                         ▼                  ▼
               ┌──────────────────┐   ┌──────────────────────────────────┐
               │ 用本地           │   │ 步2：解析全局 canonical bundle     │
-              │ · 开发 checkout  │   │  ┌ 试 ~/.laodao/workflow/ 目录     │
+              │ · 开发 checkout  │   │  ┌ 试 ~/.sdflow/workflow/ 目录     │
               │   dogfood 在用端 │   │  │   (Unix 软链命中,透明)           │
-              │ · 消费仓显式 pin │   │  └ 否则读 ~/.laodao/workflow-path  │
+              │ · 消费仓显式 pin │   │  └ 否则读 ~/.sdflow/workflow-path  │
               │  〔adr/0005〕    │   │      (Windows 指针命中)            │
               └──────────────────┘   └────────┬─────────┬───────────────┘
                                            有 │         │ 无
@@ -70,7 +70,7 @@ skills（spec-review / impl-review / opsx-done / recorders / opsx-ship）读规�
   运行 checkout = ~/.skills/laodao-skills （canonical 锚点, setup 在此跑）
   ├── opsx-project-init/assets/workflow/   ← bundle 仍是唯一权威源(不提根)
   │        └──[copy_bundle 只部署 tools/ 子树]──┐
-  ├── ~/.laodao/  ← setup 建的 agent 中立全局家：
+  ├── ~/.sdflow/  ← setup 建的 agent 中立全局家：
   │     ├── workflow  ─软链(Unix)→ 上面 assets/workflow   /   workflow-path 指针(Windows)
   │     └── hack/checkpoint-commit.sh  ← 拷贝(两平台, exec 位一次设好)
   └── (openspec/ 在此惰性存在, 不 run workflow on 自己  〔adr/0005〕)
@@ -85,7 +85,7 @@ skills（spec-review / impl-review / opsx-done / recorders / opsx-ship）读规�
        ├── config.yaml / changes/ / specs/           ← 仓本体
        └──(无规则文件 → resolver 步2 全局)
 
-  workflow.md line62 [checkpoint] 约定 ──指向──▶ ~/.laodao/hack/checkpoint-commit.sh(不再仓相对)
+  workflow.md line62 [checkpoint] 约定 ──指向──▶ ~/.sdflow/hack/checkpoint-commit.sh(不再仓相对)
 ```
 
 ## 五、dev/release 隔离 = 两个物理 checkout（〔grill-amendment〕，详见 adr/0005）
@@ -102,12 +102,12 @@ skills（spec-review / impl-review / opsx-done / recorders / opsx-ship）读规�
 | 组件 | 角色 | 本 change 动作 |
 |---|---|---|
 | `opsx-project-init/assets/workflow/` | bundle 唯一权威源 | **不提根**〔grill-amendment〕；`copy_bundle` 改为只部署 `tools/` |
-| `~/.laodao/workflow`（软链）/ `workflow-path`（指针） | canonical 解析位 | `setup.sh` 建：Unix 软链 / Windows 指针，锚运行 checkout〔grill-amendment〕 |
-| `~/.laodao/hack/checkpoint-commit.sh` | 过场提交工具（全局） | 从消费仓 `hack/` 移此；拷贝、两平台、exec 位根治〔grill-amendment〕 |
+| `~/.sdflow/workflow`（软链）/ `workflow-path`（指针） | canonical 解析位 | `setup.sh` 建：Unix 软链 / Windows 指针，锚运行 checkout〔grill-amendment〕 |
+| `~/.sdflow/hack/checkpoint-commit.sh` | 过场提交工具（全局） | 从消费仓 `hack/` 移此；拷贝、两平台、exec 位根治〔grill-amendment〕 |
 | `opsx-project-init/scripts/init.py` | 部署器 | `copy_bundle` 去规则（只 tools/）；`copy_hack` 改为不进消费仓（全局装） |
-| `setup.sh` | 安装器 | 加建 canonical 软链/指针 + 装 checkpoint 到 `~/.laodao/hack/` |
+| `setup.sh` | 安装器 | 加建 canonical 软链/指针 + 装 checkpoint 到 `~/.sdflow/hack/` |
 | 各 skill SKILL.md 规则读点 | 规则消费者 | 改按 §三 resolver（步2 走 canonical 回落链） |
-| `workflow.md` line62 `[checkpoint]` 约定 | 调用点单一源 | 路径改指 `~/.laodao/hack/checkpoint-commit.sh`〔grill-amendment〕 |
+| `workflow.md` line62 `[checkpoint]` 约定 | 调用点单一源 | 路径改指 `~/.sdflow/hack/checkpoint-commit.sh`〔grill-amendment〕 |
 | `opsx-project-init update` 迁移路径 | 存量仓迁移 | 停复制规则 + 陈旧遮蔽告警（不自动删） |
 
 ## 七、迁移（opt-in 删，永不自动删；措辞对齐反静默守卫）

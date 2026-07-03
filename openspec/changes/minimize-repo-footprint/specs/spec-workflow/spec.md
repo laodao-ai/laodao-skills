@@ -12,7 +12,7 @@ workflow bundle（`workflow/*.md` / `trigger-catalog.md` / `spec-checklists/` / 
 
 - **规则**（`workflow/*.md` + `spec-checklists/` + `code-checklists/`）MUST **不再复制进消费仓**，改由 skills 从全局 canonical bundle 解析（见「规则解析 resolver」需求）。
 - **review UI 机械**（`tools/` + `serve.sh` + `review.html`）SHALL 仍复制进消费仓 `openspec/`（服务器根=openspec/ 约束逼留，尽量少）。
-- **`checkpoint-commit.sh`** MUST 全局安装到 agent 中立的 canonical 根 `~/.laodao/hack/`（**非** `~/.claude/hooks`——它是跨-agent bash 工具、非 Claude 事件 hook）、不再进消费仓 `hack/`。
+- **`checkpoint-commit.sh`** MUST 全局安装到 agent 中立的 canonical 根 `~/.sdflow/hack/`（**非** `~/.claude/hooks`——它是跨-agent bash 工具、非 Claude 事件 hook）、不再进消费仓 `hack/`。
 - **`config.yaml` / `changes/` / `specs/`** 天然属仓，仍仓内。
 
 消费仓的规则副本 SHALL 经 `opsx-project-init update` 采纳最新（改后 update 对规则改为"停复制 + 陈旧遮蔽告警"，见「迁移」需求），MUST NOT 直接编辑部署副本。
@@ -29,7 +29,7 @@ workflow bundle（`workflow/*.md` / `trigger-catalog.md` / `spec-checklists/` / 
 
 ### Requirement: 规则全局解析 resolver（本地优先 → 全局兜底 → 显式降级）
 
-skills（spec-review / impl-review / opsx-done / recorders / opsx-ship）读取 workflow 规则 MUST 走统一三步 resolver：① 仓内**有规则文件本体**（`workflow.md` / `spec-checklists/` / `code-checklists/`）→ 用本地；② 否则 → 全局 canonical bundle；③ 全局也缺 → **显式降级**通用评审并告警，MUST NOT 静默当"无此层"。步①的存在判据 MUST 查**规则文件本体**、MUST NOT 查 `openspec/workflow/` 目录（`tools/` 使该目录在每个仓恒存在，查目录会令每个消费仓误命中本地 pin）。步②的 canonical 解析 MUST 平台无关回落：先试 `~/.laodao/workflow/`（Unix 软链目录，透明），否则读 `~/.laodao/workflow-path`（Windows 指针文件）取 bundle 路径。步③的"显式降级 + 告警"即 CONTEXT 术语『反静默守卫』的缺失面（见 `adr/0003`）。
+skills（spec-review / impl-review / opsx-done / recorders / opsx-ship）读取 workflow 规则 MUST 走统一三步 resolver：① 仓内**有规则文件本体**（`workflow.md` / `spec-checklists/` / `code-checklists/`）→ 用本地；② 否则 → 全局 canonical bundle；③ 全局也缺 → **显式降级**通用评审并告警，MUST NOT 静默当"无此层"。步①的存在判据 MUST 查**规则文件本体**、MUST NOT 查 `openspec/workflow/` 目录（`tools/` 使该目录在每个仓恒存在，查目录会令每个消费仓误命中本地 pin）。步②的 canonical 解析 MUST 平台无关回落：先试 `~/.sdflow/workflow/`（Unix 软链目录，透明），否则读 `~/.sdflow/workflow-path`（Windows 指针文件）取 bundle 路径。步③的"显式降级 + 告警"即 CONTEXT 术语『反静默守卫』的缺失面（见 `adr/0003`）。
 
 #### Scenario: 消费仓无本地规则副本走全局
 - **WHEN** 一个消费仓 `openspec/workflow/` 只有 `tools/`、无规则文件，skill 要读 workflow.md
@@ -45,7 +45,7 @@ skills（spec-review / impl-review / opsx-done / recorders / opsx-ship）读取 
 
 #### Scenario: canonical 解析平台回落
 - **WHEN** skill 在 Windows 上解析全局 bundle（平台无软链）
-- **THEN** 先试 `~/.laodao/workflow/` 目录未果 → 回落读 `~/.laodao/workflow-path` 指针取 bundle 路径；Unix 上则 `~/.laodao/workflow/` 软链目录直接命中（透明）
+- **THEN** 先试 `~/.sdflow/workflow/` 目录未果 → 回落读 `~/.sdflow/workflow-path` 指针取 bundle 路径；Unix 上则 `~/.sdflow/workflow/` 软链目录直接命中（透明）
 
 ### Requirement: 存量消费仓迁移不自动删、陈旧遮蔽须告警
 

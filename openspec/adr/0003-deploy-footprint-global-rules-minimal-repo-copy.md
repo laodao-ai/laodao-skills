@@ -35,7 +35,7 @@ opsx-project-init 曾把整个 workflow bundle（≈34 文件）复制进每个�
   - **关键细节**：第 1 步查**规则文件本体**、不查 `openspec/workflow/` 目录——因 `tools/` 使该目录在每个仓都存在，查目录会让每个消费仓误命中"本地 pin"。
   - 第 1 步天然覆盖两个正牌用户：**toolkit 源仓自己**（有本地副本，dogfood 在用端，不吃未发布编辑）+ 消费仓的**显式 pin 逃生口**。故 toolkit **无需 config flag 声明"我是源仓"**——本地副本的存在即声明。
 
-- **全局钉法（A3：提根 + canonical 软链）**：把 workflow bundle 从 `opsx-project-init/assets/workflow/` **提到仓根**（如 `<repo>/workflow/`），给它一个不隶属任何单一 skill 的公共家；`setup.sh` 装一个稳定 canonical 位（暂名 `~/.laodao/workflow`，agent 中立、命名留 impl）软链 → 仓根 bundle，所有 skill 解析这一个固定路径。
+- **全局钉法（A3：提根 + canonical 软链）**：把 workflow bundle 从 `opsx-project-init/assets/workflow/` **提到仓根**（如 `<repo>/workflow/`），给它一个不隶属任何单一 skill 的公共家；`setup.sh` 装一个稳定 canonical 位（暂名 `~/.sdflow/workflow`，agent 中立、命名留 impl）软链 → 仓根 bundle，所有 skill 解析这一个固定路径。
   - 动因：change 后 5+ skill 都解析进 bundle，若留在 `opsx-project-init/assets/`（某 skill 私有资产）是"公共依赖伪装成私有资产"的耦合味；且 `setup.sh` 用 `$REPO_DIR`（clone 到哪算哪）安装，硬编码 `~/.skills/laodao-skills/...` 不可靠。
   - **不破 dev/release 隔离**：提根只搬**源的家**（assets/→仓根），toolkit 自己的 in-use dogfood 副本 `openspec/workflow/` 原地不动、仍由 `opsx update` 刷新（发布闸不变）。
 
@@ -47,7 +47,7 @@ opsx-project-init 曾把整个 workflow bundle（≈34 文件）复制进每个�
 
 explore 那节经 grill 修正四处（design.md 已同步）：
 
-- **撤销"提根"**：**不**把 bundle 从 `opsx-project-init/assets/workflow/` 提到仓根。canonical 软链/指针的间接层已把 assets/ 布局藏住（skill 只见 `~/.laodao/workflow`），提根买不到额外解耦，却要重写"唯一权威源"约定 5 处（SKILL.md×4 / init.py / config.yaml / CHANGELOG）+ 动 tests——不划算。**`assets/workflow/` 仍是唯一权威源，原封不动**。
-- **canonical 机制细化（非纯"软链"）**：Unix/Mac = 软链 `~/.laodao/workflow` → 运行 checkout 的 bundle（透明）；Windows = 指针文件 `~/.laodao/workflow-path`（平台无软链）；skill 解析 = "试 `~/.laodao/workflow/` 目录 → 否则读 `~/.laodao/workflow-path`" 回落链（平台无关）。两者都由 `setup` 从 `$REPO_DIR` 写，robust to clone 位置。
-- **checkpoint 全局化 ≠ "同两个全局 hook 同款"（假类比修正）**：两个 hook 靠 `~/.claude/settings.json` **事件注册**（Claude 独有，`~/.codex/hooks` 不存在）；`checkpoint-commit.sh` 是步末 **bash 调用**的**跨-agent** 工具。故其家 = agent 中立的 canonical 根 `~/.laodao/hack/checkpoint-commit.sh`（**拷贝**，两平台，白拿 `core.fileMode` exec 位根治），**不进** `~/.claude/hooks`；`workflow.md` line62 的 `[checkpoint]` 单点约定改指它。
+- **撤销"提根"**：**不**把 bundle 从 `opsx-project-init/assets/workflow/` 提到仓根。canonical 软链/指针的间接层已把 assets/ 布局藏住（skill 只见 `~/.sdflow/workflow`），提根买不到额外解耦，却要重写"唯一权威源"约定 5 处（SKILL.md×4 / init.py / config.yaml / CHANGELOG）+ 动 tests——不划算。**`assets/workflow/` 仍是唯一权威源，原封不动**。
+- **canonical 机制细化（非纯"软链"）**：Unix/Mac = 软链 `~/.sdflow/workflow` → 运行 checkout 的 bundle（透明）；Windows = 指针文件 `~/.sdflow/workflow-path`（平台无软链）；skill 解析 = "试 `~/.sdflow/workflow/` 目录 → 否则读 `~/.sdflow/workflow-path`" 回落链（平台无关）。两者都由 `setup` 从 `$REPO_DIR` 写，robust to clone 位置。
+- **checkpoint 全局化 ≠ "同两个全局 hook 同款"（假类比修正）**：两个 hook 靠 `~/.claude/settings.json` **事件注册**（Claude 独有，`~/.codex/hooks` 不存在）；`checkpoint-commit.sh` 是步末 **bash 调用**的**跨-agent** 工具。故其家 = agent 中立的 canonical 根 `~/.sdflow/hack/checkpoint-commit.sh`（**拷贝**，两平台，白拿 `core.fileMode` exec 位根治），**不进** `~/.claude/hooks`；`workflow.md` line62 的 `[checkpoint]` 单点约定改指它。
 - **dev/release 隔离另立 `adr/0005`**：本 ADR 只管**消费仓**部署 footprint；toolkit **自身**"开发 vs 运行 checkout"拓扑见 `adr/0005`，本 ADR 的 resolver local-first 正为其开发 checkout（与消费仓 pin）服务。

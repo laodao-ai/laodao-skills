@@ -13,7 +13,7 @@
 | `cross-model-outside-voice`（Phase C） | ⚪ 待开 | 跨模型 outside voice（C1–C7）+ TG-26 | A | 归档 design §9 + 归档 ROADMAP「Phase C 待迁」 |
 | `minimize-repo-footprint` | 🔵 进行中（propose + grill 收敛·2026-07-03） | 规则全局解析(resolver) + 消费仓最小副本 + checkpoint 全局 | A · `adr/0005` | **`adr/0003`**(+grill-amendment) · **`adr/0005`** |
 | `opsx-ship-orchestrator` | ⚪ 待开（本轮 grill 新派生） | 阶段三窄编排 orchestrator（`opsx-ship`） | A（阶段三链就位） | **`adr/0004`** |
-| `split-unrelated-skills`（暂名） | ⚪ 待开（footprint grill 2026-07-03 派生） | laodao-skills 移出 ≈17 无关 skill（纯组织卫生） | 独立（不阻塞 footprint） | footprint grill 收口 |
+| `extract-sdflow-repo`（暂名） | ⚪ 待开（footprint grill 2026-07-03 派生） | 抽 workflow 集群（≈11 skill）入独立 repo **sdflow**（前缀 `sdflow-`、canonical `~/.sdflow/`、拆 setup、dev-runtime 落地）；laodao-skills 留 misc | 独立（用 footprint 定的 canonical） | footprint grill + sdflow 命名 |
 
 > **待开的都暂不建目录**（避免 openspec 挂 stale pending change，同设计"反无声堆积"洁癖）；各自开工时再 materialize proposal/design/tasks/spec。B/C 互不依赖、与两个新 change 也互不依赖，均只依赖 A，先后随意。
 > `minimize-repo-footprint` 已于 2026-07-03 materialize（explore 落骨架 → proposal/design/tasks/spec 就位，分支 `feat/minimize-repo-footprint`），进入 propose 阶段。
@@ -33,7 +33,7 @@
 - **明确接受的代价**：消费仓失去按仓 pin 工作流规则（跟随全局 HEAD）。
 - **未决（留其 design 定）**：全局 bundle 路径解析机制——固定 `~/.skills/laodao-skills/…` 约定 vs env var；建议默认约定 + env var 覆盖。
 >
-> **grill 收敛（2026-07-03）**——上面若干点已被逐决策死磕修正（详见 change design.md + `adr/0003` grill-amendment + `adr/0005`）：①**撤提根**（canonical 间接层已解耦，"唯一权威源"约定不动）；②canonical = Unix 软链 `~/.laodao/workflow` / Windows 指针 `~/.laodao/workflow-path` + 回落链（原"未决路径机制"已定）；③checkpoint 全局家 = agent 中立 `~/.laodao/hack/`、**非** `~/.claude/hooks`（修正"同两个 hook"假类比）；④dev/release 靠**两个物理 checkout** 隔（`adr/0005`）；⑤"移无关 skill"切出为独立 `split-unrelated-skills`。
+> **grill 收敛（2026-07-03）**——上面若干点已被逐决策死磕修正（详见 change design.md + `adr/0003` grill-amendment + `adr/0005`）：①**撤提根**（canonical 间接层已解耦，"唯一权威源"约定不动）；②canonical = Unix 软链 `~/.sdflow/workflow` / Windows 指针 `~/.sdflow/workflow-path` + 回落链（原"未决路径机制"已定）；③checkpoint 全局家 = agent 中立 `~/.sdflow/hack/`、**非** `~/.claude/hooks`（修正"同两个 hook"假类比）；④dev/release 靠**两个物理 checkout** 隔（`adr/0005`）；⑤ workflow 集群抽为独立 repo **sdflow**（前缀 `sdflow-`、canonical `~/.sdflow/`，dev/runtime 两 checkout）= 派生 change `extract-sdflow-repo`；laodao-skills 留 misc grab-bag。
 
 ### `opsx-ship-orchestrator`（见 `adr/0004`）
 
