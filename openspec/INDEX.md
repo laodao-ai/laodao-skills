@@ -19,7 +19,18 @@
 
 代码审规则集（`/impl-review` 用）：[workflow/code-checklists/](./workflow/code-checklists/)（base CR-01~09 + domains）。
 说明类（可删不影响执行）：[workflow/reference/](./workflow/reference/)。
-<!-- opsx-init:rules:end -->## Specs（按主题分组）
+<!-- opsx-init:rules:end -->
+
+## 设计规则
+
+| 名称 | 文件 | 作用 |
+|---|---|---|
+| `file-format-convention` | [rules/file-format-convention.md](./rules/file-format-convention.md) | UTF-8 编码与 LF 换行约定 |
+| `script-punctuation-resilience` | [rules/script-punctuation-resilience.md](./rules/script-punctuation-resilience.md) | 中文文档解析时的中英文标点容错 |
+| `context-exclusion` | [rules/context-exclusion.md](./rules/context-exclusion.md) | AI 自动上下文排除范围及理由 |
+| `question-discussion-convention` | [rules/question-discussion-convention.md](./rules/question-discussion-convention.md) | 提问、讨论和用户拍板的协作约定 |
+
+## Specs（按主题分组）
 
 ### spec-workflow
 

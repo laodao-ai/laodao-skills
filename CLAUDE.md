@@ -30,3 +30,13 @@
 > 另有两个记录类配套 skill（按需）：`/buglist-recorder`（缺陷）、`/todolist-recorder`（改进收集池），
 > 同样来自 laodao-skills，写入 `openspec/buglists|todolists/`。
 <!-- opsx-init:end -->
+
+
+<!-- project-init:windows-shell:start -->
+## Windows shell execution
+
+- Use Bash/POSIX semantics for repository commands, `.sh` scripts, paths, variables, pipelines, and redirection.
+- Use Claude Code's Bash tool directly; do not generate a PowerShell `& ...` wrapper in that tool.
+- If Git Bash is missing or cannot be located, stop repository commands and report diagnostics.
+- Do not enable or depend on a preview PowerShell tool for project tasks.
+<!-- project-init:windows-shell:end -->
