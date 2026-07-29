@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "cleanupPeriodDays": 3650,
+  "env": {
+    "EDITOR": "C:/Program Files/Notepad++/notepad++.exe",
+    "ENABLE_PROMPT_CACHING_1H": "1",
+    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1",
+    "HTTPS_PROXY": "http://127.0.0.1:10808",
+    "HTTP_PROXY": "http://127.0.0.1:10808",
+    "DISABLE_AUTOUPDATER": "1",
+    "PYTHONUTF8": "1",
+    "PYTHONIOENCODING": "utf-8",
+    "CLAUDE_CODE_GIT_BASH_PATH": "C:\\Program Files\\Git\\bin\\bash.exe"
+  },
+  "attribution": {
+    "commit": "Generated with Claude Code",
+    "pr": ""
+  },
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/.envrc)",
+      "Read(**/*secret*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
+      "Edit(**/*secret*)",
+      "Bash(sudo:*)",
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(dd:*)",
+      "Bash(shutdown:*)",
+      "Bash(reboot:*)"
+    ],
+    "defaultMode": "auto"
+  },
+  "enableAllProjectMcpServers": true,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/ff0-branch-guard.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [],
+    "Notification": [],
+    "Stop": [],
+    "SubagentStop": []
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "cols=${COLUMNS:-}; case \"$cols\" in \"\"|*[!0-9]*) cols=$(stty size </dev/tty 2>/dev/null | awk '{print $2}');; esac; case \"$cols\" in \"\"|*[!0-9]*) cols=120;; esac; export COLUMNS=$(( cols > 4 ? cols - 4 : 1 )); plugin_dir=$(ls -1d \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/*/claude-hud/*/ 2>/dev/null | sort -V | tail -1); exec \"/c/Program Files/nodejs/node\" \"${plugin_dir}dist/index.js\"",
+    "refreshInterval": 5
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": false,
+    "context7@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": false,
+    "code-simplifier@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": false,
+    "playwright@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": false,
+    "commit-commands@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "serena@claude-plugins-official": false,
+    "pr-review-toolkit@claude-plugins-official": false,
+    "pyright-lsp@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "agent-sdk-dev@claude-plugins-official": false,
+    "explanatory-output-style@claude-plugins-official": false,
+    "plugin-dev@claude-plugins-official": false,
+    "greptile@claude-plugins-official": false,
+    "hookify@claude-plugins-official": false,
+    "skill-creator@claude-plugins-official": true,
+    "learning-output-style@claude-plugins-official": false,
+    "playground@claude-plugins-official": false,
+    "gopls-lsp@claude-plugins-official": false,
+    "sentry@claude-plugins-official": false,
+    "clangd-lsp@claude-plugins-official": true,
+    "postman@claude-plugins-official": false,
+    "claude-hud@claude-hud": true,
+    "chrome-devtools-mcp@claude-plugins-official": true,
+    "discord@claude-plugins-official": false,
+    "remember@claude-plugins-official": true,
+    "mcp-server-dev@claude-plugins-official": false,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": false,
+    "example-skills@anthropic-agent-skills": false,
+    "math-olympiad@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "claude-hud": {
+      "source": {
+        "source": "github",
+        "repo": "jarrodwatts/claude-hud"
+      },
+      "autoUpdate": true
+    },
+    "ui-ux-pro-max-skill": {
+      "source": {
+        "source": "github",
+        "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
+      }
+    },
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/anthropics/skills.git"
+      }
+    }
+  },
+  "spinnerTipsEnabled": true,
+  "spinnerVerbs": {
+    "mode": "replace",
+    "verbs": [
+      "Cooking",
+      "Brewing",
+      "Crafting",
+      "Conjuring"
+    ]
+  },
+  "spinnerTipsOverride": {
+    "excludeDefault": true,
+    "tips": [
+      "Use /compact at ~50% context",
+      "Start with plan mode for complex tasks"
+    ]
+  },
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
+  "plansDirectory": "./.claude/plans",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "showTurnDuration": true,
+  "terminalProgressBarEnabled": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true
+}
