@@ -1,9 +1,11 @@
+import argparse
 import json
 import os
 from pathlib import Path
 import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 import tomllib
 from typing import Callable, Literal, Mapping, Sequence
@@ -447,3 +449,85 @@ def apply_repo(root: Path, assets_dir: Path) -> dict[str, Status]:
         "AGENTS.md": replace_managed_block(root / "AGENTS.md", agents_body),
         "CLAUDE.md": replace_managed_block(root / "CLAUDE.md", claude_body, title="# CLAUDE"),
     }
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run repository or user-level Windows shell setup operations."""
+    parser = argparse.ArgumentParser(description="Configure Windows Git Bash agent support.")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    apply_parser = subparsers.add_parser("apply-repo")
+    apply_parser.add_argument("--root", default=".")
+
+    diagnose_parser = subparsers.add_parser("diagnose")
+    diagnose_parser.add_argument("--root", default=".")
+    diagnose_parser.add_argument("--home", default=str(Path.home()))
+
+    configure_parser = subparsers.add_parser("configure-user")
+    configure_parser.add_argument("--root", default=".")
+    configure_parser.add_argument("--home", default=str(Path.home()))
+    configure_parser.add_argument("--bash")
+
+    try:
+        arguments = parser.parse_args(argv)
+    except SystemExit as error:
+        return int(error.code)
+
+    root = Path(arguments.root).resolve()
+    exit_code = 0
+    try:
+        if arguments.command == "apply-repo":
+            assets_dir = Path(__file__).resolve().parents[1] / "assets" / "snippets"
+            summary = apply_repo(root, assets_dir)
+        elif arguments.command == "diagnose":
+            checks, ok = diagnose(Path(arguments.home).resolve(), os.environ)
+            summary = {"ok": ok, "checks": checks}
+            exit_code = 0 if ok else 1
+        else:
+            home = Path(arguments.home).resolve()
+            if arguments.bash:
+                bash = discover_git_bash(
+                    {"CLAUDE_CODE_GIT_BASH_PATH": arguments.bash}, [], lambda _: None
+                )
+            else:
+                bash = discover_git_bash(
+                    os.environ,
+                    [
+                        Path(r"C:\Program Files\Git\bin\bash.exe"),
+                        Path(r"C:\Program Files\Git\usr\bin\bash.exe"),
+                    ],
+                    shutil.which,
+                )
+            if bash is None:
+                print("Git Bash was not found; install Git for Windows or pass --bash.", file=sys.stderr)
+                return 2
+            codex_config = home / ".codex" / "config.toml"
+            claude_settings = home / ".claude" / "settings.json"
+            with tempfile.TemporaryDirectory() as temporary_dir:
+                temporary_home = Path(temporary_dir)
+                temporary_codex = temporary_home / ".codex" / "config.toml"
+                temporary_claude = temporary_home / ".claude" / "settings.json"
+                for source, destination in (
+                    (codex_config, temporary_codex),
+                    (claude_settings, temporary_claude),
+                ):
+                    if source.exists():
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(source, destination)
+                merge_codex_config(temporary_codex)
+                merge_claude_settings(temporary_claude, bash)
+            summary = {
+                "git_bash": str(bash),
+                "codex_config": merge_codex_config(codex_config),
+                "claude_settings": merge_claude_settings(claude_settings, bash),
+            }
+    except (OSError, ValueError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+
+    print(json.dumps(summary, sort_keys=True))
+    return exit_code
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

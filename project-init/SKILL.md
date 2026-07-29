@@ -16,12 +16,10 @@ description: >
 
 ## 职责边界
 
-| 本 skill 管 | sdflow-init 管 |
+| 托管方 | 托管边界 |
 |---|---|
-| `.editorconfig`（编码 + 缩进） | `openspec/workflow/`（规则集 bundle） |
-| `.gitattributes`（LF 换行） | `openspec/config.yaml` |
-| `.claudeignore`（AI 上下文排除） | CLAUDE.md / AGENTS.md 的 OpenSpec 托管块 |
-| `openspec/rules/` 下的通用 rule | `openspec/INDEX.md` 的 workflow 规则区块 |
+| `project-init` | `.editorconfig`、`.gitattributes`、`.claudeignore`、`openspec/rules/` 通用规则，以及 CLAUDE.md / AGENTS.md 中的 `project-init:windows-shell` 托管块 |
+| `opsx-project-init` | 仅 CLAUDE.md / AGENTS.md 中的 `opsx-init` 托管块 |
 
 ## 产物清单
 
@@ -43,6 +41,18 @@ description: >
 | `question-discussion-convention.md` | 禁 AskUserQuestion、多问题先总览再逐个讨论 |
 
 ## 执行流程
+
+### Windows Git Bash 双代理支持
+
+在仓库根目录执行；脚本通过自身位置读取 `assets/snippets/`，不会改变当前进程的工作目录：
+
+```bash
+python <skill-dir>/scripts/windows_shell.py apply-repo --root .
+python <skill-dir>/scripts/windows_shell.py diagnose --root .
+python <skill-dir>/scripts/windows_shell.py configure-user --root .
+```
+
+前两个命令分别更新仓库托管块和执行只读诊断。第三个命令会修改用户主目录中的 Codex 与 Claude 配置，**必须先获得用户明确授权**；Git Bash 无法发现时可显式传入 `--bash <path-to-bash.exe>`。所有命令向标准输出打印机器可读 JSON，配置或调用错误写入标准错误。
 
 ### Step 1: 前置检查
 

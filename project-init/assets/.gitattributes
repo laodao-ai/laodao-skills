@@ -5,6 +5,7 @@
 # 落地时序：改完本文件须 `git add --renormalize .`（同步 index）+
 # `git checkout-index -f -a`（刷新工作区）。
 * text=auto eol=lf
+*.sh text eol=lf
 
 # 例外：Windows 原生脚本保持 CRLF
 *.bat text eol=crlf

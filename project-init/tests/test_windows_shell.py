@@ -17,6 +17,7 @@ from windows_shell import (
     atomic_write_with_backup,
     diagnose,
     discover_git_bash,
+    main,
     merge_claude_settings,
     merge_codex_config,
     probe_python_utf8,
@@ -27,6 +28,82 @@ from windows_shell import (
 @pytest.fixture
 def assets_dir() -> Path:
     return Path(__file__).parents[1] / "assets" / "snippets"
+
+
+def test_cli_apply_repo_prints_json_summary(tmp_path, capsys):
+    code = main(["apply-repo", "--root", str(tmp_path)])
+    output = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert output["AGENTS.md"] == "created"
+
+
+def test_cli_configure_user_requires_existing_git_bash(tmp_path, capsys):
+    code = main(
+        [
+            "configure-user",
+            "--home",
+            str(tmp_path),
+            "--bash",
+            str(tmp_path / "missing.exe"),
+        ]
+    )
+    assert code == 2
+    assert "Git Bash" in capsys.readouterr().err
+
+
+def test_cli_diagnose_is_read_only_and_returns_one_for_failed_checks(
+    tmp_path, monkeypatch, capsys
+):
+    bash = tmp_path / "Git" / "bin" / "bash.exe"
+    bash.parent.mkdir(parents=True)
+    bash.touch()
+    home = tmp_path / "home"
+    settings = home / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True)
+    settings.write_text(
+        '{"env": {"CLAUDE_CODE_USE_POWERSHELL_TOOL": "1"}}\n', encoding="utf-8"
+    )
+    before = settings.read_bytes()
+    monkeypatch.setenv("CLAUDE_CODE_GIT_BASH_PATH", str(bash))
+
+    code = main(
+        ["diagnose", "--root", str(tmp_path), "--home", str(home)]
+    )
+    output = json.loads(capsys.readouterr().out)
+
+    assert code == 1
+    assert output["ok"] is False
+    assert settings.read_bytes() == before
+    assert not (home / ".codex").exists()
+
+
+def test_cli_configure_user_validates_both_configs_before_writing(tmp_path, capsys):
+    bash = tmp_path / "Git" / "bin" / "bash.exe"
+    bash.parent.mkdir(parents=True)
+    bash.touch()
+    home = tmp_path / "home"
+    codex = home / ".codex" / "config.toml"
+    codex.parent.mkdir(parents=True)
+    codex.write_text('model = "gpt"\n', encoding="utf-8")
+    before = codex.read_bytes()
+    claude = home / ".claude" / "settings.json"
+    claude.parent.mkdir(parents=True)
+    claude.write_text("", encoding="utf-8")
+
+    code = main(
+        [
+            "configure-user",
+            "--home",
+            str(home),
+            "--bash",
+            str(bash),
+        ]
+    )
+
+    assert code == 2
+    assert "invalid JSON" in capsys.readouterr().err
+    assert codex.read_bytes() == before
+    assert not codex.with_name("config.toml.bak").exists()
 
 
 def test_apply_repo_creates_agent_specific_files(tmp_path, assets_dir):
