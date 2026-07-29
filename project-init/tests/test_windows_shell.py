@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
+import stat
 import subprocess
 import sys
+import tomllib
 
 import pytest
 
@@ -212,6 +214,59 @@ def test_merge_codex_config_rejects_inline_parent_structure(tmp_path):
         merge_codex_config(path)
 
 
+def test_merge_codex_config_updates_semantically_equivalent_quoted_keys(tmp_path):
+    """Catches treating quoted target table/key spellings as unrelated TOML."""
+    path = tmp_path / "config.toml"
+    path.write_text(
+        '["shell_environment_policy".\'set\']\n'
+        '\'PYTHONUTF8\' = "0"\n'
+        '"PYTHONIOENCODING" = "ascii"\n'
+        'KEEP = "yes"\n',
+        encoding="utf-8",
+    )
+
+    merge_codex_config(path)
+
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    env = data["shell_environment_policy"]["set"]
+    assert env == {"PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "KEEP": "yes"}
+
+
+def test_merge_codex_config_replaces_entire_multiline_target_value(tmp_path):
+    """Catches replacing only the first line and leaving TOML continuation text."""
+    path = tmp_path / "config.toml"
+    path.write_text(
+        '[shell_environment_policy.set]\nPYTHONUTF8 = """old\ncontinued\n"""\nKEEP = "yes"\n',
+        encoding="utf-8",
+    )
+
+    merge_codex_config(path)
+
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    assert data["shell_environment_policy"]["set"] == {
+        "PYTHONUTF8": "1",
+        "PYTHONIOENCODING": "utf-8",
+        "KEEP": "yes",
+    }
+
+
+def test_merge_codex_config_ignores_table_text_inside_multiline_string(tmp_path):
+    """Catches parsing table-looking user text inside a multiline string."""
+    path = tmp_path / "config.toml"
+    note = 'example\n[shell_environment_policy.set]\nPYTHONUTF8 = "fake"\n'
+    path.write_text(
+        'note = """' + note + '"""\n'
+        '[shell_environment_policy.set]\nKEEP = "yes"\n',
+        encoding="utf-8",
+    )
+
+    merge_codex_config(path)
+
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    assert data["note"] == note
+    assert data["shell_environment_policy"]["set"]["PYTHONUTF8"] == "1"
+
+
 def test_merge_codex_config_reports_created_when_only_stale_backup_exists(tmp_path):
     """Catches a stale backup changing the status for a missing config file."""
     path = tmp_path / "config.toml"
@@ -277,6 +332,33 @@ def test_merge_claude_settings_reports_created_when_only_stale_backup_exists(tmp
     assert path.with_name("settings.json.bak").read_text(encoding="utf-8") == "old backup\n"
 
 
+@pytest.mark.parametrize(
+    "content",
+    [
+        '{"env": {}, "env": {}}',
+        '{"env": {"KEEP": "first", "KEEP": "second"}}',
+        '{"permissions": {"allow": [], "allow": ["Read"]}}',
+    ],
+)
+def test_merge_claude_settings_rejects_duplicate_keys_at_any_level(tmp_path, content):
+    """Catches silently accepting an ambiguous duplicate JSON object key."""
+    path = tmp_path / "settings.json"
+    path.write_text(content, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate"):
+        merge_claude_settings(path, tmp_path / "bash.exe")
+
+
+@pytest.mark.parametrize("content", ["", " \t\r\n"])
+def test_merge_claude_settings_rejects_existing_blank_file(tmp_path, content):
+    """Catches interpreting a present but blank settings file as a new object."""
+    path = tmp_path / "settings.json"
+    path.write_text(content, encoding="utf-8", newline="")
+
+    with pytest.raises(ValueError, match="invalid JSON"):
+        merge_claude_settings(path, tmp_path / "bash.exe")
+
+
 def test_atomic_write_with_backup_creates_backup_before_replacing_file(tmp_path):
     """Catches losing the prior user configuration during a write."""
     path = tmp_path / "settings.json"
@@ -287,3 +369,24 @@ def test_atomic_write_with_backup_creates_backup_before_replacing_file(tmp_path)
     assert backup == path.with_name("settings.json.bak")
     assert backup.read_bytes() == b"old\r\n"
     assert path.read_bytes() == b"new\n"
+
+
+def test_atomic_write_with_backup_preserves_existing_mode(tmp_path):
+    """Catches atomic replacement resetting existing permission metadata."""
+    path = tmp_path / "settings.json"
+    path.write_text("old\n", encoding="utf-8")
+    path.chmod(0o444)
+    original_mode = stat.S_IMODE(path.stat().st_mode)
+
+    atomic_write_with_backup(path, "new\n")
+
+    assert stat.S_IMODE(path.stat().st_mode) == original_mode
+
+
+def test_atomic_write_with_backup_normalizes_all_newlines_to_lf(tmp_path):
+    """Catches retaining carriage returns despite the helper's LF contract."""
+    path = tmp_path / "settings.json"
+
+    atomic_write_with_backup(path, "one\r\ntwo\rthree\n")
+
+    assert path.read_bytes() == b"one\ntwo\nthree\n"

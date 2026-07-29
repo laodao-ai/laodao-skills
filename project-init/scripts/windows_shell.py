@@ -1,8 +1,8 @@
 import json
 import os
 from pathlib import Path
-import re
 import shutil
+import stat
 import subprocess
 import tempfile
 import tomllib
@@ -16,13 +16,9 @@ Status = Literal["created", "inserted", "updated", "unchanged"]
 ConfigStatus = Literal["created", "updated", "unchanged"]
 
 _CODEX_ENV_TABLE = "shell_environment_policy.set"
-_CODEX_ENV_HEADER = re.compile(
-    r"^\s*\[\s*shell_environment_policy\s*\.\s*set\s*\]\s*(?:#.*)?$"
-)
-_CODEX_POLICY_ASSIGNMENT = re.compile(r"^\s*shell_environment_policy\s*=")
-_TABLE_HEADER = re.compile(r"^\s*\[")
-_CODEX_ENV_KEY = re.compile(r"^\s*(PYTHONUTF8|PYTHONIOENCODING)\s*=")
 _CODEX_ENV_VALUES = {"PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+_CODEX_ENV_PATH = ("shell_environment_policy", "set")
+_TOML_MARKER = "__project_init_value_marker__"
 
 
 def _is_wsl_launcher(path: Path) -> bool:
@@ -54,26 +50,165 @@ def discover_git_bash(
 def atomic_write_with_backup(path: Path, content: str) -> Path | None:
     """Atomically write UTF-8/LF content, preserving an existing file as .bak."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    existing_mode = stat.S_IMODE(path.stat().st_mode) if path.exists() else 0o644
     backup = path.with_name(f"{path.name}.bak") if path.exists() else None
     if backup is not None:
         shutil.copyfile(path, backup)
 
     descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     temporary = Path(temporary_name)
+    normalized = content.replace("\r\n", "\n").replace("\r", "\n")
+    made_writable = False
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as destination:
-            destination.write(content)
+            destination.write(normalized)
+        os.chmod(temporary, existing_mode)
+        if path.exists() and not existing_mode & stat.S_IWRITE:
+            os.chmod(path, existing_mode | stat.S_IWRITE)
+            made_writable = True
         os.replace(temporary, path)
     except BaseException:
+        if made_writable and path.exists():
+            os.chmod(path, existing_mode)
         temporary.unlink(missing_ok=True)
         raise
     return backup
 
 
-def _validate_codex_environment_table(content: str) -> list[str]:
+def _toml_multiline_starts(lines: list[str]) -> list[bool]:
+    """Return whether each line starts outside a TOML multiline string."""
+    delimiter: str | None = None
+    starts: list[bool] = []
+    for line in lines:
+        starts.append(delimiter is None)
+        index = 0
+        while index < len(line):
+            if delimiter == "'''":
+                if line.startswith(delimiter, index):
+                    delimiter = None
+                    index += 3
+                else:
+                    index += 1
+                continue
+            if delimiter == '\"\"\"':
+                if line[index] == "\\":
+                    index += 2
+                elif line.startswith(delimiter, index):
+                    delimiter = None
+                    index += 3
+                else:
+                    index += 1
+                continue
+            if line[index] == "#":
+                break
+            if line.startswith("'''", index) or line.startswith('\"\"\"', index):
+                delimiter = line[index : index + 3]
+                index += 3
+                continue
+            if line[index] in "'\"":
+                quote = line[index]
+                index += 1
+                while index < len(line):
+                    if quote == '"' and line[index] == "\\":
+                        index += 2
+                    elif line[index] == quote:
+                        index += 1
+                        break
+                    else:
+                        index += 1
+                continue
+            index += 1
+    return starts
+
+
+def _find_toml_marker(value: object, path: tuple[str, ...] = ()) -> tuple[str, ...] | None:
+    if isinstance(value, dict):
+        if value.get(_TOML_MARKER) == 1:
+            return path
+        for key, child in value.items():
+            found = _find_toml_marker(child, (*path, key))
+            if found is not None:
+                return found
+    elif isinstance(value, list):
+        for child in value:
+            found = _find_toml_marker(child, path)
+            if found is not None:
+                return found
+    return None
+
+
+def _toml_header_path(line: str) -> tuple[str, ...] | None:
+    if not line.lstrip().startswith("["):
+        return None
+    try:
+        parsed = tomllib.loads(f"{line.rstrip()}\n{_TOML_MARKER} = 1\n")
+    except tomllib.TOMLDecodeError:
+        return None
+    return _find_toml_marker(parsed)
+
+
+def _toml_key_path(source: str) -> tuple[str, ...] | None:
+    try:
+        parsed = tomllib.loads(f"{source} = 1")
+    except tomllib.TOMLDecodeError:
+        return None
+    return _find_value_path(parsed, 1)
+
+
+def _find_value_path(value: object, expected: object, path: tuple[str, ...] = ()) -> tuple[str, ...] | None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if child == expected:
+                return (*path, key)
+            found = _find_value_path(child, expected, (*path, key))
+            if found is not None:
+                return found
+    return None
+
+
+def _toml_assignment_equal(line: str) -> int | None:
+    quote: str | None = None
+    escaped = False
+    for index, character in enumerate(line):
+        if quote == '"':
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == quote:
+                quote = None
+        elif quote == "'":
+            if character == quote:
+                quote = None
+        elif character in "'\"":
+            quote = character
+        elif character == "#":
+            return None
+        elif character == "=":
+            return index
+    return None
+
+
+def _complete_toml_assignment(lines: list[str], start: int, limit: int) -> int:
+    for end in range(start + 1, limit + 1):
+        try:
+            tomllib.loads("".join(lines[start:end]))
+        except tomllib.TOMLDecodeError:
+            continue
+        return end
+    raise ValueError("unsafe multiline target assignment")
+
+
+def _codex_toml_layout(content: str) -> tuple[list[str], list[tuple[int, tuple[str, ...]]]]:
     lines = content.splitlines(keepends=True)
-    matches = [index for index, line in enumerate(lines) if _CODEX_ENV_HEADER.match(line)]
-    if len(matches) > 1:
+    starts = _toml_multiline_starts(lines)
+    headers = [
+        (index, path)
+        for index, line in enumerate(lines)
+        if starts[index] and (path := _toml_header_path(line)) is not None
+    ]
+    targets = [item for item in headers if item[1] == _CODEX_ENV_PATH]
+    if len(targets) > 1:
         raise ValueError(f"duplicate {_CODEX_ENV_TABLE} table")
     try:
         parsed = tomllib.loads(content)
@@ -86,36 +221,59 @@ def _validate_codex_environment_table(content: str) -> list[str]:
         raise ValueError(f"non-table {_CODEX_ENV_TABLE} structure")
     if isinstance(policy, dict) and "set" in policy and not isinstance(target, dict):
         raise ValueError(f"non-table {_CODEX_ENV_TABLE} structure")
-    if target is not None and not matches:
+    if target is not None and not targets:
         raise ValueError(f"non-table {_CODEX_ENV_TABLE} structure")
-    if not matches and any(_CODEX_POLICY_ASSIGNMENT.match(line) for line in lines):
-        raise ValueError(f"non-table {_CODEX_ENV_TABLE} structure")
-    return lines
+
+    first_header = headers[0][0] if headers else len(lines)
+    for index in range(first_header):
+        if not starts[index] or (equal := _toml_assignment_equal(lines[index])) is None:
+            continue
+        if _toml_key_path(lines[index][:equal].strip()) == ("shell_environment_policy",):
+            raise ValueError(f"non-table {_CODEX_ENV_TABLE} structure")
+    return lines, headers
 
 
 def merge_codex_config(path: Path) -> ConfigStatus:
     """Merge Python UTF-8 settings into Codex TOML without replacing user settings."""
     existed = path.exists()
     existing = path.read_text(encoding="utf-8") if existed else ""
-    lines = _validate_codex_environment_table(existing)
-    table_indices = [index for index, line in enumerate(lines) if _CODEX_ENV_HEADER.match(line)]
+    lines, headers = _codex_toml_layout(existing)
+    table_indices = [index for index, path_parts in headers if path_parts == _CODEX_ENV_PATH]
 
     if table_indices:
         start = table_indices[0]
-        end = next(
-            (index for index in range(start + 1, len(lines)) if _TABLE_HEADER.match(lines[index])),
-            len(lines),
+        end = next((index for index, _ in headers if index > start), len(lines))
+        starts = _toml_multiline_starts(lines)
+        replacements: list[tuple[int, int, str]] = []
+        index = start + 1
+        while index < end:
+            equal = _toml_assignment_equal(lines[index]) if starts[index] else None
+            key_path = _toml_key_path(lines[index][:equal].strip()) if equal is not None else None
+            if key_path in {(key,) for key in _CODEX_ENV_VALUES}:
+                key = key_path[0]
+                assignment_end = _complete_toml_assignment(lines, index, end)
+                replacements.append((index, assignment_end, key))
+                index = assignment_end
+            else:
+                index += 1
+
+        merged = lines[: start + 1]
+        cursor = start + 1
+        replaced: set[str] = set()
+        for assignment_start, assignment_end, key in replacements:
+            merged.extend(lines[cursor:assignment_start])
+            merged.append(f'{key} = "{_CODEX_ENV_VALUES[key]}"\n')
+            replaced.add(key)
+            cursor = assignment_end
+        merged.extend(lines[cursor:end])
+        if merged and not merged[-1].endswith(("\n", "\r")):
+            merged.append("\n")
+        merged.extend(
+            f'{key} = "{value}"\n'
+            for key, value in _CODEX_ENV_VALUES.items()
+            if key not in replaced
         )
-        replacements: set[str] = set()
-        merged = lines[:]
-        for index in range(start + 1, end):
-            match = _CODEX_ENV_KEY.match(merged[index])
-            if match:
-                key = match.group(1)
-                merged[index] = f'{key} = "{_CODEX_ENV_VALUES[key]}"\n'
-                replacements.add(key)
-        missing = [key for key in _CODEX_ENV_VALUES if key not in replacements]
-        merged[end:end] = [f'{key} = "{_CODEX_ENV_VALUES[key]}"\n' for key in missing]
+        merged.extend(lines[end:])
         updated = "".join(merged)
     else:
         separator = "" if not existing or existing.endswith("\n") else "\n"
@@ -135,9 +293,20 @@ def merge_claude_settings(path: Path, bash: Path) -> ConfigStatus:
     """Merge required Claude environment variables while preserving user settings."""
     existed = path.exists()
     existing = path.read_text(encoding="utf-8") if existed else ""
-    if existing:
+    if existed:
+        if not existing.strip():
+            raise ValueError("invalid JSON settings")
+
+        def reject_duplicates(pairs: list[tuple[str, object]]) -> dict[str, object]:
+            result: dict[str, object] = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError(f"duplicate JSON key: {key}")
+                result[key] = value
+            return result
+
         try:
-            settings = json.loads(existing)
+            settings = json.loads(existing, object_pairs_hook=reject_duplicates)
         except json.JSONDecodeError as error:
             raise ValueError("invalid JSON settings") from error
         if not isinstance(settings, dict):
