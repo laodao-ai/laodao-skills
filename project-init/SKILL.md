@@ -3,7 +3,7 @@ name: project-init
 description: >
   初始化项目通用约定：.editorconfig（UTF-8 + 缩进）、.gitattributes（LF 换行）、
   .claudeignore（AI 上下文排除）、openspec/rules/ 下的通用规则（文件格式、脚本标点容错、
-  上下文排除、提问讨论规范）。幂等执行，已有文件跳过不覆盖。
+  上下文排除、提问讨论规范）。幂等执行，已有配置智能合并。
   当用户说"初始化项目约定"、"铺项目规范"、"project-init"、"给新项目加上 editorconfig"、
   "配一下 claudeignore"，或使用 /project-init 时触发。
   与 sdflow-init（OpenSpec 工作流）互补不重叠：sdflow-init 管 spec 工作流，
@@ -48,32 +48,112 @@ description: >
 
 1. 确认当前目录是 git 仓库（不是则提示先 `git init`）
 2. 检查 `openspec/rules/` 目录是否存在（不存在则创建）
+3. 确定 SKILL 资产目录路径（`$SKILL_DIR/assets/`）
 
-### Step 2: 铺配置文件
+### Step 2: 铺规则文件（直接复制）
 
-对每个配置文件（`.editorconfig`、`.gitattributes`、`.claudeignore`）：
+用 `cp -n`（不覆盖已有）把 4 个规则文件从 `$SKILL_DIR/assets/rules/` 复制到 `openspec/rules/`：
 
-- **不存在** → 从 `assets/` 复制模板，按项目实际情况调整（见下方「项目适配」）
-- **已存在** → **跳过，不覆盖**。报告跳过原因，提示用户手动对比模板
+```bash
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"  # 或用实际解析到的 skill 路径
+cp -n "$SKILL_DIR/assets/rules/"*.md openspec/rules/
+```
 
-### Step 3: 铺规则文件
+- **不存在** → 复制落地
+- **已存在** → `cp -n` 自动跳过，不覆盖
 
-对每个 rule 文件：
+### Step 3: 铺配置文件（智能合并）
 
-- **不存在** → 从 `assets/rules/` 复制
-- **已存在** → **跳过，不覆盖**
+对 `.editorconfig`、`.gitattributes`、`.claudeignore` 三个文件，**不再跳过已有文件**，
+而是检查是否包含必需配置，缺什么补什么。
+
+#### .editorconfig
+
+模板中的**必需配置**（`[*]` 段）：
+
+```ini
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+```
+
+检查逻辑：
+
+1. **不存在** → 从 `assets/.editorconfig` 复制，然后做项目适配（见下方）
+2. **已存在** → 逐项检查：
+   - 文件是否有 `root = true` → 没有则在文件头部加
+   - `[*]` 段是否包含 `charset = utf-8` → 没有则在 `[*]` 段补
+   - `[*]` 段是否包含 `end_of_line = lf` → 没有则补
+   - `[*]` 段是否包含 `insert_final_newline = true` → 没有则补
+   - `[*]` 段是否包含 `trim_trailing_whitespace = true` → 没有则补
+   - **不动已有的语言段**（`[*.go]`、`[*.py]` 等）——那是项目自己的缩进选择
+3. 如果已存在且必需配置全有 → 报告「已符合」，不做任何修改
+
+#### .gitattributes
+
+模板中的**必需配置**：
+
+```
+* text=auto eol=lf
+```
+
+检查逻辑：
+
+1. **不存在** → 从 `assets/.gitattributes` 复制
+2. **已存在** → 检查是否包含 `* text=auto eol=lf`（或等价的 `* text=auto` + 各类型 `eol=lf`）：
+   - **有全局 `* text=auto eol=lf`** → 符合，不改
+   - **有 `* text=auto` 但没 `eol=lf`** → 提示用户：当前依赖 `core.autocrlf`，建议加 `eol=lf` 显式声明
+   - **没有任何全局 text/eol 设置** → 在文件末尾追加必需配置段（保留已有的 per-type 规则）
+   - 同时检查是否有 `*.bat`/`*.ps1` 的 CRLF 例外——没有则追加
+
+#### .claudeignore
+
+模板中的**必需排除项**：
+
+```
+openspec/changes/archive/
+**/impl-reports/
+```
+
+检查逻辑：
+
+1. **不存在** → 从 `assets/.claudeignore` 复制，然后做项目适配（见下方）
+2. **已存在** → 逐行检查是否包含必需排除项：
+   - 缺 `openspec/changes/archive/` → 追加
+   - 缺 `**/impl-reports/` → 追加
+   - **不删除项目已有的其他排除项**
 
 ### Step 4: .claudeignore 项目适配
 
-`.claudeignore` 的排除列表需要**按项目实际目录结构调整**，不能照搬模板：
+对 `.claudeignore`（无论新建还是已有），按实际目录结构调整：
 
-1. 扫描项目根，识别存在的大目录（`du -sh */` 看体积）
-2. 对照模板的推荐排除目标，保留实际存在的、去掉不存在的
-3. 补充项目特有的应排除目录（如项目有 `vendor/`、`build/` 等）
+1. 扫描项目根（`du -sh */`），识别存在的大目录
+2. 模板中的推荐排除目录，实际不存在的**删掉**（新建时）或**不追加**（已有时）
+3. 按以下优先级判断是否排除：
+   - **体积大（>5M）且日常开发不读** → 排除
+   - **文件多（>100）且是历史/生成产物** → 排除
+   - **是活跃的源码/文档/配置** → 不排除
+   - **不确定** → 不排除（宁可多加载，不可漏重要文件）
 
-### Step 5: .gitattributes 落地后处理
+### Step 5: .editorconfig 项目适配
 
-如果新建了 `.gitattributes`（之前没有），需要归一化已有文件：
+仅对**新建**的 `.editorconfig` 做技术栈适配（已有的不动语言段）：
+
+- 有 Go（`go.mod` 存在）→ 保留 `[*.go]` tab 缩进
+- 无 Go → 删掉 `[*.go]` 段
+- 有 Python（`*.py` 文件或 `pyproject.toml`）→ Python 缩进改 4 空格
+- 有前端（`package.json`）→ 保留 2 空格
+
+读项目的 `go.mod`、`package.json`、`pyproject.toml` 等判断技术栈，不要问用户。
+
+### Step 6: .gitattributes 落地后处理
+
+如果**新建**了 `.gitattributes`（之前没有），或**追加**了全局 `eol=lf` 配置，
+需要归一化已有文件：
 
 ```bash
 git add --renormalize .
@@ -82,45 +162,29 @@ git checkout-index -f -a
 
 提示用户这会修改工作区文件的换行符，建议先 commit 当前改动。
 
-### Step 6: INDEX.md 同步
+### Step 7: INDEX.md 同步
 
-如果项目有 `openspec/INDEX.md`，把新增的 rule 登记到「设计强制规范（rules/）」表格。
+如果项目有 `openspec/INDEX.md`，把新增的 rule 登记到「设计规则」表格。
+检查每条 rule 是否已在表格中（按文件名匹配），已有则跳过。
 
-### Step 7: 完成报告
+### Step 8: 完成报告
 
 报告：
-- 创建了哪些文件
-- 跳过了哪些文件（已存在）
-- `.claudeignore` 适配了哪些目录
-- 是否需要 renormalize
 
-## 项目适配指南
-
-### .editorconfig 缩进调整
-
-模板预设了常见语言的缩进。按项目技术栈调整：
-
-- 有 Go → 保留 `*.go` tab 缩进
-- 有前端（JS/TS/Svelte）→ 保留 2 空格
-- 有 Python → 改为 4 空格（`indent_size = 4`）
-- 有 C/C++ → 按项目惯例（通常 4 空格或 tab）
-
-读项目的 `go.mod`、`package.json`、`pyproject.toml` 等判断技术栈，不要问用户。
-
-### .claudeignore 排除决策
-
-按以下优先级决定是否排除一个目录：
-
-1. **体积大（>5M）且日常开发不读** → 排除
-2. **文件多（>100）且是历史/生成产物** → 排除
-3. **是活跃的源码/文档/配置** → 不排除
-4. **不确定** → 不排除（宁可多加载，不可漏重要文件）
+| 类别 | 内容 |
+|---|---|
+| 新建 | 哪些文件是首次创建 |
+| 合并 | 哪些已有文件补了哪些缺失配置 |
+| 已符合 | 哪些已有文件无需任何修改 |
+| 适配 | `.claudeignore` 和 `.editorconfig` 做了哪些项目适配 |
+| 后处理 | 是否需要 renormalize |
 
 ## 幂等保证
 
-- 所有文件「不存在才创建、已存在则跳过」
-- 重复执行不改变任何已有文件
-- INDEX.md 同步前检查是否已登记，避免重复条目
+- 规则文件：`cp -n` 不覆盖已有
+- 配置文件：只补缺失配置，不修改已有配置项的值
+- INDEX.md：按文件名去重，不重复登记
+- 反复执行结果一致——第二次跑全部报告「已符合」
 
 ## 与其他 skill 的关系
 

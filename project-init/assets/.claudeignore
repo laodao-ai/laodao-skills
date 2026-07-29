@@ -1,0 +1,13 @@
+# 历史与过程产物
+openspec/changes/archive/
+**/impl-reports/
+hack/
+docs/drafts/
+
+# 构建产物
+dist/
+build/
+
+# 第三方依赖
+node_modules/
+vendor/
