@@ -117,6 +117,17 @@ def test_discover_git_bash_ignores_wsl_launcher():
     assert discover_git_bash({}, [], lambda _: r"C:\\Windows\\System32\\bash.exe") is None
 
 
+def test_discover_git_bash_rejects_wsl_launcher_from_claude_setting():
+    assert (
+        discover_git_bash(
+            {"CLAUDE_CODE_GIT_BASH_PATH": r"C:\Windows\System32\bash.exe"},
+            [],
+            lambda _: None,
+        )
+        is None
+    )
+
+
 def test_probe_python_utf8_parses_machine_readable_output(tmp_path):
     bash = tmp_path / "bash.exe"
     bash.touch()
@@ -125,6 +136,18 @@ def test_probe_python_utf8_parses_machine_readable_output(tmp_path):
     result = probe_python_utf8(bash, runner=lambda *args, **kwargs: completed)
 
     assert result["ok"] is True
+
+
+@pytest.mark.parametrize("output", ["null", "[]", '"utf-8"'])
+def test_probe_python_utf8_returns_failed_check_for_non_object_json(tmp_path, output):
+    bash = tmp_path / "bash.exe"
+    bash.touch()
+    completed = subprocess.CompletedProcess([], 0, output, "")
+
+    result = probe_python_utf8(bash, runner=lambda *args, **kwargs: completed)
+
+    assert result["ok"] is False
+    assert result["error"] == "invalid JSON object"
 
 
 def test_diagnose_warns_when_claude_prefers_powershell(tmp_path):

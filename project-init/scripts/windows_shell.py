@@ -11,6 +11,11 @@ END = "<!-- project-init:windows-shell:end -->"
 Status = Literal["created", "inserted", "updated", "unchanged"]
 
 
+def _is_wsl_launcher(path: Path) -> bool:
+    normalized = str(path).replace("/", "\\").lower()
+    return normalized.endswith(r"\windows\system32\bash.exe")
+
+
 def discover_git_bash(
     env: Mapping[str, str],
     candidates: Sequence[Path],
@@ -20,14 +25,14 @@ def discover_git_bash(
     configured = env.get("CLAUDE_CODE_GIT_BASH_PATH")
     paths = ([Path(configured)] if configured else []) + list(candidates)
     for path in paths:
-        if path.name.lower() == "bash.exe" and path.is_file():
+        if path.name.lower() == "bash.exe" and not _is_wsl_launcher(path) and path.is_file():
             return path
 
     found = which("bash.exe")
     if not found:
         return None
     path = Path(found)
-    if path.name.lower() != "bash.exe" or "windows\\system32\\bash.exe" in str(path).lower():
+    if path.name.lower() != "bash.exe" or _is_wsl_launcher(path):
         return None
     return path
 
@@ -55,6 +60,8 @@ def probe_python_utf8(
         output = json.loads(completed.stdout)
     except json.JSONDecodeError:
         return {"name": "python_utf8", "ok": False, "error": "invalid JSON output"}
+    if not isinstance(output, dict):
+        return {"name": "python_utf8", "ok": False, "error": "invalid JSON object"}
 
     utf8_mode = output.get("utf8_mode")
     stdout = output.get("stdout")
