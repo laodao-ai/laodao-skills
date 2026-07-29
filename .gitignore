@@ -14,3 +14,6 @@ node_modules/
 
 # Skill 优化/eval 运行时 scratch（skill-creator 生成）
 *-workspace/
+
+# Isolated implementation worktrees
+.worktrees/
