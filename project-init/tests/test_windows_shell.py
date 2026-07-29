@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 import sys
 
 import pytest
@@ -6,7 +7,15 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 
-from windows_shell import END, START, apply_repo, replace_managed_block
+from windows_shell import (
+    END,
+    START,
+    apply_repo,
+    diagnose,
+    discover_git_bash,
+    probe_python_utf8,
+    replace_managed_block,
+)
 
 
 @pytest.fixture
@@ -85,3 +94,50 @@ def test_replace_managed_block_rejects_misordered_or_duplicate_markers(tmp_path,
 
     with pytest.raises(ValueError, match="unbalanced managed markers"):
         replace_managed_block(path, "body")
+
+
+def test_discover_git_bash_prefers_valid_claude_setting(tmp_path):
+    configured = tmp_path / "configured" / "bash.exe"
+    standard = tmp_path / "standard" / "bash.exe"
+    configured.parent.mkdir()
+    standard.parent.mkdir()
+    configured.touch()
+    standard.touch()
+
+    found = discover_git_bash(
+        {"CLAUDE_CODE_GIT_BASH_PATH": str(configured)},
+        [standard],
+        lambda _: None,
+    )
+
+    assert found == configured
+
+
+def test_discover_git_bash_ignores_wsl_launcher():
+    assert discover_git_bash({}, [], lambda _: r"C:\\Windows\\System32\\bash.exe") is None
+
+
+def test_probe_python_utf8_parses_machine_readable_output(tmp_path):
+    bash = tmp_path / "bash.exe"
+    bash.touch()
+    completed = subprocess.CompletedProcess([], 0, '{"utf8_mode": 1, "stdout": "utf-8"}\n', "")
+
+    result = probe_python_utf8(bash, runner=lambda *args, **kwargs: completed)
+
+    assert result["ok"] is True
+
+
+def test_diagnose_warns_when_claude_prefers_powershell(tmp_path):
+    bash = tmp_path / "Git" / "bin" / "bash.exe"
+    bash.parent.mkdir(parents=True)
+    bash.touch()
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir()
+    settings.write_text(
+        '{"env": {"CLAUDE_CODE_USE_POWERSHELL_TOOL": "1"}}', encoding="utf-8"
+    )
+
+    checks, ok = diagnose(tmp_path, {"CLAUDE_CODE_GIT_BASH_PATH": str(bash)})
+
+    assert ok is False
+    assert any(check["name"] == "claude_powershell_tool" and check["ok"] is False for check in checks)

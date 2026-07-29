@@ -1,11 +1,108 @@
+import json
 from pathlib import Path
-from typing import Literal
+import shutil
+import subprocess
+from typing import Callable, Literal, Mapping, Sequence
 
 
 START = "<!-- project-init:windows-shell:start -->"
 END = "<!-- project-init:windows-shell:end -->"
 
 Status = Literal["created", "inserted", "updated", "unchanged"]
+
+
+def discover_git_bash(
+    env: Mapping[str, str],
+    candidates: Sequence[Path],
+    which: Callable[[str], str | None],
+) -> Path | None:
+    """Find Git for Windows' bash without accepting the WSL launcher."""
+    configured = env.get("CLAUDE_CODE_GIT_BASH_PATH")
+    paths = ([Path(configured)] if configured else []) + list(candidates)
+    for path in paths:
+        if path.name.lower() == "bash.exe" and path.is_file():
+            return path
+
+    found = which("bash.exe")
+    if not found:
+        return None
+    path = Path(found)
+    if path.name.lower() != "bash.exe" or "windows\\system32\\bash.exe" in str(path).lower():
+        return None
+    return path
+
+
+def probe_python_utf8(
+    bash: Path,
+    runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> dict[str, object]:
+    """Run a machine-readable UTF-8 check through Git Bash."""
+    probe = (
+        "python -c 'import json,sys; "
+        "print(json.dumps({\"utf8_mode\":sys.flags.utf8_mode,"
+        "\"stdout\":sys.stdout.encoding}))'"
+    )
+    try:
+        completed = runner(
+            [str(bash), "-lc", probe], text=True, encoding="utf-8", capture_output=True
+        )
+    except OSError as error:
+        return {"name": "python_utf8", "ok": False, "error": str(error)}
+
+    if completed.returncode != 0:
+        return {"name": "python_utf8", "ok": False, "returncode": completed.returncode}
+    try:
+        output = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        return {"name": "python_utf8", "ok": False, "error": "invalid JSON output"}
+
+    utf8_mode = output.get("utf8_mode")
+    stdout = output.get("stdout")
+    ok = utf8_mode == 1 and isinstance(stdout, str) and stdout.lower() == "utf-8"
+    return {"name": "python_utf8", "ok": ok, "utf8_mode": utf8_mode, "stdout": stdout}
+
+
+def diagnose(home: Path, env: Mapping[str, str]) -> tuple[list[dict[str, object]], bool]:
+    """Read the relevant user settings and report Git Bash runtime readiness."""
+    candidates = [
+        Path(r"C:\Program Files\Git\bin\bash.exe"),
+        Path(r"C:\Program Files\Git\usr\bin\bash.exe"),
+    ]
+    bash = discover_git_bash(env, candidates, shutil.which)
+    checks: list[dict[str, object]] = []
+    if bash is None:
+        checks.append({"name": "git_bash", "ok": False, "hint": "Install Git for Windows."})
+    else:
+        checks.append({"name": "git_bash", "ok": True, "path": str(bash)})
+        checks.append(probe_python_utf8(bash))
+
+    codex_config = home / ".codex" / "config.toml"
+    checks.append({"name": "codex_config", "ok": True, "present": codex_config.is_file()})
+    claude_settings = home / ".claude" / "settings.json"
+    powershell_enabled = False
+    if claude_settings.is_file():
+        try:
+            settings = json.loads(claude_settings.read_text(encoding="utf-8"))
+            env_settings = settings.get("env", {})
+            powershell_enabled = isinstance(env_settings, dict) and env_settings.get(
+                "CLAUDE_CODE_USE_POWERSHELL_TOOL"
+            ) == "1"
+        except (OSError, json.JSONDecodeError):
+            checks.append({"name": "claude_settings", "ok": False, "error": "invalid JSON"})
+        else:
+            checks.append({"name": "claude_settings", "ok": True, "present": True})
+    else:
+        checks.append({"name": "claude_settings", "ok": True, "present": False})
+    if powershell_enabled:
+        checks.append(
+            {
+                "name": "claude_powershell_tool",
+                "ok": False,
+                "warning": "CLAUDE_CODE_USE_POWERSHELL_TOOL=1 overrides Git Bash.",
+            }
+        )
+
+    return checks, all(check["ok"] is True for check in checks)
 
 
 def replace_managed_block(path: Path, body: str, *, title: str = "# AGENTS") -> Status:
