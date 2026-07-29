@@ -3,7 +3,7 @@ name: project-init
 description: >
   初始化项目通用约定：.editorconfig（UTF-8 + 缩进）、.gitattributes（LF 换行）、
   .claudeignore（AI 上下文排除）、openspec/rules/ 下的通用规则（文件格式、脚本标点容错、
-  上下文排除、提问讨论规范）。幂等执行，已有配置智能合并。
+  上下文排除、提问讨论规范）。幂等执行：已有配置智能合并，project-init 自有托管块可安全刷新。
   当用户说"初始化项目约定"、"铺项目规范"、"project-init"、"给新项目加上 editorconfig"、
   "配一下 claudeignore"，或使用 /project-init 时触发。
   与 sdflow-init（OpenSpec 工作流）互补不重叠：sdflow-init 管 spec 工作流，
@@ -16,12 +16,10 @@ description: >
 
 ## 职责边界
 
-| 本 skill 管 | sdflow-init 管 |
+| 托管方 | 托管边界 |
 |---|---|
-| `.editorconfig`（编码 + 缩进） | `openspec/workflow/`（规则集 bundle） |
-| `.gitattributes`（LF 换行） | `openspec/config.yaml` |
-| `.claudeignore`（AI 上下文排除） | CLAUDE.md / AGENTS.md 的 OpenSpec 托管块 |
-| `openspec/rules/` 下的通用 rule | `openspec/INDEX.md` 的 workflow 规则区块 |
+| `project-init` | `.editorconfig`、`.gitattributes`、`.claudeignore`、`openspec/rules/` 通用规则，以及 CLAUDE.md / AGENTS.md 中的 `project-init:windows-shell` 托管块 |
+| `opsx-project-init` | 仅 CLAUDE.md / AGENTS.md 中的 `opsx-init` 托管块 |
 
 ## 产物清单
 
@@ -29,7 +27,7 @@ description: >
 
 | 文件 | 作用 |
 |---|---|
-| `.editorconfig` | UTF-8 编码、LF 换行、缩进风格（Go=tab, 前端=2空格） |
+| `.editorconfig` | UTF-8 编码、LF 换行、缩进风格（Go=tab, 前端/Shell=2空格, Python=4空格） |
 | `.gitattributes` | git 层 LF 归一化 + 二进制标记 |
 | `.claudeignore` | 排除归档 change、impl-reports、hack、drafts |
 
@@ -43,6 +41,27 @@ description: >
 | `question-discussion-convention.md` | 禁 AskUserQuestion、多问题先总览再逐个讨论 |
 
 ## 执行流程
+
+### Windows Git Bash 双代理支持
+
+**仅当目标仓库直接运行在原生 Windows（非 WSL），并采用 Git for Windows 的 `bash.exe` 作为仓库 Bash 运行时时，才激活本节。** 非 Windows、WSL 或未采用 Git for Windows 的仓库跳过本节并报告原因。
+
+默认流程在仓库根目录依次执行 `apply-repo`、`diagnose`；脚本通过自身位置读取 `assets/snippets/`，不会改变当前进程的工作目录：
+
+```bash
+python <skill-dir>/scripts/windows_shell.py apply-repo --root .
+python <skill-dir>/scripts/windows_shell.py diagnose --root .
+```
+
+`diagnose` 分别报告 Git Bash 内 Python UTF-8 探针、Codex TOML 和 Claude JSON 的检查结果；探针成功不代表两端 agent 配置已经正确。
+
+只有用户明确授权修改本机用户配置后，才额外执行：
+
+```bash
+python <skill-dir>/scripts/windows_shell.py configure-user --root .
+```
+
+`configure-user` 会修改用户主目录中的 Codex 与 Claude 配置；Git Bash 无法发现时可显式传入 `--bash <path-to-bash.exe>`。未获得授权时不得执行，并在完成报告中写明“未授权、未修改”。所有命令向标准输出打印机器可读 JSON，配置或调用错误写入标准错误。
 
 ### Step 1: 前置检查
 
@@ -169,22 +188,21 @@ git checkout-index -f -a
 
 ### Step 8: 完成报告
 
-报告：
+完成报告必须分成四类：
 
-| 类别 | 内容 |
-|---|---|
-| 新建 | 哪些文件是首次创建 |
-| 合并 | 哪些已有文件补了哪些缺失配置 |
-| 已符合 | 哪些已有文件无需任何修改 |
-| 适配 | `.claudeignore` 和 `.editorconfig` 做了哪些项目适配 |
-| 后处理 | 是否需要 renormalize |
+- **仓库变更**：列出首次创建、智能合并、已符合及跳过的文件；说明 `.claudeignore` / `.editorconfig` 的项目适配、AGENTS.md / CLAUDE.md 中 `project-init:windows-shell` 托管块的状态，以及是否需要 renormalize。
+- **诊断结果**：分别列出 Git Bash、Git Bash 内 Python UTF-8 探针、Codex TOML 和 Claude JSON 的检查结论。
+- **用户配置变更**：列出 `configure-user` 对两端配置的变更；未获明确授权或未执行时也要明确写出“无变更”。
+- **剩余人工处理**：列出仍需安装、修复、授权或手动核对的事项；没有时写“无”。
 
 ## 幂等保证
 
-- 规则文件：`cp -n` 不覆盖已有
-- 配置文件：只补缺失配置，不修改已有配置项的值
-- INDEX.md：按文件名去重，不重复登记
-- 反复执行结果一致——第二次跑全部报告「已符合」
+- 规则文件使用 `cp -n`，不覆盖已有文件
+- 配置文件只补缺失的必需配置，不修改已有配置项的值
+- AGENTS.md / CLAUDE.md 中仅 `project-init:windows-shell` 托管块会被插入或刷新，托管块之外的用户内容和 `opsx-init` 块保持不变
+- 输入模板未变化时重复执行，托管块也保持不变
+- INDEX.md 按文件名去重，不重复登记
+- 反复执行结果一致——第二次执行全部报告「已符合」或「未变化」
 
 ## 与其他 skill 的关系
 
