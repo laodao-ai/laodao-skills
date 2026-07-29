@@ -27,7 +27,7 @@ description: >
 
 | 文件 | 作用 |
 |---|---|
-| `.editorconfig` | UTF-8 编码、LF 换行、缩进风格（Go=tab, 前端=2空格） |
+| `.editorconfig` | UTF-8 编码、LF 换行、缩进风格（Go=tab, 前端/Shell=2空格, Python=4空格） |
 | `.gitattributes` | git 层 LF 归一化 + 二进制标记 |
 | `.claudeignore` | 排除归档 change、impl-reports、hack、drafts |
 
@@ -44,15 +44,24 @@ description: >
 
 ### Windows Git Bash 双代理支持
 
-在仓库根目录执行；脚本通过自身位置读取 `assets/snippets/`，不会改变当前进程的工作目录：
+**仅当目标仓库直接运行在原生 Windows（非 WSL），并采用 Git for Windows 的 `bash.exe` 作为仓库 Bash 运行时时，才激活本节。** 非 Windows、WSL 或未采用 Git for Windows 的仓库跳过本节并报告原因。
+
+默认流程在仓库根目录依次执行 `apply-repo`、`diagnose`；脚本通过自身位置读取 `assets/snippets/`，不会改变当前进程的工作目录：
 
 ```bash
 python <skill-dir>/scripts/windows_shell.py apply-repo --root .
 python <skill-dir>/scripts/windows_shell.py diagnose --root .
+```
+
+`diagnose` 分别报告 Git Bash 内 Python UTF-8 探针、Codex TOML 和 Claude JSON 的检查结果；探针成功不代表两端 agent 配置已经正确。
+
+只有用户明确授权修改本机用户配置后，才额外执行：
+
+```bash
 python <skill-dir>/scripts/windows_shell.py configure-user --root .
 ```
 
-前两个命令分别更新仓库托管块和执行只读诊断。第三个命令会修改用户主目录中的 Codex 与 Claude 配置，**必须先获得用户明确授权**；Git Bash 无法发现时可显式传入 `--bash <path-to-bash.exe>`。所有命令向标准输出打印机器可读 JSON，配置或调用错误写入标准错误。
+`configure-user` 会修改用户主目录中的 Codex 与 Claude 配置；Git Bash 无法发现时可显式传入 `--bash <path-to-bash.exe>`。未获得授权时不得执行，并在完成报告中写明“未授权、未修改”。所有命令向标准输出打印机器可读 JSON，配置或调用错误写入标准错误。
 
 ### Step 1: 前置检查
 
@@ -98,12 +107,12 @@ git checkout-index -f -a
 
 ### Step 7: 完成报告
 
-报告：
-- 创建了哪些文件
-- 跳过了哪些文件（已存在）
-- AGENTS.md / CLAUDE.md 中的 `project-init:windows-shell` 托管块是插入、刷新还是未变化
-- `.claudeignore` 适配了哪些目录
-- 是否需要 renormalize
+完成报告必须分成四类：
+
+- **仓库变更**：创建或跳过了哪些文件，AGENTS.md / CLAUDE.md 中的 `project-init:windows-shell` 托管块是插入、刷新还是未变化，`.claudeignore` 适配了哪些目录，以及是否需要 renormalize。
+- **诊断结果**：分别列出 Git Bash、Git Bash 内 Python UTF-8 探针、Codex TOML 和 Claude JSON 的检查结论。
+- **用户配置变更**：列出 `configure-user` 对两端配置的变更；未获明确授权或未执行时也要明确写出“无变更”。
+- **剩余人工处理**：列出仍需安装、修复、授权或手动核对的事项；没有时写“无”。
 
 ## 项目适配指南
 
@@ -113,7 +122,7 @@ git checkout-index -f -a
 
 - 有 Go → 保留 `*.go` tab 缩进
 - 有前端（JS/TS/Svelte）→ 保留 2 空格
-- 有 Python → 改为 4 空格（`indent_size = 4`）
+- 有 Python → 保留默认的 4 空格（`indent_size = 4`）
 - 有 C/C++ → 按项目惯例（通常 4 空格或 tab）
 
 读项目的 `go.mod`、`package.json`、`pyproject.toml` 等判断技术栈，不要问用户。
