@@ -1,7 +1,11 @@
 import json
+import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
+import tempfile
+import tomllib
 from typing import Callable, Literal, Mapping, Sequence
 
 
@@ -9,6 +13,16 @@ START = "<!-- project-init:windows-shell:start -->"
 END = "<!-- project-init:windows-shell:end -->"
 
 Status = Literal["created", "inserted", "updated", "unchanged"]
+ConfigStatus = Literal["created", "updated", "unchanged"]
+
+_CODEX_ENV_TABLE = "shell_environment_policy.set"
+_CODEX_ENV_HEADER = re.compile(
+    r"^\s*\[\s*shell_environment_policy\s*\.\s*set\s*\]\s*(?:#.*)?$"
+)
+_CODEX_POLICY_ASSIGNMENT = re.compile(r"^\s*shell_environment_policy\s*=")
+_TABLE_HEADER = re.compile(r"^\s*\[")
+_CODEX_ENV_KEY = re.compile(r"^\s*(PYTHONUTF8|PYTHONIOENCODING)\s*=")
+_CODEX_ENV_VALUES = {"PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
 
 
 def _is_wsl_launcher(path: Path) -> bool:
@@ -35,6 +49,121 @@ def discover_git_bash(
     if path.name.lower() != "bash.exe" or _is_wsl_launcher(path):
         return None
     return path
+
+
+def atomic_write_with_backup(path: Path, content: str) -> Path | None:
+    """Atomically write UTF-8/LF content, preserving an existing file as .bak."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    backup = path.with_name(f"{path.name}.bak") if path.exists() else None
+    if backup is not None:
+        shutil.copyfile(path, backup)
+
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as destination:
+            destination.write(content)
+        os.replace(temporary, path)
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
+    return backup
+
+
+def _validate_codex_environment_table(content: str) -> list[str]:
+    lines = content.splitlines(keepends=True)
+    matches = [index for index, line in enumerate(lines) if _CODEX_ENV_HEADER.match(line)]
+    if len(matches) > 1:
+        raise ValueError(f"duplicate {_CODEX_ENV_TABLE} table")
+    try:
+        parsed = tomllib.loads(content)
+    except tomllib.TOMLDecodeError as error:
+        raise ValueError("invalid TOML configuration") from error
+
+    policy = parsed.get("shell_environment_policy")
+    target = policy.get("set") if isinstance(policy, dict) else None
+    if policy is not None and not isinstance(policy, dict):
+        raise ValueError(f"non-table {_CODEX_ENV_TABLE} structure")
+    if isinstance(policy, dict) and "set" in policy and not isinstance(target, dict):
+        raise ValueError(f"non-table {_CODEX_ENV_TABLE} structure")
+    if target is not None and not matches:
+        raise ValueError(f"non-table {_CODEX_ENV_TABLE} structure")
+    if not matches and any(_CODEX_POLICY_ASSIGNMENT.match(line) for line in lines):
+        raise ValueError(f"non-table {_CODEX_ENV_TABLE} structure")
+    return lines
+
+
+def merge_codex_config(path: Path) -> ConfigStatus:
+    """Merge Python UTF-8 settings into Codex TOML without replacing user settings."""
+    existed = path.exists()
+    existing = path.read_text(encoding="utf-8") if existed else ""
+    lines = _validate_codex_environment_table(existing)
+    table_indices = [index for index, line in enumerate(lines) if _CODEX_ENV_HEADER.match(line)]
+
+    if table_indices:
+        start = table_indices[0]
+        end = next(
+            (index for index in range(start + 1, len(lines)) if _TABLE_HEADER.match(lines[index])),
+            len(lines),
+        )
+        replacements: set[str] = set()
+        merged = lines[:]
+        for index in range(start + 1, end):
+            match = _CODEX_ENV_KEY.match(merged[index])
+            if match:
+                key = match.group(1)
+                merged[index] = f'{key} = "{_CODEX_ENV_VALUES[key]}"\n'
+                replacements.add(key)
+        missing = [key for key in _CODEX_ENV_VALUES if key not in replacements]
+        merged[end:end] = [f'{key} = "{_CODEX_ENV_VALUES[key]}"\n' for key in missing]
+        updated = "".join(merged)
+    else:
+        separator = "" if not existing or existing.endswith("\n") else "\n"
+        updated = (
+            f"{existing}{separator}[{_CODEX_ENV_TABLE}]\n"
+            'PYTHONUTF8 = "1"\n'
+            'PYTHONIOENCODING = "utf-8"\n'
+        )
+
+    if updated == existing:
+        return "unchanged"
+    atomic_write_with_backup(path, updated)
+    return "updated" if existed else "created"
+
+
+def merge_claude_settings(path: Path, bash: Path) -> ConfigStatus:
+    """Merge required Claude environment variables while preserving user settings."""
+    existed = path.exists()
+    existing = path.read_text(encoding="utf-8") if existed else ""
+    if existing:
+        try:
+            settings = json.loads(existing)
+        except json.JSONDecodeError as error:
+            raise ValueError("invalid JSON settings") from error
+        if not isinstance(settings, dict):
+            raise ValueError("Claude settings must be a JSON object")
+    else:
+        settings = {}
+
+    env = settings.get("env")
+    if env is None:
+        env = {}
+        settings["env"] = env
+    if not isinstance(env, dict):
+        raise ValueError("Claude settings env must be a JSON object")
+
+    merged = dict(env)
+    merged["PYTHONUTF8"] = "1"
+    merged["PYTHONIOENCODING"] = "utf-8"
+    configured_bash = merged.get("CLAUDE_CODE_GIT_BASH_PATH")
+    if not isinstance(configured_bash, str) or not Path(configured_bash).is_file():
+        merged["CLAUDE_CODE_GIT_BASH_PATH"] = str(bash)
+
+    if merged == env:
+        return "unchanged"
+    settings["env"] = merged
+    atomic_write_with_backup(path, json.dumps(settings, indent=2) + "\n")
+    return "updated" if existed else "created"
 
 
 def probe_python_utf8(
