@@ -10,8 +10,15 @@ Status = Literal["created", "inserted", "updated", "unchanged"]
 
 def replace_managed_block(path: Path, body: str, *, title: str = "# AGENTS") -> Status:
     """Create or replace the repository-managed Windows shell instruction block."""
-    existing = path.read_text(encoding="utf-8") if path.exists() else ""
-    if existing.count(START) != existing.count(END) or existing.count(START) > 1:
+    if path.exists():
+        with path.open(encoding="utf-8", newline="") as source:
+            existing = source.read()
+    else:
+        existing = ""
+    start_count = existing.count(START)
+    end_count = existing.count(END)
+    markers_misordered = start_count == end_count == 1 and existing.index(START) > existing.index(END)
+    if start_count != end_count or start_count > 1 or markers_misordered:
         raise ValueError(f"unbalanced managed markers in {path}")
 
     block = f"{START}\n{body.rstrip()}\n{END}"
@@ -21,11 +28,12 @@ def replace_managed_block(path: Path, body: str, *, title: str = "# AGENTS") -> 
         updated = f"{prefix}{block}{suffix}"
         status: Status = "unchanged" if updated == existing else "updated"
     else:
-        updated = f"{existing.rstrip()}\n\n{block}\n" if existing else f"{title}\n\n{block}\n"
+        updated = f"{existing}\n\n{block}\n" if existing else f"{title}\n\n{block}\n"
         status = "inserted" if existing else "created"
 
     if updated != existing:
-        path.write_text(updated, encoding="utf-8", newline="\n")
+        with path.open("w", encoding="utf-8", newline="") as destination:
+            destination.write(updated)
     return status
 
 
