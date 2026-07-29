@@ -1,0 +1,128 @@
+---
+name: project-init
+description: >
+  初始化项目通用约定：.editorconfig（UTF-8 + 缩进）、.gitattributes（LF 换行）、
+  .claudeignore（AI 上下文排除）、openspec/rules/ 下的通用规则（文件格式、脚本标点容错、
+  上下文排除、提问讨论规范）。幂等执行，已有文件跳过不覆盖。
+  当用户说"初始化项目约定"、"铺项目规范"、"project-init"、"给新项目加上 editorconfig"、
+  "配一下 claudeignore"，或使用 /project-init 时触发。
+  与 sdflow-init（OpenSpec 工作流）互补不重叠：sdflow-init 管 spec 工作流，
+  本 skill 管项目通用约定。推荐在 sdflow-init 之后执行（依赖 openspec/rules/ 目录已建好）。
+---
+
+# project-init
+
+初始化项目通用约定（编码、换行、上下文排除、AI 协作规范）。
+
+## 职责边界
+
+| 本 skill 管 | sdflow-init 管 |
+|---|---|
+| `.editorconfig`（编码 + 缩进） | `openspec/workflow/`（规则集 bundle） |
+| `.gitattributes`（LF 换行） | `openspec/config.yaml` |
+| `.claudeignore`（AI 上下文排除） | CLAUDE.md / AGENTS.md 的 OpenSpec 托管块 |
+| `openspec/rules/` 下的通用 rule | `openspec/INDEX.md` 的 workflow 规则区块 |
+
+## 产物清单
+
+### 配置文件（项目根）
+
+| 文件 | 作用 |
+|---|---|
+| `.editorconfig` | UTF-8 编码、LF 换行、缩进风格（Go=tab, 前端=2空格） |
+| `.gitattributes` | git 层 LF 归一化 + 二进制标记 |
+| `.claudeignore` | 排除归档 change、impl-reports、hack、drafts |
+
+### 规则文件（`openspec/rules/`）
+
+| 文件 | 作用 |
+|---|---|
+| `file-format-convention.md` | UTF-8 + LF 两层保证规范 |
+| `script-punctuation-resilience.md` | py/sh 脚本解析中文文档时的标点容错 |
+| `context-exclusion.md` | AI 上下文排除列表及理由 |
+| `question-discussion-convention.md` | 禁 AskUserQuestion、多问题先总览再逐个讨论 |
+
+## 执行流程
+
+### Step 1: 前置检查
+
+1. 确认当前目录是 git 仓库（不是则提示先 `git init`）
+2. 检查 `openspec/rules/` 目录是否存在（不存在则创建）
+
+### Step 2: 铺配置文件
+
+对每个配置文件（`.editorconfig`、`.gitattributes`、`.claudeignore`）：
+
+- **不存在** → 从 `assets/` 复制模板，按项目实际情况调整（见下方「项目适配」）
+- **已存在** → **跳过，不覆盖**。报告跳过原因，提示用户手动对比模板
+
+### Step 3: 铺规则文件
+
+对每个 rule 文件：
+
+- **不存在** → 从 `assets/rules/` 复制
+- **已存在** → **跳过，不覆盖**
+
+### Step 4: .claudeignore 项目适配
+
+`.claudeignore` 的排除列表需要**按项目实际目录结构调整**，不能照搬模板：
+
+1. 扫描项目根，识别存在的大目录（`du -sh */` 看体积）
+2. 对照模板的推荐排除目标，保留实际存在的、去掉不存在的
+3. 补充项目特有的应排除目录（如项目有 `vendor/`、`build/` 等）
+
+### Step 5: .gitattributes 落地后处理
+
+如果新建了 `.gitattributes`（之前没有），需要归一化已有文件：
+
+```bash
+git add --renormalize .
+git checkout-index -f -a
+```
+
+提示用户这会修改工作区文件的换行符，建议先 commit 当前改动。
+
+### Step 6: INDEX.md 同步
+
+如果项目有 `openspec/INDEX.md`，把新增的 rule 登记到「设计强制规范（rules/）」表格。
+
+### Step 7: 完成报告
+
+报告：
+- 创建了哪些文件
+- 跳过了哪些文件（已存在）
+- `.claudeignore` 适配了哪些目录
+- 是否需要 renormalize
+
+## 项目适配指南
+
+### .editorconfig 缩进调整
+
+模板预设了常见语言的缩进。按项目技术栈调整：
+
+- 有 Go → 保留 `*.go` tab 缩进
+- 有前端（JS/TS/Svelte）→ 保留 2 空格
+- 有 Python → 改为 4 空格（`indent_size = 4`）
+- 有 C/C++ → 按项目惯例（通常 4 空格或 tab）
+
+读项目的 `go.mod`、`package.json`、`pyproject.toml` 等判断技术栈，不要问用户。
+
+### .claudeignore 排除决策
+
+按以下优先级决定是否排除一个目录：
+
+1. **体积大（>5M）且日常开发不读** → 排除
+2. **文件多（>100）且是历史/生成产物** → 排除
+3. **是活跃的源码/文档/配置** → 不排除
+4. **不确定** → 不排除（宁可多加载，不可漏重要文件）
+
+## 幂等保证
+
+- 所有文件「不存在才创建、已存在则跳过」
+- 重复执行不改变任何已有文件
+- INDEX.md 同步前检查是否已登记，避免重复条目
+
+## 与其他 skill 的关系
+
+- **sdflow-init**：先跑 sdflow-init（建 openspec 骨架），再跑 project-init（铺通用约定）
+- **gstack-project-init**：管 `docs/gstack/` 镜像规则，与本 skill 不重叠

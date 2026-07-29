@@ -1,0 +1,19 @@
+# 行尾策略：仓内一律 LF，不看贡献者的 core.autocrlf。
+# `* text=auto` 一次覆盖全部文本文件，git 自带的二进制启发式（NUL 探测）
+# 会自动跳过图片等真二进制。
+#
+# 落地时序：改完本文件须 `git add --renormalize .`（同步 index）+
+# `git checkout-index -f -a`（刷新工作区）。
+* text=auto eol=lf
+
+# 例外：Windows 原生脚本保持 CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制：显式钉死，免得启发式在边角翻车
+*.jpg  binary
+*.jpeg binary
+*.png  binary
+*.ico  binary
+*.icns binary
+*.syso binary
