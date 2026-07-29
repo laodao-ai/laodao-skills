@@ -3,7 +3,7 @@ name: project-init
 description: >
   初始化项目通用约定：.editorconfig（UTF-8 + 缩进）、.gitattributes（LF 换行）、
   .claudeignore（AI 上下文排除）、openspec/rules/ 下的通用规则（文件格式、脚本标点容错、
-  上下文排除、提问讨论规范）。幂等执行，已有文件跳过不覆盖。
+  上下文排除、提问讨论规范）。普通已有配置和规则文件跳过不覆盖；project-init 自有托管块可幂等刷新。
   当用户说"初始化项目约定"、"铺项目规范"、"project-init"、"给新项目加上 editorconfig"、
   "配一下 claudeignore"，或使用 /project-init 时触发。
   与 sdflow-init（OpenSpec 工作流）互补不重叠：sdflow-init 管 spec 工作流，
@@ -101,6 +101,7 @@ git checkout-index -f -a
 报告：
 - 创建了哪些文件
 - 跳过了哪些文件（已存在）
+- AGENTS.md / CLAUDE.md 中的 `project-init:windows-shell` 托管块是插入、刷新还是未变化
 - `.claudeignore` 适配了哪些目录
 - 是否需要 renormalize
 
@@ -128,8 +129,9 @@ git checkout-index -f -a
 
 ## 幂等保证
 
-- 所有文件「不存在才创建、已存在则跳过」
-- 重复执行不改变任何已有文件
+- 普通配置文件和 rule 文件「不存在才创建、已存在则跳过」
+- AGENTS.md / CLAUDE.md 中仅 `project-init:windows-shell` 托管块会被插入或刷新，托管块之外的用户内容和 `opsx-init` 块保持不变
+- 输入模板未变化时重复执行，托管块也保持不变
 - INDEX.md 同步前检查是否已登记，避免重复条目
 
 ## 与其他 skill 的关系

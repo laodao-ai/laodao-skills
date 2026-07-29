@@ -10,6 +10,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 
+import windows_shell
+
 from windows_shell import (
     END,
     START,
@@ -104,6 +106,52 @@ def test_cli_configure_user_validates_both_configs_before_writing(tmp_path, caps
     assert "invalid JSON" in capsys.readouterr().err
     assert codex.read_bytes() == before
     assert not codex.with_name("config.toml.bak").exists()
+
+
+@pytest.mark.parametrize("codex_exists", [False, True])
+def test_cli_configure_user_rolls_back_first_write_when_second_write_fails(
+    tmp_path, monkeypatch, capsys, codex_exists
+):
+    bash = tmp_path / "Git" / "bin" / "bash.exe"
+    bash.parent.mkdir(parents=True)
+    bash.touch()
+    home = tmp_path / "home"
+    codex = home / ".codex" / "config.toml"
+    backup = codex.with_name("config.toml.bak")
+    codex.parent.mkdir(parents=True)
+    if codex_exists:
+        codex.write_bytes(b'model = "before"\r\n')
+        codex.chmod(0o444)
+    backup.write_bytes(b"pre-existing backup\r\n")
+    backup.chmod(0o644)
+    codex_before = codex.read_bytes() if codex_exists else None
+    codex_mode = stat.S_IMODE(codex.stat().st_mode) if codex_exists else None
+    backup_before = backup.read_bytes()
+    backup_mode = stat.S_IMODE(backup.stat().st_mode)
+    real_merge = windows_shell.merge_claude_settings
+    calls = 0
+
+    def fail_real_user_write(path, selected_bash):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("injected second write failure")
+        return real_merge(path, selected_bash)
+
+    monkeypatch.setattr(windows_shell, "merge_claude_settings", fail_real_user_write)
+
+    code = main(
+        ["configure-user", "--home", str(home), "--bash", str(bash)]
+    )
+
+    assert code == 2
+    assert "injected second write failure" in capsys.readouterr().err
+    assert codex.exists() is codex_exists
+    if codex_exists:
+        assert codex.read_bytes() == codex_before
+        assert stat.S_IMODE(codex.stat().st_mode) == codex_mode
+    assert backup.read_bytes() == backup_before
+    assert stat.S_IMODE(backup.stat().st_mode) == backup_mode
 
 
 def test_apply_repo_creates_agent_specific_files(tmp_path, assets_dir):

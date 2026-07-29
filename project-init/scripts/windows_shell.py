@@ -21,6 +21,10 @@ _CODEX_ENV_TABLE = "shell_environment_policy.set"
 _CODEX_ENV_VALUES = {"PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
 _CODEX_ENV_PATH = ("shell_environment_policy", "set")
 _TOML_MARKER = "__project_init_value_marker__"
+_DEFAULT_GIT_BASH_CANDIDATES = (
+    Path(r"C:\Program Files\Git\bin\bash.exe"),
+    Path(r"C:\Program Files\Git\usr\bin\bash.exe"),
+)
 
 
 def _is_wsl_launcher(path: Path) -> bool:
@@ -75,6 +79,45 @@ def atomic_write_with_backup(path: Path, content: str) -> Path | None:
         temporary.unlink(missing_ok=True)
         raise
     return backup
+
+
+def _snapshot_file(path: Path) -> tuple[bytes | None, int | None]:
+    if not path.exists():
+        return None, None
+    return path.read_bytes(), stat.S_IMODE(path.stat().st_mode)
+
+
+def _restore_file(path: Path, snapshot: tuple[bytes | None, int | None]) -> None:
+    content, mode = snapshot
+    if content is None:
+        if path.exists():
+            current_mode = stat.S_IMODE(path.stat().st_mode)
+            if not current_mode & stat.S_IWRITE:
+                os.chmod(path, current_mode | stat.S_IWRITE)
+            path.unlink()
+        return
+
+    assert mode is not None
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.rollback.", dir=path.parent)
+    temporary = Path(temporary_name)
+    current_mode: int | None = None
+    made_writable = False
+    try:
+        with os.fdopen(descriptor, "wb") as destination:
+            destination.write(content)
+        os.chmod(temporary, mode)
+        if path.exists():
+            current_mode = stat.S_IMODE(path.stat().st_mode)
+            if not current_mode & stat.S_IWRITE:
+                os.chmod(path, current_mode | stat.S_IWRITE)
+                made_writable = True
+        os.replace(temporary, path)
+    except BaseException:
+        if made_writable and current_mode is not None and path.exists():
+            os.chmod(path, current_mode)
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def _toml_multiline_starts(lines: list[str]) -> list[bool]:
@@ -371,11 +414,7 @@ def probe_python_utf8(
 
 def diagnose(home: Path, env: Mapping[str, str]) -> tuple[list[dict[str, object]], bool]:
     """Read the relevant user settings and report Git Bash runtime readiness."""
-    candidates = [
-        Path(r"C:\Program Files\Git\bin\bash.exe"),
-        Path(r"C:\Program Files\Git\usr\bin\bash.exe"),
-    ]
-    bash = discover_git_bash(env, candidates, shutil.which)
+    bash = discover_git_bash(env, _DEFAULT_GIT_BASH_CANDIDATES, shutil.which)
     checks: list[dict[str, object]] = []
     if bash is None:
         checks.append({"name": "git_bash", "ok": False, "hint": "Install Git for Windows."})
@@ -492,10 +531,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 bash = discover_git_bash(
                     os.environ,
-                    [
-                        Path(r"C:\Program Files\Git\bin\bash.exe"),
-                        Path(r"C:\Program Files\Git\usr\bin\bash.exe"),
-                    ],
+                    _DEFAULT_GIT_BASH_CANDIDATES,
                     shutil.which,
                 )
             if bash is None:
@@ -516,10 +552,32 @@ def main(argv: Sequence[str] | None = None) -> int:
                         shutil.copyfile(source, destination)
                 merge_codex_config(temporary_codex)
                 merge_claude_settings(temporary_claude, bash)
+            rollback_paths = (
+                codex_config,
+                codex_config.with_name("config.toml.bak"),
+                claude_settings,
+                claude_settings.with_name("settings.json.bak"),
+            )
+            snapshots = {path: _snapshot_file(path) for path in rollback_paths}
+            try:
+                codex_status = merge_codex_config(codex_config)
+                claude_status = merge_claude_settings(claude_settings, bash)
+            except (OSError, ValueError) as error:
+                rollback_errors: list[str] = []
+                for path in rollback_paths:
+                    try:
+                        _restore_file(path, snapshots[path])
+                    except OSError as rollback_error:
+                        rollback_errors.append(f"{path}: {rollback_error}")
+                if rollback_errors:
+                    raise OSError(
+                        f"{error}; rollback failed: {'; '.join(rollback_errors)}"
+                    ) from error
+                raise
             summary = {
                 "git_bash": str(bash),
-                "codex_config": merge_codex_config(codex_config),
-                "claude_settings": merge_claude_settings(claude_settings, bash),
+                "codex_config": codex_status,
+                "claude_settings": claude_status,
             }
     except (OSError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)

@@ -17,3 +17,6 @@ node_modules/
 
 # Isolated implementation worktrees
 .worktrees/
+
+# Agent implementation scratch
+.superpowers/
