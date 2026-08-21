@@ -1,4 +1,4 @@
-schema: spec-driven
+schema: sdflow-spec-driven
 
 # 项目上下文（生成产物时展示给 AI）
 context: |

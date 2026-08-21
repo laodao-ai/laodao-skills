@@ -20,3 +20,5 @@ node_modules/
 
 # Agent implementation scratch
 .superpowers/
+/openspec/issues/.recorder.lock
+/openspec/.ff0-ack
