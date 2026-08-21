@@ -16,6 +16,8 @@ import windows_shell
 
 from windows_shell import (
     END,
+    LEGACY_END,
+    LEGACY_START,
     START,
     apply_repo,
     atomic_write_with_backup,
@@ -290,6 +292,39 @@ def test_apply_repo_preflights_both_instruction_files_before_writing(tmp_path, a
 def test_replace_managed_block_rejects_unbalanced_markers(tmp_path):
     path = tmp_path / "AGENTS.md"
     path.write_text("before\n<!-- project-init:windows-shell:start -->\nbroken\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="unbalanced managed markers"):
+        replace_managed_block(path, "body")
+
+
+def test_replace_managed_block_migrates_legacy_markers_in_place(tmp_path):
+    path = tmp_path / "AGENTS.md"
+    path.write_text(
+        f"# AGENTS\n\nuser text\n\n{LEGACY_START}\nold body\n{LEGACY_END}\n\ntail text\n",
+        encoding="utf-8",
+    )
+
+    assert replace_managed_block(path, "new body") == "updated"
+
+    content = path.read_text(encoding="utf-8")
+    assert LEGACY_START not in content and LEGACY_END not in content
+    assert content.count(START) == 1 and content.count(END) == 1
+    assert "user text" in content and "tail text" in content
+    assert "new body" in content and "old body" not in content
+
+
+def test_replace_managed_block_is_unchanged_after_legacy_migration(tmp_path):
+    path = tmp_path / "AGENTS.md"
+    path.write_text(
+        f"# AGENTS\n\n{LEGACY_START}\nbody\n{LEGACY_END}\n", encoding="utf-8"
+    )
+
+    assert replace_managed_block(path, "body") == "updated"
+    assert replace_managed_block(path, "body") == "unchanged"
+
+
+def test_replace_managed_block_rejects_unbalanced_legacy_markers(tmp_path):
+    path = tmp_path / "AGENTS.md"
+    path.write_text(f"before\n{LEGACY_START}\nbroken\n", encoding="utf-8")
     with pytest.raises(ValueError, match="unbalanced managed markers"):
         replace_managed_block(path, "body")
 

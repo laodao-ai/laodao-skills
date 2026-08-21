@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.0 — 2026-08-21
+
+- `project-init` 改名为 `standards-init`（目录、frontmatter name、触发词同步更新）。
+  动机：`project-init` 名字过泛，与「新项目开发环境检测/引导」类 skill 的自然命名空间冲突；
+  本 skill 实际职责是铺**项目通用约定**（editorconfig / gitattributes / claudeignore / openspec 通用规则），
+  `standards-init` 更名副其实。
+  - **托管块哨兵同步改名**为 `standards-init:windows-shell`；已注入下游各仓的旧哨兵
+    `project-init:windows-shell` 在下次 `apply-repo` 时**自动原位升级**（`windows_shell.py`
+    识别旧哨兵块并整块替换为新哨兵，不产生重复块/孤块；残缺旧哨兵同样报 unbalanced 拒绝）。
+  - 旧触发词 `/project-init` 不再保留（名字让渡给未来的环境引导 skill）。
+
 ## 1.8.0 — 2026-07-01
 
 - `opsx-project-init` 新增 OpenSpec 文档 HTML Review 工具（零构建、离线可用）：
