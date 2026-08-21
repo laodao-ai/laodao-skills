@@ -1,24 +1,24 @@
 ---
-name: project-init
+name: standards-init
 description: >
   初始化项目通用约定：.editorconfig（UTF-8 + 缩进）、.gitattributes（LF 换行）、
   .claudeignore（AI 上下文排除）、openspec/rules/ 下的通用规则（文件格式、脚本标点容错、
-  上下文排除、提问讨论规范）。幂等执行：已有配置智能合并，project-init 自有托管块可安全刷新。
-  当用户说"初始化项目约定"、"铺项目规范"、"project-init"、"给新项目加上 editorconfig"、
-  "配一下 claudeignore"，或使用 /project-init 时触发。
+  上下文排除、提问讨论规范）。幂等执行：已有配置智能合并，standards-init 自有托管块可安全刷新。
+  当用户说"初始化项目约定"、"铺项目规范"、"standards-init"、"给新项目加上 editorconfig"、
+  "配一下 claudeignore"，或使用 /standards-init 时触发。（本 skill 曾名 project-init，2026-08-21 改名）
   与 sdflow-init（OpenSpec 工作流）互补不重叠：sdflow-init 管 spec 工作流，
   本 skill 管项目通用约定。推荐在 sdflow-init 之后执行（依赖 openspec/rules/ 目录已建好）。
 ---
 
-# project-init
+# standards-init
 
-初始化项目通用约定（编码、换行、上下文排除、AI 协作规范）。
+初始化项目通用约定（编码、换行、上下文排除、AI 协作规范）。曾名 `project-init`。
 
 ## 职责边界
 
 | 托管方 | 托管边界 |
 |---|---|
-| `project-init` | `.editorconfig`、`.gitattributes`、`.claudeignore`、`openspec/rules/` 通用规则，以及 CLAUDE.md / AGENTS.md 中的 `project-init:windows-shell` 托管块 |
+| `standards-init` | `.editorconfig`、`.gitattributes`、`.claudeignore`、`openspec/rules/` 通用规则，以及 CLAUDE.md / AGENTS.md 中的 `standards-init:windows-shell` 托管块（旧名 `project-init:windows-shell` 哨兵在 apply-repo 时自动原位升级） |
 | `opsx-project-init` | 仅 CLAUDE.md / AGENTS.md 中的 `opsx-init` 托管块 |
 
 ## 产物清单
@@ -190,7 +190,7 @@ git checkout-index -f -a
 
 完成报告必须分成四类：
 
-- **仓库变更**：列出首次创建、智能合并、已符合及跳过的文件；说明 `.claudeignore` / `.editorconfig` 的项目适配、AGENTS.md / CLAUDE.md 中 `project-init:windows-shell` 托管块的状态，以及是否需要 renormalize。
+- **仓库变更**：列出首次创建、智能合并、已符合及跳过的文件；说明 `.claudeignore` / `.editorconfig` 的项目适配、AGENTS.md / CLAUDE.md 中 `standards-init:windows-shell` 托管块的状态（含旧哨兵是否被原位升级），以及是否需要 renormalize。
 - **诊断结果**：分别列出 Git Bash、Git Bash 内 Python UTF-8 探针、Codex TOML 和 Claude JSON 的检查结论。
 - **用户配置变更**：列出 `configure-user` 对两端配置的变更；未获明确授权或未执行时也要明确写出“无变更”。
 - **剩余人工处理**：列出仍需安装、修复、授权或手动核对的事项；没有时写“无”。
@@ -199,12 +199,12 @@ git checkout-index -f -a
 
 - 规则文件使用 `cp -n`，不覆盖已有文件
 - 配置文件只补缺失的必需配置，不修改已有配置项的值
-- AGENTS.md / CLAUDE.md 中仅 `project-init:windows-shell` 托管块会被插入或刷新，托管块之外的用户内容和 `opsx-init` 块保持不变
+- AGENTS.md / CLAUDE.md 中仅 `standards-init:windows-shell` 托管块会被插入或刷新（读到改名前注入的旧哨兵 `project-init:windows-shell` 时自动原位升级为新哨兵，不产生重复块），托管块之外的用户内容和 `opsx-init` 块保持不变
 - 输入模板未变化时重复执行，托管块也保持不变
 - INDEX.md 按文件名去重，不重复登记
 - 反复执行结果一致——第二次执行全部报告「已符合」或「未变化」
 
 ## 与其他 skill 的关系
 
-- **sdflow-init**：先跑 sdflow-init（建 openspec 骨架），再跑 project-init（铺通用约定）
+- **sdflow-init**：先跑 sdflow-init（建 openspec 骨架），再跑 standards-init（铺通用约定）
 - **gstack-project-init**：管 `docs/gstack/` 镜像规则，与本 skill 不重叠

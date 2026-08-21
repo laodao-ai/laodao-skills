@@ -13,8 +13,12 @@ import tomllib
 from typing import Callable, Literal, Mapping, Sequence
 
 
-START = "<!-- project-init:windows-shell:start -->"
-END = "<!-- project-init:windows-shell:end -->"
+START = "<!-- standards-init:windows-shell:start -->"
+END = "<!-- standards-init:windows-shell:end -->"
+# 改名（project-init → standards-init，2026-08-21）前注入下游仓的旧哨兵：
+# 读到且无新哨兵时，_plan_managed_block 会把旧哨兵块原位升级为新哨兵（防重复注入/孤块）。
+LEGACY_START = "<!-- project-init:windows-shell:start -->"
+LEGACY_END = "<!-- project-init:windows-shell:end -->"
 
 Status = Literal["created", "inserted", "updated", "unchanged"]
 ConfigStatus = Literal["created", "updated", "unchanged"]
@@ -789,20 +793,33 @@ def _plan_managed_block(
             existing = source.read()
     else:
         existing = ""
-    start_count = existing.count(START)
-    end_count = existing.count(END)
-    markers_misordered = start_count == end_count == 1 and existing.index(START) > existing.index(END)
+    # 旧哨兵原位升级：仅当文件里只有旧哨兵（无新哨兵）时，把旧哨兵替换成新哨兵后
+    # 按统一逻辑规划。status 与是否落盘仍对比磁盘原文 existing，故纯迁移也会判 updated 并写回。
+    working = existing
+    if START not in working and LEGACY_START in working:
+        legacy_start_count = working.count(LEGACY_START)
+        legacy_end_count = working.count(LEGACY_END)
+        legacy_misordered = (
+            legacy_start_count == legacy_end_count == 1
+            and working.index(LEGACY_START) > working.index(LEGACY_END)
+        )
+        if legacy_start_count != legacy_end_count or legacy_start_count > 1 or legacy_misordered:
+            raise ValueError(f"unbalanced managed markers in {path}")
+        working = working.replace(LEGACY_START, START).replace(LEGACY_END, END)
+    start_count = working.count(START)
+    end_count = working.count(END)
+    markers_misordered = start_count == end_count == 1 and working.index(START) > working.index(END)
     if start_count != end_count or start_count > 1 or markers_misordered:
         raise ValueError(f"unbalanced managed markers in {path}")
 
     block = f"{START}\n{body.rstrip()}\n{END}"
-    if START in existing:
-        prefix, tail = existing.split(START, 1)
+    if START in working:
+        prefix, tail = working.split(START, 1)
         _, suffix = tail.split(END, 1)
         updated = f"{prefix}{block}{suffix}"
         status: Status = "unchanged" if updated == existing else "updated"
     else:
-        updated = f"{existing}\n\n{block}\n" if existing else f"{title}\n\n{block}\n"
+        updated = f"{working}\n\n{block}\n" if working else f"{title}\n\n{block}\n"
         status = "inserted" if existing else "created"
     return existing, updated, status
 

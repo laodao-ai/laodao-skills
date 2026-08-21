@@ -14,11 +14,17 @@
 | 开发工具 | ssh-tunnel | SSH 隧道管理 |
 | 开发工具 | tag | Git 语义化版本标签 |
 | OpenSpec | opsx-maintain | OpenSpec 目录维护 |
+| OpenSpec | openspec-upgrade | 升级 OpenSpec CLI 并刷新当前项目内 OpenSpec skills |
 | 嵌入式 | embedded-lint | C 语言静态分析 |
+| 嵌入式 | embedded-test-sop | 为嵌入式固件功能生成手动测试 SOP 与日志自动分析规则 |
 | 文档转换 | docx2md | Word 转 Markdown |
 | 文档转换 | pdf2md | PDF 转 Markdown |
 | 文档转换 | xlsx2md | Excel 转 CSV |
 | 元工具 | laodao-upgrade | 升级并同步配置 laodao-skills |
+
+> **迁入说明**：`openspec-upgrade` 与 `embedded-test-sop` 已从 sdflow-skills
+> 迁入本仓。运行 `bash setup.sh` 时，这两个名称可安全接管仍指向旧仓的软链接或
+> Windows `.sdflow-skills` 标记副本；其他第三方同名 skill 不会被覆盖。
 
 ## 安装
 

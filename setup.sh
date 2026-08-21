@@ -22,6 +22,42 @@ installed=()
 skipped=()
 cleaned=()
 
+# These skills moved from sdflow-skills. Only these names may take over an
+# existing sdflow-owned link or Windows marker copy; other foreign installs
+# remain protected.
+MIGRATED_SKILL_NAMES=" openspec-upgrade embedded-test-sop "
+is_migrated_skill() {  # $1 = skill name
+  case "$MIGRATED_SKILL_NAMES" in *" $1 "*) return 0 ;; esac
+  return 1
+}
+
+is_our_marker_copy() {  # $1 = target directory
+  local entry="$1" name
+  name="$(basename "$entry")"
+  [ -f "$entry/.laodao-skills" ] && return 0
+  is_migrated_skill "$name" && [ -f "$entry/.sdflow-skills" ] && return 0
+  return 1
+}
+
+is_ours_symlink() {  # $1 = target path, $2 = skill name
+  local link_dest
+  link_dest="$(readlink "$1" 2>/dev/null || true)"
+  case "$link_dest" in
+    "$REPO_NAME"/*|*/"$REPO_NAME"/*)
+      return 0
+      ;;
+  esac
+
+  if is_migrated_skill "$2"; then
+    case "$link_dest" in
+      */sdflow-skills/"$2"|*/sdflow-skills/"$2"/*|*/04-sdflow-skills/"$2"|*/04-sdflow-skills/"$2"/*)
+        return 0
+        ;;
+    esac
+  fi
+  return 1
+}
+
 # ─── Install all skills into one destination ─────────────────
 install_into() {
   local dest="$1"
@@ -34,11 +70,11 @@ install_into() {
 
     if [ "$IS_WINDOWS" -eq 1 ]; then
       # Windows: copy + marker file
-      if [ -d "$target" ] && [ ! -f "$target/.laodao-skills" ] && [ ! -L "$target" ]; then
+      if [ -d "$target" ] && [ ! -L "$target" ] && ! is_our_marker_copy "$target"; then
         skipped+=("$skill_name @ $dest")
         continue
       fi
-      if [ -d "$target" ] && [ -f "$target/.laodao-skills" ]; then
+      if [ -d "$target" ] && is_our_marker_copy "$target"; then
         rm -rf "$target"
       fi
       cp -r "$skill_dir" "$target"
@@ -49,15 +85,27 @@ install_into() {
       # copies — never clobber a real directory we don't own (e.g. another
       # tool's skill of the same name).
       if [ -e "$target" ] && [ ! -L "$target" ]; then
-        if [ -f "$target/.laodao-skills" ]; then
+        if is_our_marker_copy "$target"; then
           rm -rf "$target"
         else
           skipped+=("$skill_name @ $dest")
           continue
         fi
       fi
+      if [ -L "$target" ] && ! is_ours_symlink "$target" "$skill_name"; then
+        skipped+=("$skill_name @ $dest — foreign symlink, not overwritten")
+        continue
+      fi
+      local old_link=""
+      if [ -L "$target" ]; then
+        old_link="$(readlink "$target" 2>/dev/null || true)"
+      fi
       ln -snf "$REPO_DIR/$skill_name" "$target"
-      installed+=("$skill_name @ $dest")
+      if [ -n "$old_link" ] && [ "$old_link" != "$REPO_DIR/$skill_name" ]; then
+        installed+=("$skill_name @ $dest — took over $old_link")
+      else
+        installed+=("$skill_name @ $dest")
+      fi
     fi
   done
 }
@@ -66,8 +114,9 @@ install_into() {
 cleanup_orphans() {
   local dest="$1"
   [ -d "$dest" ] || return 0
-  for entry in "$dest"/*/; do
-    [ -e "$entry" ] || continue
+  local entry
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
     local entry_name="$(basename "$entry")"
     [ "$entry_name" = "$REPO_NAME" ] && continue
 
@@ -81,7 +130,7 @@ cleanup_orphans() {
       esac
     fi
     # Marker file (Windows copies)
-    [ -f "$entry/.laodao-skills" ] && is_ours=1
+    is_our_marker_copy "$entry" && is_ours=1
 
     # Ours, but the link now dangles (source skill removed) → clean up.
     # Use a resolve check (-e follows the symlink) so VALID links are kept,
@@ -99,7 +148,7 @@ cleanup_orphans() {
         cleaned+=("$entry_name @ $dest")
       fi
     fi
-  done
+  done < <(find "$dest" -mindepth 1 -maxdepth 1)
 }
 
 for d in "${TARGET_DIRS[@]}"; do

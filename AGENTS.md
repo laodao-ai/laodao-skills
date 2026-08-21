@@ -141,11 +141,13 @@ Codex 宿主默认**不**派子代理——须由项目指令文件显式授权�
 （值域 `{low,medium,high,xhigh,max}`，同 model-tiers 段覆盖语义：非法值忽略并告警回落缺省）。带门禁、
 无人逐条复核的步（如 verify 终门、Step3 主审裁决）MUST NOT 低于 high。
 <!-- opsx-init:end -->
-<!-- project-init:windows-shell:start -->
+
+
+<!-- standards-init:windows-shell:start -->
 ## Windows shell execution
 
 - Use Bash/POSIX semantics for repository commands, `.sh` scripts, paths, variables, pipelines, and redirection.
 - Use PowerShell only for a Windows-host or bootstrap operation that cannot reasonably run through Git Bash, and state why.
 - When a background tool is hosted by PowerShell, invoke Git Bash explicitly with `& 'C:\Program Files\Git\bin\bash.exe' -lc '<command>'`.
 - Correctly quote complex commands for both the outer PowerShell shell and the inner Bash shell.
-<!-- project-init:windows-shell:end -->
+<!-- standards-init:windows-shell:end -->
