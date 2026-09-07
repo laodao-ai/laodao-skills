@@ -2,15 +2,11 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 3650,
   "env": {
-    "EDITOR": "C:/Program Files/Notepad++/notepad++.exe",
     "ENABLE_PROMPT_CACHING_1H": "1",
     "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1",
-    "HTTPS_PROXY": "http://127.0.0.1:10808",
-    "HTTP_PROXY": "http://127.0.0.1:10808",
     "DISABLE_AUTOUPDATER": "1",
     "PYTHONUTF8": "1",
     "PYTHONIOENCODING": "utf-8",
-    "CLAUDE_CODE_GIT_BASH_PATH": "C:\\Program Files\\Git\\bin\\bash.exe"
   },
   "attribution": {
     "commit": "Generated with Claude Code",
