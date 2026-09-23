@@ -9,7 +9,7 @@ description: |
     /embedded-lint                       → 扫描全部 custom/
     /embedded-lint app/src/task_lora.c   → 扫描单个文件
     /embedded-lint sys_app/src           → 扫描子目录
-  工具选型参考：openspec/docs/static-analysis-tools.md
+  工具选型参考：references/static-analysis-tools.md
 ---
 
 # embedded-lint：嵌入式静态分析 Skill
@@ -64,7 +64,7 @@ clang-tidy 未安装：
 compile_commands.json 未生成：
   在 CLion 中：Tools → Compilation Database → Generate a Compilation Database
   生成成功后文件位于项目根目录
-  详见：openspec/docs/static-analysis-tools.md §CLion 生成章节
+  详见：references/static-analysis-tools.md §CLion 生成章节
 ```
 
 ### 第三步 B：运行 clang-tidy（Tier 3，compile_commands.json 已存在时）
@@ -254,6 +254,6 @@ scons 2>&1 | grep -E "warning:|error:" | head -50
 - §6 Volatile 正确性 → /review 检查 ISR/timer 与普通线程间共享变量的 volatile 修饰
 
 运行方式：/review <文件或模块>
-审查清单：openspec/docs/code-review-checklist.md（ML307C 专属）
-          openspec/docs/code-review-checklist-embedded.md（通用嵌入式）
+审查清单：~/.sdflow/workflow/code-checklists/domains/embedded-ml307c.md（ML307C 专属）
+          ~/.sdflow/workflow/code-checklists/domains/embedded.md（通用嵌入式）
 ```
