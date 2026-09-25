@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.10.0 — 2026-09-25
+
+- 新增 `claude-upgrade`：官方升级脚本下载常失败，改为直接读
+  `downloads.claude.ai/claude-code-releases/latest` 与对应版本的 `manifest.json`，
+  用 curl 下载（断点续传 + 重试）并按 manifest 校验 sha256 与大小。
+  macOS/Linux 写入 `~/.local/share/claude/versions/<版本号>` 并重建 `~/.local/bin/claude` 软链；
+  Windows 原位替换 `claude.exe`，旧文件改名为 `claude.exe.old`（运行中的 exe 只能改名、不能覆盖）。
+
 ## 1.9.0 — 2026-08-21
 
 - `project-init` 改名为 `standards-init`（目录、frontmatter name、触发词同步更新）。

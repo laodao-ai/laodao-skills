@@ -21,6 +21,7 @@
 | 文档转换 | pdf2md | PDF 转 Markdown |
 | 文档转换 | xlsx2md | Excel 转 CSV |
 | 元工具 | laodao-upgrade | 升级并同步配置 laodao-skills |
+| 元工具 | claude-upgrade | 绕过官方脚本下载并安装 Claude Code 原生二进制 |
 
 > **迁入说明**：`openspec-upgrade` 与 `embedded-test-sop` 已从 sdflow-skills
 > 迁入本仓。运行 `bash setup.sh` 时，这两个名称可安全接管仍指向旧仓的软链接或
