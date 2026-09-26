@@ -25,7 +25,7 @@ cleaned=()
 # These skills moved from sdflow-skills. Only these names may take over an
 # existing sdflow-owned link or Windows marker copy; other foreign installs
 # remain protected.
-MIGRATED_SKILL_NAMES=" openspec-upgrade embedded-test-sop "
+MIGRATED_SKILL_NAMES=" embedded-test-sop "
 is_migrated_skill() {  # $1 = skill name
   case "$MIGRATED_SKILL_NAMES" in *" $1 "*) return 0 ;; esac
   return 1

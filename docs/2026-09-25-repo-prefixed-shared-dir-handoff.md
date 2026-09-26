@@ -27,7 +27,7 @@ Windows 拷贝安装时两仓都落到 `<宿主>/shared`，只能靠「合并拷
 
 ## 相关但不在本次范围
 
-本仓 skill 名不带前缀（如 `tag`、`pdf2md`、`ssh-tunnel`），和其它套件重名时会被跳过、装不上。
+本仓 skill 名不带前缀（如 `tag`、`pdf2md`、`commit-message`），和其它套件重名时会被跳过、装不上。
 这是 skill 命名空间问题，与共用目录无关。已有调研见 `docs/skill-namespace-research.md`
 （结论：要带前缀须走 plugin 机制）。
 

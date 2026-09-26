@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.11.0 — 2026-09-26
+
+- 删除 skill：`openspec-upgrade`、`opsx-maintain`、`ssh-tunnel`。
+  已安装的软链 / Windows 拷贝在下次 `bash setup.sh`（或 `/laodao-upgrade`）时作为孤儿清理。
+- `setup.sh` 的迁入接管名单去掉 `openspec-upgrade`。
+- `standards-init` 职责表里 `opsx-init` 托管块的托管方改为 `sdflow-init`（`opsx-project-init` 早已不在本仓）。
+
 ## 1.10.0 — 2026-09-25
 
 - 新增 `claude-upgrade`：官方升级脚本下载常失败，改为直接读

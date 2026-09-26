@@ -19,7 +19,7 @@ description: >
 | 托管方 | 托管边界 |
 |---|---|
 | `standards-init` | `.editorconfig`、`.gitattributes`、`.claudeignore`、`openspec/rules/` 通用规则，以及 CLAUDE.md / AGENTS.md 中的 `standards-init:windows-shell` 托管块（旧名 `project-init:windows-shell` 哨兵在 apply-repo 时自动原位升级） |
-| `opsx-project-init` | 仅 CLAUDE.md / AGENTS.md 中的 `opsx-init` 托管块 |
+| `sdflow-init` | 仅 CLAUDE.md / AGENTS.md 中的 `opsx-init` 托管块 |
 
 ## 产物清单
 
