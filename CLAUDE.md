@@ -2,6 +2,18 @@
 
 本文件为项目级 AI 指令。
 
+## 本仓结构与命令
+
+- 每个顶层目录是一个 skill（含 `SKILL.md`）。`bash setup.sh` 把它们装进
+  `~/.claude/skills/` 和 `~/.codex/skills/`（Unix 软链，Windows 拷贝 + `.laodao-skills` 标记）。
+- 可选文件：`<skill>/scripts/` 脚本，`<skill>/tests/` 测试，`<skill>/agents/openai.yaml` Codex 元数据。
+- 测试按 skill 各自跑，运行器不统一：
+  - `python3 -m unittest discover -s claude-upgrade/tests`（laodao-upgrade 同）
+  - `standards-init/tests` 用 pytest：`python3 -m pytest standards-init/tests`
+- 新增或改名 skill：同步改 `README.md` 的 skill 表、`VERSION`（新 skill 升 minor）、
+  `CHANGELOG.md`，commit 标题带版本号，如 `(v1.10.0)`。
+- `.claude/`、`.agents/` 下的 openspec-* skill 和 opsx 命令由 OpenSpec CLI 生成，不手改。
+
 <!-- opsx-init:start —— 由 sdflow-init 维护，勿手改本区块 -->
 
 <!-- sdflow:principles:start —— 真相源 sdflow-init/assets/snippets/principles-project.md，由 hack/sync_principles.py 注入，勿手改本区块 -->
