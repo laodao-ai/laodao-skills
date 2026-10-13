@@ -1,0 +1,4 @@
+interface:
+  display_name: "Laodao Upgrade"
+  short_description: "升级 laodao-skills 并同步 Claude Code 与 Codex"
+  default_prompt: "Use $laodao-upgrade to upgrade laodao-skills and sync it to Claude Code and Codex."

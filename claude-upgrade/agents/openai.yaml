@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claude Upgrade"
+  short_description: "从 downloads.claude.ai 直接下载并安装 Claude Code"
+  default_prompt: "Use $claude-upgrade to upgrade Claude Code to the latest native binary."
