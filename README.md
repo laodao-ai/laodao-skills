@@ -17,6 +17,7 @@
 | 开发工具 | tag | Git 语义化版本标签 |
 | 嵌入式 | embedded-lint | C 语言静态分析 |
 | 嵌入式 | embedded-test-sop | 为嵌入式固件功能生成手动测试 SOP 与日志自动分析规则 |
+| 文档归档 | chatgpt-share-download | 下载 ChatGPT 共享对话，保存原始消息、本地图片与媒体恢复状态 |
 | 文档转换 | docx2md | Word 转 Markdown |
 | 文档转换 | pdf2md | PDF 转 Markdown |
 | 文档转换 | xlsx2md | Excel 转 CSV |

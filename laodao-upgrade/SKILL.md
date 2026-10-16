@@ -11,21 +11,27 @@ description: Use when 用户要求升级、更新或重新安装 laodao-skills�
 
 ## Workflow
 
-1. 告知用户该操作会访问 Git 远端，并写入 Claude Code 与 Codex 的用户级 skills 目录。若运行环境要求批准，直接为升级命令申请批准。
-2. 从本 skill 目录执行：
+1. 告知用户该操作会访问 Git 远端，并写入 Claude Code / Codex / Cursor 的用户级 skills 目录。若运行环境要求批准，直接为升级命令申请批准。
+2. **用绝对路径运行**（MUST NOT 先 `cd` 进 skill 目录——Windows 上原生进程的工作目录会锁住该目录，导致 `setup.sh` 无法替换）：
 
    ```bash
-   python scripts/upgrade.py
+   python3 ~/.claude/skills/laodao-upgrade/scripts/upgrade.py
    ```
 
-   若当前解释器命令是 `python3`，使用 `python3 scripts/upgrade.py`。
+   Codex / Cursor 侧若装在 `~/.agents/skills`：
+
+   ```bash
+   python3 ~/.agents/skills/laodao-upgrade/scripts/upgrade.py
+   ```
+
+   解释器命令是 `python` 时把上面的 `python3` 换成 `python`。
 3. 默认定位失败时，让用户提供源码仓库路径，随后执行：
 
    ```bash
-   python scripts/upgrade.py --repo <laodao-skills-repo>
+   python3 ~/.claude/skills/laodao-upgrade/scripts/upgrade.py --repo <laodao-skills-repo>
    ```
 
-4. 保留并向用户展示脚本及 `setup.sh` 的输出。成功时报告版本、是否拉到新提交，以及 Claude Code/Codex 同步结果。
+4. 保留并向用户展示脚本及 `setup.sh` 的输出。成功时报告版本、是否拉到新提交，以及 skills 同步结果。
 
 ## Safety Contract
 

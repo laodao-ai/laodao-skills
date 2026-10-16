@@ -26,3 +26,5 @@ node_modules/
 
 # outside-voice 评审 context（含未脱敏 diff，MUST NOT 入库）
 **/.outside-voice/
+
+drafts/

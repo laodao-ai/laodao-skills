@@ -1,0 +1,4 @@
+interface:
+  display_name: "下载 ChatGPT 共享对话"
+  short_description: "保存 ChatGPT 分享对话、原始消息和本地图片，并核对未恢复的图示"
+  default_prompt: "使用 $chatgpt-share-download 将这个 ChatGPT 分享链接归档到指定目录，并核对图片、图示和消息完整性。"

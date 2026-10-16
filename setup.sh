@@ -40,6 +40,88 @@ is_our_marker_copy() {  # $1 = target directory
   return 1
 }
 
+# Empty dir has nothing to lose — treat as takeable (Windows accident leftovers).
+is_empty_dir() {  # $1 = path
+  [ -d "$1" ] && [ ! -L "$1" ] && [ -z "$(ls -A "$1" 2>/dev/null)" ]
+}
+
+# Windows: recover a prior interrupted transaction (target missing + our backup).
+recover_windows_skill_backup() {  # $1=target $2=skill name
+  local target="$1" name="$2" transaction owner
+  for transaction in "${target%/*}/.laodao-skills-${name}."*; do
+    [ -d "$transaction" ] && [ ! -L "$transaction" ] || continue
+    [ -f "$transaction/owner" ] && [ ! -L "$transaction/owner" ] || continue
+    IFS= read -r owner < "$transaction/owner" || continue
+    [ "$owner" = "$name" ] || continue
+    if [ -d "$transaction/backup" ] && [ ! -L "$transaction/backup" ]; then
+      if [ ! -f "$transaction/backup/.laodao-skills" ]; then
+        is_migrated_skill "$name" && [ -f "$transaction/backup/.sdflow-skills" ] || continue
+      fi
+      if [ ! -e "$target" ] && [ ! -L "$target" ]; then
+        mv -T "$transaction/backup" "$target" 2>/dev/null || return 1
+      else
+        continue
+      fi
+    else
+      continue
+    fi
+    rm -rf -- "$transaction" 2>/dev/null || return 1
+  done
+}
+
+# Windows: stage → rename-aside → swap in. Failures leave the old install intact.
+install_windows_skill() {  # $1=source $2=target $3=skill name
+  local source="$1" target="$2" name="$3" transaction sha
+  if [ -L "$target" ]; then
+    skipped+=("$name @ ${target%/*} — foreign symlink, not overwritten")
+    return 0
+  fi
+  if [ -e "$target" ]; then
+    if [ ! -d "$target" ]; then
+      skipped+=("$name @ ${target%/*} — path exists and is not a directory, not overwritten")
+      return 0
+    fi
+    if ! is_our_marker_copy "$target" && ! is_empty_dir "$target"; then
+      skipped+=("$name @ ${target%/*} — already exists, not managed by laodao-skills")
+      return 0
+    fi
+  fi
+  if ! recover_windows_skill_backup "$target" "$name"; then
+    skipped+=("$name @ ${target%/*} — backup recovery failed")
+    return 0
+  fi
+  sha="$(git -C "$REPO_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+  transaction="$(mktemp -d "${target%/*}/.laodao-skills-${name}.XXXXXX")" || {
+    skipped+=("$name @ ${target%/*} — staging mkdir failed"); return 0
+  }
+  if ! printf '%s\n' "$name" > "$transaction/owner" ||
+     ! mkdir "$transaction/stage" ||
+     ! cp -R "$source/." "$transaction/stage" ||
+     ! printf '%s\n' "$sha" > "$transaction/stage/.laodao-skills"; then
+    rm -rf -- "$transaction" || true
+    skipped+=("$name @ ${target%/*} — staging failed, old install kept")
+    return 0
+  fi
+  if [ -d "$target" ] && ! mv -T "$target" "$transaction/backup" 2>/dev/null; then
+    rm -rf -- "$transaction" || true
+    skipped+=("$name @ ${target%/*} — dir busy (close terminals/editors cwd'd there), old install kept")
+    return 0
+  fi
+  if ! mv -T "$transaction/stage" "$target" 2>/dev/null; then
+    if [ -d "$transaction/backup" ]; then
+      if ! mv -T "$transaction/backup" "$target" 2>/dev/null; then
+        skipped+=("$name @ ${target%/*} — swap/rollback failed, backup at $transaction")
+        return 0
+      fi
+    fi
+    rm -rf -- "$transaction" || true
+    skipped+=("$name @ ${target%/*} — swap failed, old install restored")
+    return 0
+  fi
+  rm -rf -- "$transaction" || true
+  installed+=("$name @ ${target%/*}")
+}
+
 # Content fingerprint: does this absolute path sit inside a laodao-skills checkout?
 # Needed when the checkout directory is not literally named `laodao-skills`
 # (e.g. a named worktree) so ownership checks stay symmetric across checkouts.
@@ -92,26 +174,16 @@ install_into() {
     target="$dest/$skill_name"
 
     if [ "$IS_WINDOWS" -eq 1 ]; then
-      # Windows: copy + marker file
-      if [ -d "$target" ] && [ ! -L "$target" ] && ! is_our_marker_copy "$target"; then
-        skipped+=("$skill_name @ $dest")
-        continue
-      fi
-      if [ -d "$target" ] && is_our_marker_copy "$target"; then
-        rm -rf "$target"
-      fi
-      cp -r "$skill_dir" "$target"
-      git -C "$REPO_DIR" rev-parse HEAD 2>/dev/null > "$target/.laodao-skills" || echo "unknown" > "$target/.laodao-skills"
-      installed+=("$skill_name @ $dest")
+      install_windows_skill "$skill_dir" "$target" "$skill_name"
     else
       # Unix: absolute symlink. Only ever replace symlinks or our own marker
       # copies — never clobber a real directory we don't own (e.g. another
-      # tool's skill of the same name).
+      # tool's skill of the same name). Empty dirs (Windows accident leftovers) are takeable.
       if [ -e "$target" ] && [ ! -L "$target" ]; then
-        if is_our_marker_copy "$target"; then
+        if is_our_marker_copy "$target" || is_empty_dir "$target"; then
           rm -rf "$target"
         else
-          skipped+=("$skill_name @ $dest")
+          skipped+=("$skill_name @ $dest — already exists, not managed by laodao-skills")
           continue
         fi
       fi
@@ -229,7 +301,7 @@ fi
 if [ ${#skipped[@]} -gt 0 ]; then
   echo ""
   echo "  skipped (${#skipped[@]}):"
-  for s in "${skipped[@]}"; do echo "    ⚠ $s — already exists, not managed by laodao-skills"; done
+  for s in "${skipped[@]}"; do echo "    ⚠ $s"; done
 fi
 
 if [ ${#cleaned[@]} -gt 0 ]; then

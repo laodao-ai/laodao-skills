@@ -202,5 +202,37 @@ class ReadVersionTests(unittest.TestCase):
         self.assertEqual(version, "unknown")
 
 
+class CwdGuardTests(unittest.TestCase):
+    def test_detects_cwd_under_claude_skills(self):
+        with tempfile.TemporaryDirectory() as raw:
+            home = Path(raw)
+            skill = home / ".claude" / "skills" / "laodao-upgrade" / "scripts"
+            skill.mkdir(parents=True)
+
+            locked = upgrade._cwd_under_skill_install_roots(cwd=skill, home=home)
+
+            self.assertEqual(locked, (home / ".claude" / "skills").resolve())
+
+    def test_detects_cwd_under_agents_skills(self):
+        with tempfile.TemporaryDirectory() as raw:
+            home = Path(raw)
+            skill = home / ".agents" / "skills" / "laodao-upgrade"
+            skill.mkdir(parents=True)
+
+            locked = upgrade._cwd_under_skill_install_roots(cwd=skill, home=home)
+
+            self.assertEqual(locked, (home / ".agents" / "skills").resolve())
+
+    def test_allows_cwd_outside_install_roots(self):
+        with tempfile.TemporaryDirectory() as raw:
+            home = Path(raw)
+            elsewhere = home / "work"
+            elsewhere.mkdir()
+
+            self.assertIsNone(
+                upgrade._cwd_under_skill_install_roots(cwd=elsewhere, home=home)
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

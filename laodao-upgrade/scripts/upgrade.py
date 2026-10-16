@@ -204,6 +204,28 @@ def _read_version(repo: Path) -> str:
     return version if version else "unknown"
 
 
+def _cwd_under_skill_install_roots(cwd: Path | None = None, *, home: Path | None = None) -> Path | None:
+    """If cwd is under a user-level skills install root, return that root.
+
+    Running upgrade while cwd is inside an installed skill directory locks the
+    directory on Windows (native process handle), so setup cannot replace it.
+    """
+    user_home = (home or Path.home()).resolve()
+    working = (cwd or Path.cwd()).resolve()
+    roots = (
+        user_home / ".claude" / "skills",
+        user_home / ".agents" / "skills",
+        user_home / ".codex" / "skills",  # legacy install root
+    )
+    for root in roots:
+        try:
+            working.relative_to(root)
+        except ValueError:
+            continue
+        return root
+    return None
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="升级 laodao-skills，并同步配置到 Claude Code 与 Codex。"
@@ -212,6 +234,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        locked_root = _cwd_under_skill_install_roots()
+        if locked_root is not None:
+            raise UpgradeError(
+                "当前工作目录在 skills 安装目录内（"
+                f"{locked_root}），Windows 上会导致目录被占用、setup 无法替换。"
+                "请先 cd 到其他目录，再用绝对路径重跑，例如：\n"
+                "  python3 ~/.claude/skills/laodao-upgrade/scripts/upgrade.py\n"
+                "  python3 ~/.agents/skills/laodao-upgrade/scripts/upgrade.py"
+            )
         repo = find_repo(args.repo)
         print(f"源码仓库：{repo}")
         result = upgrade_repo(repo)
