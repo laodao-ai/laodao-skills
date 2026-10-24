@@ -98,6 +98,21 @@ class DownloadTests(unittest.TestCase):
             self.assertNotIn(char, text)
         self.assertEqual(result['unresolved'], 1)
 
+    def test_genui_citations_resolve_from_items(self):
+        single = 'genui{"citation":{"ref":"turn5view3"}}'
+        grouped = 'genui{"citation":{"refs":["turn9view2","turn5view3"]}}'
+        node = message('assistant', f'甲 {single} 乙 {grouped}')
+        item = {'title': '论文甲', 'url': 'https://example.com/paper'}
+        node['message']['metadata'] = {'content_references': [
+            {'prefix': 'genui', 'matched_text': single, 'items': [item]},
+            {'prefix': 'genui', 'matched_text': grouped, 'items': [item, item]}]}
+        text, result = self.archive_one(node)
+        self.assertEqual(text.count('[论文甲](https://example.com/paper)'), 2)
+        self.assertNotIn('引用未恢复', text)
+        for char in '':
+            self.assertNotIn(char, text)
+        self.assertEqual(result['unresolved'], 0)
+
     def test_url_entity_ignores_non_https_alt(self):
         entity = '\ue200url\ue202坏链接\ue202turn1view1\ue201'
         node = message('assistant', f'见 {entity}')

@@ -236,7 +236,9 @@ def convert_references(body, message, manifest):
         marker = reference.get('matched_text')
         if not isinstance(marker, str):
             continue
-        if marker.startswith('\ue200cite'):
+        # \u65b0\u7248\u5206\u4eab\u9875\u628a\u5f15\u7528\u5199\u6210 genui \u5b9e\u4f53\uff08\u6b63\u6587 {"citation":{"ref":...}}\uff09\uff0c\u6761\u76ee\u7ed3\u6784\u4e0e cite \u76f8\u540c\u3002
+        if (marker.startswith('\ue200cite')
+                or (marker.startswith('\ue200genui') and '"citation"' in marker)):
             replacement = links(reference.get('items', []) or reference.get('safe_urls', []))
         elif reference.get('type') == 'url' and marker.startswith('\ue200url'):
             # alt 已是完成的 [标题](链接)；只接受 https 目标。
