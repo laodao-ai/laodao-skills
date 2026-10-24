@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matt Pocock Upgrade"
+  short_description: "更新 Matt Pocock skills，并管理安装副本、备份与 Claude 链接"
+  default_prompt: "使用 $matt-pocock-upgrade 更新 Matt Pocock skills，保留本地改动并验证安装结果。"

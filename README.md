@@ -22,6 +22,7 @@
 | 文档转换 | pdf2md | PDF 转 Markdown |
 | 文档转换 | xlsx2md | Excel 转 CSV |
 | 元工具 | laodao-upgrade | 升级并同步配置 laodao-skills |
+| 元工具 | matt-pocock-upgrade | 管理 Matt Pocock skills 的源码、安装副本、备份及 Claude 符号链接 |
 | 元工具 | claude-upgrade | 绕过官方脚本下载并安装 Claude Code 原生二进制 |
 
 > **迁入说明**：`embedded-test-sop` 已从 sdflow-skills
