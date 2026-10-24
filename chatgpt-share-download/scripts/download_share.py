@@ -207,18 +207,19 @@ def convert_references(body, message, manifest):
             result.append(f'[{title}]({url.replace(")", "%29")})')
         return ', '.join(dict.fromkeys(result))
 
-    for reference in message.get('metadata', {}).get('content_references', []):
-        marker = reference.get('matched_text')
-        if isinstance(marker, str) and marker.startswith('cite'):
-            replacement = links(reference.get('items', []) or reference.get('safe_urls', []))
-            if replacement:
-                body = body.replace(marker, replacement)
     components = message.get('metadata', {}).get('genui_components', [])
 
     def cite(match):
+        # entities 可能是 null；此时只能靠 start_index 与原文位置对应。
+        for component in components:
+            if (component.get('type') == 'cite' and component.get('start_index') == match.start()
+                    and original[match.start():component.get('end_index')] == match[0]):
+                replacement = links(component.get('safe_urls', []))
+                if replacement:
+                    return replacement
         refs = set(re.findall(r'"([^"]+)"', match[0]))
         for component in components:
-            entity_refs = {x.get('ref') for x in component.get('entities', [])}
+            entity_refs = {x.get('ref') for x in component.get('entities') or []}
             if component.get('type') == 'cite' and refs and refs == entity_refs:
                 replacement = links(component.get('safe_urls', []))
                 if replacement:
@@ -227,11 +228,51 @@ def convert_references(body, message, manifest):
                          'message_id': message.get('id'), 'source': match[0]})
         return '[引用未恢复，见 source.json]'
 
+    # 位置按未改动的原文计算，所以 <Cite> 必须先于下面会改变长度的替换。
+    original = body
     body = re.sub(r'<Cite\b[^>]*?/>', cite, body)
-    for marker in re.findall(r'cite[^]*', body):
+
+    for reference in message.get('metadata', {}).get('content_references', []):
+        marker = reference.get('matched_text')
+        if not isinstance(marker, str):
+            continue
+        if marker.startswith('\ue200cite'):
+            replacement = links(reference.get('items', []) or reference.get('safe_urls', []))
+        elif reference.get('type') == 'url' and marker.startswith('\ue200url'):
+            # alt 已是完成的 [标题](链接)；只接受 https 目标。
+            alt = reference.get('alt')
+            ok = isinstance(alt, str) and re.fullmatch(r'\[[\s\S]*\]\(https://\S+\)', alt)
+            replacement = alt if ok else ''
+        else:
+            continue
+        if replacement:
+            body = body.replace(marker, replacement)
+
+    # 没被元数据覆盖的实体统一记为未恢复，不留原始私有字符。
+    for marker in dict.fromkeys(re.findall(r'\ue200[^\ue201]*\ue201', body)):
         manifest.append({'kind': 'reference', 'status': 'unavailable',
                          'message_id': message.get('id'), 'source': marker})
         body = body.replace(marker, '[引用未恢复，见 source.json]')
+
+    def link_tag(match):
+        attrs = dict(re.findall(r'(\w+)="([^"]*)"', match[0]))
+        replacement = links([{'url': attrs.get('url'), 'title': attrs.get('title')}])
+        if replacement:
+            return replacement
+        manifest.append({'kind': 'reference', 'status': 'unavailable',
+                         'message_id': message.get('id'), 'source': match[0]})
+        return attrs.get('title') or '[链接未恢复，见 source.json]'
+
+    body = re.sub(r'<Link\b[^>]*?/>', link_tag, body)
+    body = re.sub(r'<MemoryCite\s*/>', '［此处原为 ChatGPT 记忆引用，分享页不显示内容］', body)
+
+    def writing_open(match):
+        attrs = dict(re.findall(r'(\w+)="([^"]*)"', match[0]))
+        return (f'\n\n> 写作块开始（ChatGPT 写作组件 {attrs.get("variant", "未知")}，'
+                f'id {attrs.get("id", "未知")}）\n\n')
+
+    body = re.sub(r'<WritingBlock\b[^>]*>', writing_open, body)
+    body = re.sub(r'</WritingBlock>', '\n\n> 写作块结束\n\n', body)
     return body
 
 

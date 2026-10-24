@@ -75,6 +75,72 @@ class DownloadTests(unittest.TestCase):
             self.assertNotIn('cite', text)
             self.assertEqual(result['unresolved'], 0)
 
+    def archive_one(self, node):
+        node['message']['id'] = 'test-message'  # 默认 id 取正文前 8 字，会带入原始字符
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'archive'
+            result = mod.archive(page([node]), 'https://chatgpt.com/share/abc', out, False)
+            return (out / 'conversation.md').read_text(), result
+
+    def test_url_entities_resolve_from_alt(self):
+        direct = '\ue200url\ue202标题甲\ue202https://example.com/a\ue201'
+        by_turn = '\ue200url\ue202标题乙\ue202turn738729reddit10\ue201'
+        unknown = '\ue200url\ue202没有元数据\ue202turn1view1\ue201'
+        node = message('assistant', f'甲 {direct} 乙 {by_turn} 丙 {unknown}')
+        node['message']['metadata'] = {'content_references': [
+            {'type': 'url', 'matched_text': direct, 'alt': '[标题甲](https://example.com/a)'},
+            {'type': 'url', 'matched_text': by_turn, 'alt': '[标题乙](https://example.com/b)'}]}
+        text, result = self.archive_one(node)
+        self.assertIn('[标题甲](https://example.com/a)', text)
+        self.assertIn('[标题乙](https://example.com/b)', text)
+        self.assertIn('[引用未恢复，见 source.json]', text)
+        for char in '\ue200\ue201\ue202':
+            self.assertNotIn(char, text)
+        self.assertEqual(result['unresolved'], 1)
+
+    def test_url_entity_ignores_non_https_alt(self):
+        entity = '\ue200url\ue202坏链接\ue202turn1view1\ue201'
+        node = message('assistant', f'见 {entity}')
+        node['message']['metadata'] = {'content_references': [
+            {'type': 'url', 'matched_text': entity, 'alt': '[坏链接](javascript:alert(1))'}]}
+        text, result = self.archive_one(node)
+        self.assertNotIn('javascript', text)
+        self.assertEqual(result['unresolved'], 1)
+
+    def test_cite_with_null_entities_resolves_by_position(self):
+        entity = '\ue200cite\ue202turn1search0\ue201'
+        tag = '<Cite ref="turn106433reddit55"/>'
+        text = f'前文 {entity} 中间 {tag} 结尾'
+        start = text.index(tag)
+        node = message('assistant', text)
+        node['message']['metadata'] = {
+            'content_references': [{'matched_text': entity, 'items': [
+                {'title': '官方', 'url': 'https://example.com/docs'}]}],
+            'genui_components': [{'type': 'cite', 'start_index': start, 'end_index': start + len(tag),
+                                  'safe_urls': [{'url': 'https://www.reddit.com/r/x/comments/1/'}],
+                                  'entities': None}]}
+        out, result = self.archive_one(node)
+        self.assertIn('[官方](https://example.com/docs)', out)
+        self.assertIn('[www.reddit.com](https://www.reddit.com/r/x/comments/1/)', out)
+        self.assertNotIn('<Cite', out)
+        self.assertEqual(result['unresolved'], 0)
+
+    def test_link_writing_block_and_memory_cite_tags(self):
+        body = ('看 **<Link url="https://example.com/a" title="含[括号]标题"/>** 和 '
+                '<Link url="http://example.com/insecure" title="不安全"/>\n'
+                '<MemoryCite />\n'
+                '<WritingBlock id="58321" variant="chat_message">\n# 标题\n正文\n</WritingBlock>')
+        text, result = self.archive_one(message('assistant', body))
+        self.assertIn('**[含\\[括号\\]标题](https://example.com/a)**', text)
+        self.assertNotIn('http://example.com/insecure', text)
+        self.assertIn('［此处原为 ChatGPT 记忆引用，分享页不显示内容］', text)
+        self.assertIn('\n\n> 写作块开始（ChatGPT 写作组件 chat_message，id 58321）\n\n', text)
+        self.assertIn('\n\n# 标题\n正文\n\n', text)
+        self.assertIn('\n\n> 写作块结束\n\n', text)
+        for tag in ('<Link', '<WritingBlock', '</WritingBlock', '<MemoryCite'):
+            self.assertNotIn(tag, text)
+        self.assertEqual(result['unresolved'], 1)
+
     def test_export_preserves_source_and_marks_dynamic_visual(self):
         body = '正文\n<box><svg viewBox="0 0 10 10"><text x="1">静态</text></svg></box>\n<box>{#each items as x}<text>{x}</text>{/each}</box>'
         html = page([message('user', '问题'), message('assistant', body)])
