@@ -1,0 +1,4 @@
+interface:
+  display_name: "下载视频并转写"
+  short_description: "下载 B站或抖音视频，分离音频，获取平台字幕，并在本机转写逐句字幕与口播稿"
+  default_prompt: "使用 $video-fetch 下载这个视频链接，分离音频并转写口播稿，最后报告标题、时长、文件路径和字幕行数。"
