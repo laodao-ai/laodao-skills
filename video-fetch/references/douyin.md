@@ -29,3 +29,7 @@
 | 没截到作品接口 | 页面改版、被风控、网络慢 | 先重跑一次；仍失败就用有界面的浏览器打开同一链接看是否要验证码，再看接口路径是否改名 |
 | 下载的视频没有音轨 | 取到了只含视频的分轨地址 | 检查是否误用了页面里 `media-video-avc1` 这类分轨请求；应只用接口 JSON 的 `bit_rate` / `play_addr` |
 | Playwright 报找不到浏览器 | 本机没有 Chrome，也没装 Playwright 的 Chromium | 按报错提示运行安装命令 |
+
+## 互动数据
+
+取自作品接口的 `aweme_detail.statistics`：点赞 `digg_count`、评论 `comment_count`、收藏 `collect_count`、分享 `share_count`，推荐数放 `extra`。`play_count` 恒为 0，表示抖音不公开播放量，`views` 写 `null`。

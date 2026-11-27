@@ -22,3 +22,7 @@
 |---|---|---|
 | `Subtitles are only available when logged in` | 没带 cookie | 正常继续，转写照做；要平台字幕就带 cookie 重跑 |
 | `Format(s) 4K ... are missing` | 非大会员 | 忽略，脚本本来就只取 1080P |
+
+## 互动数据
+
+调公开接口 `https://api.bilibili.com/x/web-interface/view?bvid=<BV号>`，不用登录，返回 `data.stat`：播放、点赞、评论、收藏、分享都有，投币和弹幕数放 `extra`。接口失败时退回 yt-dlp info.json 的播放、点赞、评论三项。

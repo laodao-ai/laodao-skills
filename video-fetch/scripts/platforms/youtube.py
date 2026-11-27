@@ -7,7 +7,7 @@ import sys
 import urllib.parse
 from pathlib import Path
 
-from . import FetchError
+from . import FetchError, make_stats
 
 NAME = "youtube"
 
@@ -92,4 +92,15 @@ def fetch(url, video_id, outdir, opts):
         "platform_subtitles": [str(p.relative_to(outdir)) for p in subs],
         # YouTube 元数据常常没有语言（英文视频也是），这时让 ASR 自动识别，避免把英文当中文转写
         "language": info.get("language") or "auto",
+        "stats": stats_from_info(info),
     }
+
+
+def stats_from_info(info):
+    """yt-dlp info.json 转统一 stats。YouTube 不公开收藏与分享数，写 None。"""
+    return make_stats(
+        views=info.get("view_count"),
+        likes=info.get("like_count"),
+        comments=info.get("comment_count"),
+        extra={"channel_followers": info.get("channel_follower_count")},
+    )

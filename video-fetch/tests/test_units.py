@@ -230,6 +230,74 @@ class DouyinPlayable(unittest.TestCase):
 
 
 
+class ParseCount(unittest.TestCase):
+    def test_cases(self):
+        cases = {
+            "262": (262, False),
+            "4,404": (4404, False),
+            "20.2K": (20200, True),
+            "1.2万": (12000, True),
+            "3.4w": (34000, True),
+            "10万+": (100000, True),
+            "": (None, False),
+            "abc": (None, False),
+        }
+        for text, expected in cases.items():
+            self.assertEqual(xiaohongshu.parse_count(text), expected, text)
+
+    def test_non_string(self):
+        self.assertEqual(xiaohongshu.parse_count(None), (None, False))
+
+
+class StatsMapping(unittest.TestCase):
+    def test_douyin_play_count_zero_is_none(self):
+        aweme = {"statistics": {"digg_count": 4548, "comment_count": 139, "collect_count": 5500,
+                                "share_count": 1321, "play_count": 0, "recommend_count": 37, "admire_count": 0}}
+        self.assertEqual(douyin.stats_from_aweme(aweme), {
+            "views": None, "likes": 4548, "comments": 139, "favorites": 5500, "shares": 1321,
+            "approximate": [], "extra": {"recommends": 37},
+        })
+
+    def test_douyin_without_statistics(self):
+        self.assertIsNone(douyin.stats_from_aweme({}))
+
+    def test_bilibili_api(self):
+        stat = {"view": 12606, "danmaku": 2, "reply": 27, "favorite": 1354, "coin": 335, "share": 127, "like": 692}
+        self.assertEqual(bilibili.stats_from_api(stat), {
+            "views": 12606, "likes": 692, "comments": 27, "favorites": 1354, "shares": 127,
+            "approximate": [], "extra": {"coins": 335, "danmaku": 2},
+        })
+
+    def test_bilibili_info_fallback(self):
+        info = {"view_count": 100, "like_count": 5, "comment_count": 2}
+        stats = bilibili.stats_from_info(info)
+        self.assertEqual((stats["views"], stats["likes"], stats["comments"]), (100, 5, 2))
+        self.assertIsNone(stats["favorites"])
+        self.assertIsNone(stats["shares"])
+
+    def test_xiaohongshu_html(self):
+        html = ('<script>window.__INITIAL_STATE__={"note":{"interactInfo":{"collected":false,'
+                '"collectedCount":"31K","sticky":false,"niceCount":"13","liked":false,'
+                '"commentCount":"262","shareCount":"4,404","followed":false,"relation":"none",'
+                '"likedCount":"20.2K"},"title":"x"}}</script>')
+        self.assertEqual(xiaohongshu.stats_from_html(html), {
+            "views": None, "likes": 20200, "comments": 262, "favorites": 31000, "shares": 4404,
+            "approximate": ["likes", "favorites"],
+            "extra": {"raw": {"likedCount": "20.2K", "collectedCount": "31K",
+                              "commentCount": "262", "shareCount": "4,404"}},
+        })
+
+    def test_xiaohongshu_html_without_interact_info(self):
+        self.assertIsNone(xiaohongshu.stats_from_html("<html></html>"))
+
+    def test_youtube_info(self):
+        info = {"view_count": 1000, "like_count": 50, "comment_count": 7, "channel_follower_count": 300}
+        self.assertEqual(youtube.stats_from_info(info), {
+            "views": 1000, "likes": 50, "comments": 7, "favorites": None, "shares": None,
+            "approximate": [], "extra": {"channel_followers": 300},
+        })
+
+
 class AutoLanguage(unittest.TestCase):
     def test_auto_passes_through(self):
         self.assertEqual(fetch.pick_language(None, "auto"), "auto")

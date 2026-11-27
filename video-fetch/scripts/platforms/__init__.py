@@ -20,6 +20,14 @@
         返回 {"title", "author", "duration", "description", "platform_subtitles"}，
         duration 为秒，platform_subtitles 是相对 outdir 的路径列表。
         可选再带 "language"（ISO 语言代码，如 en、zh，不知道就 None 或不带）。
+        可选再带 "stats"（互动数据），结构由 make_stats() 生成：
+          {"views": int|None, "likes": int|None, "comments": int|None,
+           "favorites": int|None, "shares": int|None,
+           "approximate": [字段名...],   # 数值由「20.2K」「1.2万」这类约数换算而来的字段
+           "extra": {...}}               # 平台独有数据与原始显示字符串
+        拿不到的项一律 None，不能写 0（0 会被当成真实的零）。
+        取统计数据失败不得抛 FetchError：在平台内部捕获、往 stderr 打一行警告、
+        返回 "stats": None 或不带该键，不影响下载与转写。
         opts 带 cookies、cookies_from_browser 两个属性（目前只有 B站用）。
 
 下载失败一律抛 FetchError，message 写清问题、原因、处理办法；fetch.py 统一以退出码 1 退出。
@@ -29,3 +37,16 @@
 
 class FetchError(Exception):
     pass
+
+
+def make_stats(views=None, likes=None, comments=None, favorites=None, shares=None, approximate=(), extra=None):
+    """生成统一结构的 stats 字典，字段说明见上方 fetch 的接口说明。"""
+    return {
+        "views": views,
+        "likes": likes,
+        "comments": comments,
+        "favorites": favorites,
+        "shares": shares,
+        "approximate": list(approximate),
+        "extra": dict(extra) if extra else {},
+    }

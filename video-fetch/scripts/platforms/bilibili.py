@@ -7,9 +7,11 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from . import FetchError
+from . import FetchError, make_stats
 
 NAME = "bilibili"
+
+STAT_API = "https://api.bilibili.com/x/web-interface/view?bvid="
 
 BV_RE = re.compile(r"BV[0-9A-Za-z]{10}")
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -85,4 +87,40 @@ def fetch(url, video_id, outdir, opts):
         "duration": info.get("duration"),
         "description": info.get("description", ""),
         "platform_subtitles": [str(p.relative_to(outdir)) for p in subs],
+        "stats": fetch_stats(video_id, info),
     }
+
+
+def stats_from_api(stat):
+    """公开接口 view 返回的 data.stat 转统一 stats。纯函数，不联网。"""
+    return make_stats(
+        views=stat.get("view"),
+        likes=stat.get("like"),
+        comments=stat.get("reply"),
+        favorites=stat.get("favorite"),
+        shares=stat.get("share"),
+        extra={"coins": stat.get("coin"), "danmaku": stat.get("danmaku")},
+    )
+
+
+def stats_from_info(info):
+    """接口不可用时的退路：只有 yt-dlp 给的三项，其余 None。"""
+    return make_stats(
+        views=info.get("view_count"),
+        likes=info.get("like_count"),
+        comments=info.get("comment_count"),
+    )
+
+
+def fetch_stats(bvid, info):
+    """优先调公开接口（项目更全，含收藏、分享、投币）；失败退回 info.json，不抛异常。"""
+    req = urllib.request.Request(STAT_API + urllib.parse.quote(bvid), headers={"User-Agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+        if body.get("code") != 0:
+            raise ValueError(f"接口 code={body.get('code')}")
+        return stats_from_api(body["data"]["stat"])
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        print(f"警告：B站统计接口取数失败（{e}），互动数据退回 yt-dlp 的 info.json，只有播放、点赞、评论。", file=sys.stderr)
+        return stats_from_info(info)

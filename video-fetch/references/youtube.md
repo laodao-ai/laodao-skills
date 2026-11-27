@@ -28,3 +28,7 @@
 | `No supported JavaScript runtime could be found` | 本机没有 Node 和 deno | 装 Node（`brew install node`） |
 | 字幕请求报 HTTP 429 | 请求了机器翻译字幕轨，或请求过于频繁 | 检查 `--sub-langs` 是否放进了翻译轨；等一会儿重跑 |
 | `Sign in to confirm you're not a bot` | 被 YouTube 风控 | 隔一段时间重跑；仍不行就带 `--cookies-from-browser` |
+
+## 互动数据
+
+取自 yt-dlp info.json：播放 `view_count`、点赞 `like_count`、评论 `comment_count`，频道订阅数放 `extra.channel_followers`。YouTube 不公开收藏和分享，写 `null`。评论数和订阅数较大时是 yt-dlp 从页面显示文字换算的约数（如 10000000 来自「10M」），脚本无法区分，不进 `approximate`，引用时注意。

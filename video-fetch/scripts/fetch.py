@@ -139,6 +139,12 @@ def main():
         transcript = transcribe(wav, outdir, language)
         wav.unlink()
 
+    fetched_at = datetime.now().astimezone().isoformat(timespec="seconds")
+    # 平台没给统计数据时 stats 写 None；给了就补快照时间，互动数据随时间变化
+    stats = info.get("stats")
+    if stats is not None:
+        stats = {**stats, "fetched_at": fetched_at}
+
     meta = {
         "platform": platform.NAME,
         "id": video_id,
@@ -147,7 +153,8 @@ def main():
         "author": info["author"],
         "duration": info["duration"],
         "description": info["description"],
-        "fetched_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "fetched_at": fetched_at,
+        "stats": stats,
         "platform_subtitles": info["platform_subtitles"],
         "language": transcript.get("language", language),
         "transcript": transcript,

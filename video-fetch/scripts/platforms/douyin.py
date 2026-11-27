@@ -6,7 +6,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from . import FetchError
+from . import FetchError, make_stats
 
 NAME = "douyin"
 
@@ -178,4 +178,21 @@ def fetch(url, video_id, outdir, opts):
         "duration": duration_ms / 1000 if duration_ms else None,
         "description": aweme.get("desc", ""),
         "platform_subtitles": [],
+        "stats": stats_from_aweme(aweme),
     }
+
+
+def stats_from_aweme(aweme):
+    """aweme_detail.statistics 转统一 stats。纯函数，不联网。"""
+    s = aweme.get("statistics")
+    if not s:
+        return None
+    # play_count 恒为 0 表示作者未公开播放量，不是真的 0 次播放，所以 views 写 None
+    return make_stats(
+        views=None,
+        likes=s.get("digg_count"),
+        comments=s.get("comment_count"),
+        favorites=s.get("collect_count"),
+        shares=s.get("share_count"),
+        extra={"recommends": s.get("recommend_count")},
+    )
