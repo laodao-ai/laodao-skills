@@ -9,10 +9,12 @@ description: 当用户给出 B站或抖音视频链接（含抖音 App 复制的
 
 ## 依赖
 
-- `uv`、`ffmpeg`、`ffprobe`；转写要 Apple Silicon（mlx-audio）。
+- `uv`、`ffmpeg`、`ffprobe`；转写要 Apple Silicon（mlx-audio），其他机器只能加 `--no-asr`。
 - 脚本用 PEP 723 头声明 Python 依赖，`uv run` 首次运行自动安装。
 - 抖音要无头浏览器：优先用本机 Google Chrome；没有 Chrome 时按脚本报错提示装 Playwright 的 Chromium。
-- 转写模型 `Qwen3-ASR-1.7B-8bit` 与 `Qwen3-ForcedAligner-0.6B-8bit`（mlx-community）。脚本依次找 `$VIDEO_FETCH_MODELS_DIR`、`~/.omlx/models/mlx-community`、`/Users/Shared/.omlx/models/mlx-community`；都没有就从 Hugging Face 下载，约 3 GB。
+- 转写模型 `Qwen3-ASR-1.7B-8bit` 与 `Qwen3-ForcedAligner-0.6B-8bit`（mlx-community），本机没有时从 Hugging Face 下载，约 3.5 GB。
+
+缺依赖、模型放在别处、要换缓存目录、不是 Apple Silicon：读 `references/setup.md`，里面有安装命令、模型查找顺序和各缓存位置。
 
 ## 执行
 
