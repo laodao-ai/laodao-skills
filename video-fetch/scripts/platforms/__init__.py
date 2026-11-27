@@ -19,6 +19,7 @@
           outdir/subtitles/       平台字幕（有才建）
         返回 {"title", "author", "duration", "description", "platform_subtitles"}，
         duration 为秒，platform_subtitles 是相对 outdir 的路径列表。
+        可选再带 "language"（ISO 语言代码，如 en、zh，不知道就 None 或不带）。
         opts 带 cookies、cookies_from_browser 两个属性（目前只有 B站用）。
 
 下载失败一律抛 FetchError，message 写清问题、原因、处理办法；fetch.py 统一以退出码 1 退出。

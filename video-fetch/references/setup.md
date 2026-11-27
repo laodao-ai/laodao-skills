@@ -4,7 +4,7 @@
 
 ## 平台要求
 
-- 下载（B站、抖音）：macOS、Linux 都可以。
+- 下载（B站、抖音、小红书、YouTube）：macOS、Linux 都可以。
 - 转写：只支持 Apple Silicon（M 系列芯片）的 Mac，因为用的是 mlx-audio。用 `uname -m` 检查，输出 `arm64` 即可。
 - 其他机器只能加 `--no-asr`，只下载不转写。不加的话转写会失败，退出码为 2。
 
@@ -14,6 +14,7 @@
 |---|---|---|---|
 | uv | 运行脚本，按脚本头自动装 Python 依赖 | `brew install uv` | `uv --version` |
 | ffmpeg、ffprobe | 合并音视频、抽音频、切音频、检查音视频流 | `brew install ffmpeg`（ffprobe 一起装上） | `ffmpeg -version` |
+| Node.js（或 deno） | YouTube 下载时 yt-dlp 要用的 JS 运行时；缺了会少格式和字幕 | `brew install node` | `node --version` |
 | Google Chrome | 抖音的无头浏览器（优先用） | 正常安装 Chrome | `ls "/Applications/Google Chrome.app"` |
 | Playwright 的 Chromium | 没有 Chrome 时代替它 | `uv run --with playwright==1.65.2 playwright install chromium` | 抖音能下载即可 |
 | Python 包 | yt-dlp、playwright、mlx-audio | 不用手动装，`uv run` 首次运行自动装 | — |

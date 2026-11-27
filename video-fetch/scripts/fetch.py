@@ -17,9 +17,30 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from platforms import FetchError, bilibili, douyin, xiaohongshu  # noqa: E402
+from platforms import FetchError, bilibili, douyin, xiaohongshu, youtube  # noqa: E402
 
-PLATFORMS = [bilibili, douyin, xiaohongshu]
+PLATFORMS = [bilibili, douyin, xiaohongshu, youtube]
+
+# 语言代码 -> Qwen3 语言名。显式列出，不靠猜
+LANGUAGE_NAMES = {
+    "zh": "Chinese",
+    "en": "English",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "yue": "Cantonese",
+}
+DEFAULT_LANGUAGE = "zh"
+
+
+def language_name(code):
+    """语言代码转 Qwen3 语言名。en-US、zh-Hans 取 - 前的部分；不在表里的原样返回（当作语言名）。"""
+    key = code.split("-")[0].lower()
+    return LANGUAGE_NAMES.get(key, code)
+
+
+def pick_language(cli_lang, platform_lang):
+    """优先级：--lang > 平台返回的 language（YouTube 不知道时为 auto）> 默认中文。"""
+    return language_name(cli_lang or platform_lang or DEFAULT_LANGUAGE)
 
 # 抖音 App 分享文本是「文字 + 短链 + 口令」，只取第一个链接
 URL_RE = re.compile(r"https?://[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+,;=%]+")
@@ -59,9 +80,9 @@ def make_wav16k(outdir):
     return wav
 
 
-def transcribe(wav, outdir):
+def transcribe(wav, outdir, language):
     """返回 meta.json 里的 transcript 字段。"""
-    cmd = ["uv", "run", str(SCRIPTS_DIR / "transcribe.py"), str(wav), str(outdir)]
+    cmd = ["uv", "run", str(SCRIPTS_DIR / "transcribe.py"), str(wav), str(outdir), "--lang", language]
     try:
         r = subprocess.run(cmd, stdout=subprocess.PIPE, text=True)
     except OSError as e:
@@ -72,15 +93,17 @@ def transcribe(wav, outdir):
         result = json.loads(r.stdout.strip().splitlines()[-1])
     except (IndexError, ValueError):
         return {"status": "failed", "lines": 0, "error": f"无法解析转写结果：{r.stdout[-200:]!r}"}
-    return {"status": "ok", "lines": result["aligned"], "error": ""}
+    # language 是实际使用的语言；传 auto 时为识别结果
+    return {"status": "ok", "lines": result["aligned"], "error": "", "language": result.get("language", language)}
 
 
 def main():
-    ap = argparse.ArgumentParser(description="下载 B站/抖音/小红书视频并转写口播稿")
+    ap = argparse.ArgumentParser(description="下载 B站/抖音/小红书/YouTube 视频并转写口播稿")
     ap.add_argument("input", help="视频链接，或抖音 App 复制的整段分享文本")
     ap.add_argument("--output", help="输出目录；默认在当前目录建 <平台>-<视频ID>/")
     ap.add_argument("--cookies", help="Netscape 格式 cookies.txt（目前只有 B站用）")
     ap.add_argument("--cookies-from-browser", help="从浏览器读 cookie，如 chrome（目前只有 B站用）")
+    ap.add_argument("--lang", help="转写语言：代码（zh/en/ja/ko/yue）或 Qwen3 语言名（如 English）；默认用平台返回的语言，没有则中文")
     ap.add_argument("--no-asr", action="store_true", help="只下载，不转写")
     opts = ap.parse_args()
 
@@ -109,10 +132,11 @@ def main():
         hint = f"\n输出目录 {outdir} 里可能留有部分文件，重跑前清理它或换 --output。" if outdir else ""
         sys.exit(f"错误：{e}{hint}")
 
+    language = pick_language(opts.lang, info.get("language"))
     if opts.no_asr:
         transcript = {"status": "skipped", "lines": 0, "error": ""}
     else:
-        transcript = transcribe(wav, outdir)
+        transcript = transcribe(wav, outdir, language)
         wav.unlink()
 
     meta = {
@@ -125,6 +149,7 @@ def main():
         "description": info["description"],
         "fetched_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "platform_subtitles": info["platform_subtitles"],
+        "language": transcript.get("language", language),
         "transcript": transcript,
     }
     (outdir / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

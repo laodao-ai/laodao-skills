@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import fetch  # noqa: E402
 import transcribe  # noqa: E402
-from platforms import FetchError, bilibili, douyin, xiaohongshu  # noqa: E402
+from platforms import FetchError, bilibili, douyin, xiaohongshu, youtube  # noqa: E402
 
 DY_SHARE = "5.12 复制打开抖音，看看【短耳兔AI的作品】5个AI交互动效提示词 https://v.douyin.com/xTMpUIFc6RM/ e@B.gO 10/03 YMw:/"
 
@@ -44,6 +44,15 @@ class Match(unittest.TestCase):
         self.assertTrue(xiaohongshu.match(XHS_URL))
         self.assertFalse(xiaohongshu.match("https://v.douyin.com/Sron2txr3Lg/"))
         self.assertFalse(xiaohongshu.match("https://example.com/xiaohongshu.com"))
+
+    def test_youtube(self):
+        for url in ["https://www.youtube.com/watch?v=jNQXAC9IVRw", "https://youtube.com/shorts/jNQXAC9IVRw",
+                    "https://m.youtube.com/watch?v=jNQXAC9IVRw", "https://youtu.be/jNQXAC9IVRw"]:
+            self.assertTrue(youtube.match(url), url)
+        self.assertFalse(youtube.match("https://example.com/youtube.com"))
+        self.assertFalse(youtube.match("https://notyoutube.com/watch?v=jNQXAC9IVRw"))
+        self.assertFalse(youtube.match("https://www.bilibili.com/video/BV1fxu86uEVS/"))
+        self.assertIs(fetch.find_platform("https://youtu.be/jNQXAC9IVRw"), youtube)
 
     def test_find_platform(self):
         self.assertIs(fetch.find_platform("https://b23.tv/xxxx"), bilibili)
@@ -92,6 +101,72 @@ class Ids(unittest.TestCase):
         with self.assertRaises(Exception) as cm:
             douyin.resolve("https://www.douyin.com/note/7703213715362158075")
         self.assertIn("图文", str(cm.exception))
+
+
+class YoutubeResolve(unittest.TestCase):
+    VID = "jNQXAC9IVRw"
+    CANON = f"https://www.youtube.com/watch?v={VID}"
+
+    def test_four_forms(self):
+        for url in [f"https://www.youtube.com/watch?v={self.VID}&t=10s", f"https://www.youtube.com/shorts/{self.VID}",
+                    f"https://www.youtube.com/live/{self.VID}?feature=share", f"https://youtu.be/{self.VID}?si=abc"]:
+            self.assertEqual(youtube.resolve(url), (self.VID, self.CANON), url)
+
+    def test_unsupported(self):
+        for url in ["https://www.youtube.com/@somechannel", "https://www.youtube.com/playlist?list=PLabc",
+                    "https://www.youtube.com/watch?v=short", "https://www.youtube.com/watch", "https://youtu.be/"]:
+            with self.assertRaises(FetchError, msg=url):
+                youtube.resolve(url)
+
+
+class Language(unittest.TestCase):
+    def test_codes(self):
+        self.assertEqual(fetch.language_name("en"), "English")
+        self.assertEqual(fetch.language_name("en-US"), "English")
+        self.assertEqual(fetch.language_name("zh-Hans"), "Chinese")
+        self.assertEqual(fetch.language_name("yue"), "Cantonese")
+
+    def test_name_and_unknown_passthrough(self):
+        self.assertEqual(fetch.language_name("English"), "English")
+        self.assertEqual(fetch.language_name("German"), "German")
+
+    def test_priority(self):
+        self.assertEqual(fetch.pick_language("ja", "en"), "Japanese")
+        self.assertEqual(fetch.pick_language(None, "en"), "English")
+        self.assertEqual(fetch.pick_language(None, None), "Chinese")
+
+
+class SplitLinesEnglish(unittest.TestCase):
+    def test_short_unchanged(self):
+        self.assertEqual(transcribe.split_lines("Hello there. How are you?", "English"),
+                         ["Hello there.", "How are you?"])
+
+    def test_comma_split(self):
+        text = "When we started the work we had no clue, and then everything changed quickly."
+        lines = transcribe.split_lines(text, "English")
+        self.assertEqual(lines, ["When we started the work we had no clue,", "and then everything changed quickly."])
+
+    def test_long_no_comma_wraps_by_words(self):
+        text = "this is a very long sentence without any commas that keeps going and going until it must wrap"
+        lines = transcribe.split_lines(text, "English")
+        self.assertGreater(len(lines), 1)
+        self.assertTrue(all(len(l) <= 42 for l in lines))
+        self.assertEqual(" ".join(lines), text)
+
+    def test_decimal_not_split(self):
+        self.assertEqual(transcribe.split_lines("It costs 3.5 dollars.", "English"), ["It costs 3.5 dollars."])
+
+    def test_chinese_unchanged_with_explicit_lang(self):
+        self.assertEqual(transcribe.split_lines("你好。今天天气不错！", "Chinese"), ["你好。", "今天天气不错！"])
+
+
+class SentencesTxt(unittest.TestCase):
+    def test_english(self):
+        self.assertEqual(transcribe.split_sentences_txt("Hi there. It is 3.5 now! Ok?", "English"),
+                         "Hi there.\nIt is 3.5 now!\nOk?")
+
+    def test_chinese(self):
+        self.assertEqual(transcribe.split_sentences_txt("你好。再见！", "Chinese"), "你好。\n再见！")
 
 
 class SplitLines(unittest.TestCase):
@@ -152,6 +227,23 @@ class DouyinPlayable(unittest.TestCase):
             douyin.check_playable({**self.OK, "aweme_type": 68})
         with self.assertRaises(FetchError):
             douyin.check_playable({**self.OK, "images": [{"url_list": ["x"]}]})
+
+
+
+class AutoLanguage(unittest.TestCase):
+    def test_auto_passes_through(self):
+        self.assertEqual(fetch.pick_language(None, "auto"), "auto")
+        self.assertEqual(fetch.pick_language("en", "auto"), "English")
+
+    def test_orphan_word_merged(self):
+        lines = transcribe.wrap_words("one two three four five six seven", 14)
+        self.assertNotIn(" ", lines[-1][-1:])  # 不以空格结尾
+        self.assertTrue(all(" " in l for l in lines), lines)
+
+    def test_two_lines_with_orphan(self):
+        # 只有两行且第二行是孤词：合并成一行
+        self.assertEqual(transcribe.wrap_words("And that's pretty much all there is to say", 38),
+                         ["And that's pretty much all there is to say"])
 
 
 if __name__ == "__main__":
