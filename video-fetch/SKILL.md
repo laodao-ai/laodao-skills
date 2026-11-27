@@ -1,6 +1,6 @@
 ---
 name: video-fetch
-description: 当用户给出 B站或抖音视频链接（含抖音 App 复制的整段分享文本），要求下载视频、分离音频、获取字幕、转写口播稿或逐字稿时使用。
+description: 当用户给出 B站、抖音或小红书视频链接（含 App 复制的整段分享文本），要求下载视频、分离音频、获取字幕、转写口播稿或逐字稿时使用。
 ---
 
 # 下载视频并转写口播稿
@@ -50,12 +50,13 @@ description: 当用户给出 B站或抖音视频链接（含抖音 App 复制的
 |---|---|---|---|---|
 | B站 | `bilibili.com/video/BV…`、`b23.tv/…` | yt-dlp | 要登录 cookie | `references/bilibili.md` |
 | 抖音 | `v.douyin.com/…`、`douyin.com/video/…`、分享文本 | 无头浏览器截获作品接口 | 通常没有 | `references/douyin.md` |
+| 小红书 | `xiaohongshu.com/explore/…`、`/discovery/item/…`，必须带 `xsec_token`；`xhslink` 短链暂不支持 | yt-dlp | 通常没有 | `references/xiaohongshu.md` |
 
 下载出错时先读对应平台的细节文件，里面记了已知失败和处理办法。
 
 ## 加一个平台
 
-1. 先读 `references/video-batch-download.md`，里面记了小红书、快手、微博的数据来源和坑。
+1. 先读 `references/video-batch-download.md`，里面记了快手、微博的数据来源和坑。
 2. 新建 `scripts/platforms/<平台>.py`，实现 `match(url)`、`resolve(url)`、`fetch(...)`，接口以 `scripts/platforms/__init__.py` 的说明为准。
 3. 在 `scripts/fetch.py` 的 `PLATFORMS` 列表里登记。
 4. 新建 `references/<平台>.md`，写清下载方式、字幕情况、已知失败。
@@ -67,5 +68,6 @@ description: 当用户给出 B站或抖音视频链接（含抖音 App 复制的
 |---|---|
 | B站提示 `Subtitles are only available when logged in` | 视频仍会下载和转写。要平台字幕，请用户提供 cookies.txt 或登录 B站的浏览器名，再用 `--cookies` 或 `--cookies-from-browser` 重跑 |
 | `--cookies-from-browser` 报找不到 cookie 库或不支持该浏览器 | 换浏览器，或让用户用浏览器插件导出 cookies.txt。yt-dlp 不支持 Arc；Safari 需要终端有完全磁盘访问权限 |
-| 抖音链接是图文作品 | 不支持，脚本会报错退出 |
+| 抖音链接是图文作品，或小红书是图文笔记 | 不支持，脚本会报错退出 |
+| 小红书报链接里没有 `xsec_token` | 让用户用「分享 → 复制链接」重新拿完整链接 |
 | 抖音报没截到作品接口 | 读 `references/douyin.md`。不要改用 yt-dlp 下抖音，它会被 403 拒绝 |

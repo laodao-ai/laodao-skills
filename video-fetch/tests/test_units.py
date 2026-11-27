@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import fetch  # noqa: E402
 import transcribe  # noqa: E402
-from platforms import FetchError, bilibili, douyin  # noqa: E402
+from platforms import FetchError, bilibili, douyin, xiaohongshu  # noqa: E402
 
 DY_SHARE = "5.12 复制打开抖音，看看【短耳兔AI的作品】5个AI交互动效提示词 https://v.douyin.com/xTMpUIFc6RM/ e@B.gO 10/03 YMw:/"
 
@@ -40,10 +40,39 @@ class Match(unittest.TestCase):
         self.assertFalse(bilibili.match("https://v.douyin.com/Sron2txr3Lg/"))
         self.assertFalse(bilibili.match("https://example.com/"))
 
+    def test_xiaohongshu(self):
+        self.assertTrue(xiaohongshu.match(XHS_URL))
+        self.assertFalse(xiaohongshu.match("https://v.douyin.com/Sron2txr3Lg/"))
+        self.assertFalse(xiaohongshu.match("https://example.com/xiaohongshu.com"))
+
     def test_find_platform(self):
         self.assertIs(fetch.find_platform("https://b23.tv/xxxx"), bilibili)
         self.assertIs(fetch.find_platform("https://v.douyin.com/Sron2txr3Lg/"), douyin)
         self.assertIsNone(fetch.find_platform("https://example.com/"))
+
+
+XHS_URL = ("https://www.xiaohongshu.com/explore/6a672b100000000001000161"
+           "?xsec_token=FAKE-token-for-tests=&xsec_source=app_share")
+
+
+class Xiaohongshu(unittest.TestCase):
+    def test_resolve_keeps_token(self):
+        note_id, canonical = xiaohongshu.resolve(XHS_URL)
+        self.assertEqual(note_id, "6a672b100000000001000161")
+        self.assertIn("xsec_token=FAKE-token-for-tests", canonical)
+
+    def test_discovery_item_path(self):
+        url = XHS_URL.replace("/explore/", "/discovery/item/")
+        self.assertEqual(xiaohongshu.resolve(url)[0], "6a672b100000000001000161")
+
+    def test_missing_token_rejected(self):
+        with self.assertRaises(FetchError):
+            xiaohongshu.resolve("https://www.xiaohongshu.com/explore/6a672b100000000001000161")
+
+    def test_share_text_extracts_full_url(self):
+        text = "终于把自媒体起号skill搭建成功了 " + XHS_URL + " 复制后打开【小红书】查看笔记！"
+        self.assertEqual(fetch.extract_url(text), XHS_URL)
+        self.assertIs(fetch.find_platform(XHS_URL), xiaohongshu)
 
 
 class Ids(unittest.TestCase):

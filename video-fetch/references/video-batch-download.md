@@ -15,6 +15,8 @@
 
 ### 小红书（`scripts/platforms/xiaohongshu.js`）
 
+> 本 skill 已支持小红书，但没有用下面的浏览器路线：实测无头 Chrome 被跳到登录页，取回 `redirectPath` 再开仍然如此。现用 yt-dlp，见 `references/xiaohongshu.md`。下面的内容留作 yt-dlp 失效时的参考。
+
 - 链接：`xiaohongshu.com/explore/<id>`、`/discovery/item/<id>`、`/note/<id>`，短链 `xhslink.cn/…`、`xhslink.com/…`。
 - 数据来源：页面的 `window.__INITIAL_STATE__` 里的笔记数据，按笔记 ID 取 `noteDetailMap[noteId]`（约 346–366 行）。
 - 视频流在 `note.video.media.stream` 下按编码分组：`h264`、`h265`、`av1`、`h266`（约 444–460 行）。另有 `originVideoKey`，可拼成 `https://sns-video-bd.xhscdn.com/<key>`（约 466 行）。

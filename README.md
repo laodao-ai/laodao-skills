@@ -10,7 +10,7 @@
 | 分类 | Skill | 说明 |
 |------|-------|------|
 | 内容创作 | bilibili-research | B站搜索词调研与选题分析 |
-| 内容创作 | video-fetch | 下载 B站/抖音视频，分离音频，获取平台字幕，并在本机转写逐句字幕与口播稿 |
+| 内容创作 | video-fetch | 下载 B站/抖音/小红书视频，分离音频，获取平台字幕，并在本机转写逐句字幕与口播稿 |
 | 内容创作 | x-research | X/Twitter 调研 |
 | 内容创作 | youtube-research | YouTube 调研 |
 | 内容创作 | zhihu-research | 知乎调研 |

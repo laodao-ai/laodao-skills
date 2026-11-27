@@ -17,9 +17,9 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from platforms import FetchError, bilibili, douyin  # noqa: E402
+from platforms import FetchError, bilibili, douyin, xiaohongshu  # noqa: E402
 
-PLATFORMS = [bilibili, douyin]
+PLATFORMS = [bilibili, douyin, xiaohongshu]
 
 # 抖音 App 分享文本是「文字 + 短链 + 口令」，只取第一个链接
 URL_RE = re.compile(r"https?://[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+,;=%]+")
@@ -76,7 +76,7 @@ def transcribe(wav, outdir):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="下载 B站/抖音视频并转写口播稿")
+    ap = argparse.ArgumentParser(description="下载 B站/抖音/小红书视频并转写口播稿")
     ap.add_argument("input", help="视频链接，或抖音 App 复制的整段分享文本")
     ap.add_argument("--output", help="输出目录；默认在当前目录建 <平台>-<视频ID>/")
     ap.add_argument("--cookies", help="Netscape 格式 cookies.txt（目前只有 B站用）")
