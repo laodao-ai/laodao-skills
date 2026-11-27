@@ -7,7 +7,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from . import FetchError, make_stats
+from . import FetchError, date_from_ytdlp_info, make_stats
 
 NAME = "bilibili"
 
@@ -85,6 +85,7 @@ def fetch(url, video_id, outdir, opts):
         "title": info.get("title", ""),
         "author": info.get("uploader", ""),
         "duration": info.get("duration"),
+        "published": date_from_ytdlp_info(info),
         "description": info.get("description", ""),
         "platform_subtitles": [str(p.relative_to(outdir)) for p in subs],
         "stats": fetch_stats(video_id, info),

@@ -6,7 +6,7 @@ import sys
 import urllib.parse
 import urllib.request
 
-from . import FetchError, make_stats
+from . import FetchError, date_from_timestamp, make_stats
 
 NAME = "xiaohongshu"
 
@@ -39,6 +39,17 @@ def resolve(url):
         raise FetchError("链接里没有 xsec_token，拿不到视频。请用小红书 App 或网页「分享 → 复制链接」得到的完整链接。")
     keep = {"xsec_token": token, "xsec_source": query.get("xsec_source", ["app_share"])[0]}
     return note_id, f"https://www.xiaohongshu.com/explore/{note_id}?{urllib.parse.urlencode(keep)}"
+
+
+def date_from_note_id(note_id):
+    """笔记 ID 前 8 位十六进制是创建时间的 Unix 秒（类似 MongoDB ObjectId）。
+
+    依据：实测 6a672b10… -> 1785146128，与笔记页数据里的发布时间完全相同。
+    yt-dlp 不给发布时间，所以用这个。ID 格式不对返回 None。纯函数，不联网。
+    """
+    if not isinstance(note_id, str) or not re.fullmatch(r"[0-9a-f]{24}", note_id):
+        return None
+    return date_from_timestamp(int(note_id[:8], 16))
 
 
 def fetch(url, video_id, outdir, opts):
@@ -76,14 +87,18 @@ def fetch(url, video_id, outdir, opts):
     info = json.loads(info_files[0].read_text(encoding="utf-8"))
 
     subs = sorted((outdir / "subtitles").glob("*.srt")) if (outdir / "subtitles").is_dir() else []
+    # yt-dlp 不给互动数据和作者昵称（只给用户 ID），都从手机版笔记页取
+    html = fetch_page(url)
+    user_id = info.get("uploader_id") or ""
+    nickname = nickname_from_html(html, user_id) if html else None
     return {
         "title": info.get("title", ""),
-        # yt-dlp 目前只给作者的用户 ID，不给昵称
-        "author": info.get("uploader") or info.get("uploader_id") or "",
+        "author": info.get("uploader") or nickname or user_id,
         "duration": info.get("duration"),
+        "published": date_from_note_id(video_id),
         "description": info.get("description", ""),
         "platform_subtitles": [str(p.relative_to(outdir)) for p in subs],
-        "stats": fetch_stats(url),
+        "stats": stats_from_page(html),
     }
 
 
@@ -130,14 +145,27 @@ def stats_from_html(html):
     )
 
 
-def fetch_stats(url):
-    """yt-dlp 不给互动数据，所以用手机 UA 再请求一次笔记页。失败只警告，返回 None。"""
+def nickname_from_html(html, user_id):
+    """按用户 ID 找作者昵称。页面里还有评论者的 user 块，所以必须用 ID 定位。纯函数，不联网。"""
+    if not user_id:
+        return None
+    found = re.search(r'"userId":"' + re.escape(user_id) + r'","nickName":"([^"]+)"', html)
+    return found.group(1) if found else None
+
+
+def fetch_page(url):
+    """用手机 UA 请求笔记页（服务端渲染里有互动数据和作者昵称）。失败只警告，返回 None。"""
     req = urllib.request.Request(url, headers={"User-Agent": MOBILE_UA})
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
-            html = resp.read().decode("utf-8", errors="replace")
+            return resp.read().decode("utf-8", errors="replace")
     except OSError as e:
-        print(f"警告：小红书互动数据取数失败（{e}），meta.json 的 stats 写 null。", file=sys.stderr)
+        print(f"警告：小红书笔记页请求失败（{e}），作者只记用户 ID，meta.json 的 stats 写 null。", file=sys.stderr)
+        return None
+
+
+def stats_from_page(html):
+    if html is None:
         return None
     stats = stats_from_html(html)
     if stats is None:

@@ -152,6 +152,7 @@ def main():
         "title": info["title"],
         "author": info["author"],
         "duration": info["duration"],
+        "published": info.get("published"),
         "description": info["description"],
         "fetched_at": fetched_at,
         "stats": stats,

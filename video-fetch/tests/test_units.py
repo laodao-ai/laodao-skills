@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import fetch  # noqa: E402
 import transcribe  # noqa: E402
-from platforms import FetchError, bilibili, douyin, xiaohongshu, youtube  # noqa: E402
+from platforms import FetchError, bilibili, date_from_timestamp, date_from_ytdlp_info, douyin, xiaohongshu, youtube  # noqa: E402
 
 DY_SHARE = "5.12 复制打开抖音，看看【短耳兔AI的作品】5个AI交互动效提示词 https://v.douyin.com/xTMpUIFc6RM/ e@B.gO 10/03 YMw:/"
 
@@ -298,6 +298,30 @@ class StatsMapping(unittest.TestCase):
         })
 
 
+class PublishedDate(unittest.TestCase):
+    def test_ytdlp_upload_date(self):
+        self.assertEqual(date_from_ytdlp_info({"upload_date": "20260807"}), "2026-08-07")
+
+    def test_ytdlp_timestamp_fallback(self):
+        # 1785146128 = 2026-07-27 北京时间；换算按东八区
+        self.assertEqual(date_from_ytdlp_info({"timestamp": 1785146128}), "2026-07-27")
+        # 2026-07-27 16:30 UTC 已是北京时间 07-28
+        self.assertEqual(date_from_ytdlp_info({"timestamp": 1785169800}), "2026-07-28")
+
+    def test_ytdlp_missing(self):
+        self.assertIsNone(date_from_ytdlp_info({}))
+        self.assertIsNone(date_from_ytdlp_info({"upload_date": None, "timestamp": None}))
+
+    def test_douyin_create_time(self):
+        self.assertEqual(date_from_timestamp(1785146128), "2026-07-27")
+        self.assertIsNone(date_from_timestamp(None))
+
+    def test_xiaohongshu_note_id(self):
+        self.assertEqual(xiaohongshu.date_from_note_id("6a672b100000000001000161"), "2026-07-27")
+        self.assertIsNone(xiaohongshu.date_from_note_id("not-an-id"))
+        self.assertIsNone(xiaohongshu.date_from_note_id(None))
+
+
 class AutoLanguage(unittest.TestCase):
     def test_auto_passes_through(self):
         self.assertEqual(fetch.pick_language(None, "auto"), "auto")
@@ -312,6 +336,19 @@ class AutoLanguage(unittest.TestCase):
         # 只有两行且第二行是孤词：合并成一行
         self.assertEqual(transcribe.wrap_words("And that's pretty much all there is to say", 38),
                          ["And that's pretty much all there is to say"])
+
+
+
+class XhsNickname(unittest.TestCase):
+    HTML = ('"user":{"userId":"5e65e5720000000001004464","nickName":"年轻朋友阿甜","avatar":"x"}'
+            '"user":{"userId":"670fbeba000000001b01a7b4","nickname":"评论者"}')
+
+    def test_found_by_user_id(self):
+        self.assertEqual(xiaohongshu.nickname_from_html(self.HTML, "5e65e5720000000001004464"), "年轻朋友阿甜")
+
+    def test_other_user_not_used(self):
+        self.assertIsNone(xiaohongshu.nickname_from_html(self.HTML, "000000000000000000000000"))
+        self.assertIsNone(xiaohongshu.nickname_from_html(self.HTML, ""))
 
 
 if __name__ == "__main__":

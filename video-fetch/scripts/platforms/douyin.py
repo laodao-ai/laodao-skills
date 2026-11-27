@@ -6,7 +6,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from . import FetchError, make_stats
+from . import FetchError, date_from_timestamp, make_stats
 
 NAME = "douyin"
 
@@ -176,6 +176,8 @@ def fetch(url, video_id, outdir, opts):
         "title": aweme.get("item_title") or aweme.get("desc", ""),
         "author": (aweme.get("author") or {}).get("nickname", ""),
         "duration": duration_ms / 1000 if duration_ms else None,
+        # create_time 是 Unix 秒
+        "published": date_from_timestamp(aweme.get("create_time")),
         "description": aweme.get("desc", ""),
         "platform_subtitles": [],
         "stats": stats_from_aweme(aweme),

@@ -19,6 +19,8 @@
           outdir/subtitles/       平台字幕（有才建）
         返回 {"title", "author", "duration", "description", "platform_subtitles"}，
         duration 为秒，platform_subtitles 是相对 outdir 的路径列表。
+        可选再带 "published"（发布日期，字符串 YYYY-MM-DD，按东八区换算，拿不到就 None 或不带；
+        换算用本模块的 date_from_timestamp / date_from_ytdlp_info，不要各平台自己写）。
         可选再带 "language"（ISO 语言代码，如 en、zh，不知道就 None 或不带）。
         可选再带 "stats"（互动数据），结构由 make_stats() 生成：
           {"views": int|None, "likes": int|None, "comments": int|None,
@@ -35,8 +37,32 @@
 """
 
 
+from datetime import datetime, timedelta, timezone
+
+# 发布日期统一按东八区换算：作者与观众都在国内，同一个时刻在不同平台不会因时区差一天
+CST = timezone(timedelta(hours=8))
+
+
 class FetchError(Exception):
     pass
+
+
+def date_from_timestamp(ts):
+    """Unix 秒转东八区日期 YYYY-MM-DD。None、非数字返回 None。纯函数，不联网。"""
+    if not isinstance(ts, (int, float)) or isinstance(ts, bool):
+        return None
+    return datetime.fromtimestamp(ts, CST).strftime("%Y-%m-%d")
+
+
+def date_from_ytdlp_info(info):
+    """yt-dlp info.json 取发布日期：先用 upload_date（"20260807"），没有再用 timestamp 换算。
+
+    upload_date 是 yt-dlp 已按平台口径算好的日期，直接改格式，不再换时区。
+    """
+    upload_date = info.get("upload_date")
+    if isinstance(upload_date, str) and len(upload_date) == 8 and upload_date.isdigit():
+        return f"{upload_date[:4]}-{upload_date[4:6]}-{upload_date[6:]}"
+    return date_from_timestamp(info.get("timestamp"))
 
 
 def make_stats(views=None, likes=None, comments=None, favorites=None, shares=None, approximate=(), extra=None):
